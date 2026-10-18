@@ -18,8 +18,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Facebook integration is not configured. Please contact support." }, { status: 503 })
   }
 
-  // Requested scopes for managing pages and messages
-  const scope = "pages_manage_metadata,pages_messaging,pages_read_engagement,pages_show_list"
+  // Requested scopes for managing pages and messages (public_profile is required by Facebook Login)
+  const scope = "public_profile,pages_show_list,pages_read_engagement,pages_manage_metadata,pages_messaging"
   
   // Use auth_type=rerequest so Facebook always prompts the user to select ANY page,
   // preventing locking into a previously selected or hardcoded account.
