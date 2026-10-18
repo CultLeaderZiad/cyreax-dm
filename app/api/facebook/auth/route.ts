@@ -18,12 +18,18 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Facebook integration is not configured. Please contact support." }, { status: 503 })
   }
 
-  // Requested scopes for managing pages and messages (public_profile is required by Facebook Login)
-  const scope = "public_profile,pages_show_list,pages_read_engagement,pages_manage_metadata,pages_messaging"
-  
-  // Use auth_type=rerequest so Facebook always prompts the user to select ANY page,
-  // preventing locking into a previously selected or hardcoded account.
-  const url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=code&auth_type=rerequest`
-  
+  const { searchParams } = new URL(request.url)
+  const configId = searchParams.get("config_id") || process.env.NEXT_PUBLIC_FACEBOOK_CONFIG_ID || process.env.FACEBOOK_CONFIG_ID || "957445130313793"
+
+  let url: string
+  if (configId) {
+    // Facebook Login for Business uses a Configuration ID instead of manual scope string
+    url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${encodeURIComponent(configId)}&response_type=code&override_default_response_type=true&auth_type=rerequest`
+  } else {
+    // Standard Facebook Login using scope (public_profile is required)
+    const scope = "public_profile,pages_show_list,pages_read_engagement,pages_manage_metadata,pages_messaging"
+    url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=code&auth_type=rerequest`
+  }
+
   return NextResponse.redirect(url)
 }
