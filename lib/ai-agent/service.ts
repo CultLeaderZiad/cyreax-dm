@@ -65,24 +65,55 @@ function asVector(value: unknown): number[] {
 async function retrieve(supabase: Db, userId: string | number, message: string): Promise<RetrievedChunk[]> {
   const embedded = await embedText(message)
   const rpc = await callMatch(supabase, userId, embedded.vector, embedded.embedder)
-  if (rpc) return rpc
+  if (rpc && rpc.length > 0) return rpc
   const selected = await supabase
     .from("knowledge_chunks")
     .select("id, source_id, content, embedding, embedder")
     .eq("user_id", userId)
     .limit(200)
-  if (selected.error || !Array.isArray(selected.data)) return []
-  const chunks: KnowledgeChunk[] = selected.data.map((row: any) => ({
-    id: row.id,
-    sourceId: row.source_id,
-    title: null,
-    content: String(row.content || ""),
-    embedding: asVector(row.embedding),
-    embedder: String(row.embedder || "hash-v1"),
-  }))
+
+  let chunks: KnowledgeChunk[] = []
+  if (!selected.error && Array.isArray(selected.data) && selected.data.length > 0) {
+    chunks = selected.data.map((row: any) => ({
+      id: row.id,
+      sourceId: row.source_id,
+      title: null,
+      content: String(row.content || ""),
+      embedding: asVector(row.embedding),
+      embedder: String(row.embedder || "hash-v1"),
+    }))
+  }
+
+  // Fallback directly to knowledge_sources if chunks are empty
+  if (chunks.length === 0) {
+    const { data: sources } = await supabase
+      .from("knowledge_sources")
+      .select("id, kind, title, body")
+      .eq("user_id", userId)
+      .limit(50)
+    if (Array.isArray(sources) && sources.length > 0) {
+      const { computeLexicalOverlap } = await import("@/lib/ai-agent/retrieve")
+      return sources
+        .map((s) => {
+          const content = `Q: ${s.title}\nA: ${s.body}`
+          const lexical = computeLexicalOverlap(message, `${s.title} ${s.body}`)
+          return {
+            id: String(s.id),
+            sourceId: String(s.id),
+            title: s.title,
+            content,
+            similarity: Number(Math.max(0.2, 0.45 + lexical * 0.5).toFixed(4)),
+          }
+        })
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, 4)
+    }
+    return []
+  }
+
   const embedder: EmbedderName = chunks.some((chunk) => chunk.embedder === embedded.embedder) ? embedded.embedder : "hash-v1"
   const query = embedder === "hash-v1" ? hashEmbedding(message) : embedded.vector
-  return rankChunks(query, chunks, embedder, 4)
+  return rankChunks(query, chunks, embedder, 4, message)
 }
 
 async function callMatch(supabase: Db, userId: string | number, vector: number[], embedder: string): Promise<RetrievedChunk[] | null> {

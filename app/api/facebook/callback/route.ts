@@ -94,8 +94,13 @@ export async function GET(request: NextRequest) {
 
   const clientId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || process.env.INSTAGRAM_APP_ID || process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID
   const clientSecret = process.env.FACEBOOK_APP_SECRET || process.env.META_APP_SECRET || process.env.INSTAGRAM_APP_SECRET
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL
-  const redirectUri = process.env.NEXT_PUBLIC_FACEBOOK_REDIRECT_URI || `${appUrl}/api/facebook/callback`
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host")
+  const proto = request.headers.get("x-forwarded-proto") || "https"
+  const currentOrigin = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_APP_URL || "https://cyreax-dm.vercel.app")
+  let redirectUri = `${currentOrigin}/api/facebook/callback`
+  if (process.env.NEXT_PUBLIC_FACEBOOK_REDIRECT_URI && process.env.NEXT_PUBLIC_FACEBOOK_REDIRECT_URI.includes(host || "")) {
+    redirectUri = process.env.NEXT_PUBLIC_FACEBOOK_REDIRECT_URI
+  }
 
   if (!clientId || !clientSecret || !redirectUri) {
     console.error("[FB Callback] Missing configuration: App ID, Secret, or Redirect URI is not set.")

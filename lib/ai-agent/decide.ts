@@ -54,10 +54,20 @@ export function decideAgentTurn(input: {
   const chosen = used.size
     ? input.retrieved.filter((_, index) => used.has(index + 1))
     : input.retrieved.slice(0, 3)
+
+  let rawReply = String(model.reply || "").trim()
+  let confidence = Number(model.confidence ?? 0.8)
+  if (!rawReply && chosen.length > 0 && (chosen[0].similarity >= input.settings.minSimilarity)) {
+    const topContent = chosen[0].content
+    const answerMatch = topContent.match(/(?:A:|الجواب:|الإجابة:)\s*([^\n]+(?:\n[^\n]+)*)/i)
+    rawReply = answerMatch ? answerMatch[1].trim() : topContent
+    confidence = Math.max(confidence, chosen[0].similarity)
+  }
+
   const guarded = applyGuardrails({
     message: input.message,
-    reply: String(model.reply || ""),
-    confidence: Number(model.confidence ?? 0.5),
+    reply: rawReply,
+    confidence,
     detection,
     retrieved: input.retrieved,
     settings: input.settings,

@@ -102,7 +102,7 @@ export function KnowledgePanel({
   const [newAnswer, setNewAnswer] = useState("")
   const [newCategory, setNewCategory] = useState("General")
 
-  React.useEffect(() => {
+  const loadKnowledge = React.useCallback(() => {
     fetch("/api/ai-agent/knowledge")
       .then((res) => res.json())
       .then((data) => {
@@ -114,11 +114,27 @@ export function KnowledgePanel({
             statusText: s.created_at ? new Date(s.created_at).toLocaleDateString() : "synced",
             pill: <Pill variant="green" dot={false}>Synced</Pill>,
           }))
-          setSources((prev) => [...apiSources, ...prev])
+          setSources(apiSources)
+
+          const faqs = data.sources
+            .filter((s: any) => s.kind === "faq" || s.kind === "policy" || !s.kind)
+            .map((s: any) => ({
+              id: String(s.id),
+              question: s.title,
+              answer: s.body || "",
+              category: s.kind === "policy" ? "Policy" : "FAQ",
+            }))
+          if (faqs.length > 0) {
+            setQaItems(faqs)
+          }
         }
       })
       .catch(console.error)
   }, [])
+
+  React.useEffect(() => {
+    loadKnowledge()
+  }, [loadKnowledge])
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -143,20 +159,11 @@ export function KnowledgePanel({
           method: "POST",
           body: formData,
         })
+        toast.success(`Uploaded ${file.name} to knowledge base`)
+        loadKnowledge()
       } catch (err) {
-        console.warn("Upload error:", err)
+        toast.error("Upload error")
       }
-      toast.success(`Uploaded ${file.name} to knowledge base`)
-      setSources((prev) => [
-        {
-          id: `file-${Date.now()}`,
-          icon: FileText,
-          name: `${file.name} · ${(file.size / 1024).toFixed(0)} KB`,
-          statusText: "just now",
-          pill: <Pill variant="green" dot={false}>Synced</Pill>,
-        },
-        ...prev,
-      ])
     }
   }
 
@@ -171,37 +178,46 @@ export function KnowledgePanel({
           method: "POST",
           body: formData,
         })
+        toast.success(`Uploaded ${file.name} to knowledge base`)
+        loadKnowledge()
       } catch (err) {
-        console.warn("Upload error:", err)
+        toast.error("Upload error")
       }
-      toast.success(`Uploaded ${file.name} to knowledge base`)
-      setSources((prev) => [
-        {
-          id: `file-${Date.now()}`,
-          icon: FileText,
-          name: `${file.name} · ${(file.size / 1024).toFixed(0)} KB`,
-          statusText: "just now",
-          pill: <Pill variant="green" dot={false}>Synced</Pill>,
-        },
-        ...prev,
-      ])
     }
   }
 
-  const handleSaveEditQa = () => {
+  const handleSaveEditQa = async () => {
     if (!editingQa) return
-    setQaItems((prev) =>
-      prev.map((item) => (item.id === editingQa.id ? editingQa : item))
-    )
+    try {
+      await fetch("/api/ai-agent/knowledge", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingQa.id,
+          title: editingQa.question,
+          body: editingQa.answer,
+        }),
+      })
+      toast.success("Q&A updated in knowledge base")
+      loadKnowledge()
+    } catch {
+      toast.error("Failed to update Q&A")
+    }
     setEditingQa(null)
-    toast.success("Q&A updated")
   }
 
-  const handleDeleteQa = () => {
+  const handleDeleteQa = async () => {
     if (!deletingQaId) return
-    setQaItems((prev) => prev.filter((item) => item.id !== deletingQaId))
+    try {
+      await fetch(`/api/ai-agent/knowledge?id=${encodeURIComponent(deletingQaId)}`, {
+        method: "DELETE",
+      })
+      toast.success("Q&A entry removed from knowledge base")
+      loadKnowledge()
+    } catch {
+      toast.error("Failed to delete Q&A")
+    }
     setDeletingQaId(null)
-    toast.success("Q&A entry removed")
   }
 
   const handleAddQa = async () => {
@@ -209,7 +225,7 @@ export function KnowledgePanel({
     const q = newQuestion.trim()
     const a = newAnswer.trim()
     try {
-      await fetch("/api/ai-agent/knowledge", {
+      const res = await fetch("/api/ai-agent/knowledge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -218,21 +234,19 @@ export function KnowledgePanel({
           body: a,
         }),
       })
-    } catch (err) {
-      console.warn("Save knowledge error:", err)
+      if (res.ok) {
+        toast.success("Added new Q&A entry to workspace knowledge")
+        loadKnowledge()
+      } else {
+        toast.error("Could not save Q&A")
+      }
+    } catch {
+      toast.error("Network error saving knowledge")
     }
 
-    const newItem: QaItem = {
-      id: `qa-${Date.now()}`,
-      question: q,
-      answer: a,
-      category: newCategory,
-    }
-    setQaItems((prev) => [newItem, ...prev])
     setNewQuestion("")
     setNewAnswer("")
     setIsAddQaOpen(false)
-    toast.success("Added new Q&A entry to workspace knowledge")
   }
 
   const filteredQa = qaItems.filter(

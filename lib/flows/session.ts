@@ -1,13 +1,34 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { requireSessionUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { ensureTenantProfile } from "@/lib/tenant-user"
 
 export async function workspaceSession(request: NextRequest) {
   const result = await requireSessionUser(request)
   if (result.response) return { response: result.response as NextResponse }
-  const userId = result.igUser?.id
-  if (!userId) return { response: NextResponse.json({ error: "No workspace profile" }, { status: 400 }) }
+  
   const supabase = await getSupabaseBypassClient()
+  let userId = result.igUser?.id
+
+  if (!userId && result.user) {
+    try {
+      const profile = await ensureTenantProfile(
+        supabase,
+        result.user,
+        "workspace_managed",
+        result.workspace?.id
+      )
+      userId = profile?.id
+    } catch (e) {
+      console.warn("[workspaceSession] Failed to auto-provision profile, falling back to account id:", e)
+      userId = result.user.id
+    }
+  }
+
+  if (!userId) {
+    return { response: NextResponse.json({ error: "No workspace profile found" }, { status: 400 }) }
+  }
+
   return {
     supabase,
     userId,

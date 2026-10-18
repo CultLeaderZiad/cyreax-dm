@@ -54,6 +54,7 @@ export const NAV: NavItem[] = [
   {
     id: "automations",
     label: "Automations",
+    href: "/dashboard/automations",
     icon: Zap,
     mobileTab: true,
     children: [
@@ -66,10 +67,13 @@ export const NAV: NavItem[] = [
   {
     id: "ai",
     label: "AI Agent",
+    href: "/dashboard/ai-engine",
     icon: Sparkles,
     mobileTab: true,
     children: [
+      { id: "agents-list", label: "Agents", href: "/dashboard/ai-engine?tab=agents", icon: Bot },
       { id: "knowledge", label: "Knowledge", href: "/dashboard/ai-engine?tab=knowledge", icon: FileText },
+      { id: "insights", label: "Insights", href: "/dashboard/ai-engine?tab=insights", icon: Sparkles },
       { id: "logs", label: "Logs", href: "/dashboard/ai", icon: Bot },
     ],
   },
@@ -89,11 +93,13 @@ export const NAV: NavItem[] = [
   {
     id: "channels",
     label: "Channels",
+    href: "/dashboard/connected-platforms",
     icon: MessageCircle,
     children: [
-      { id: "whatsapp", label: "WhatsApp", href: "/dashboard/platforms/whatsapp" },
-      { id: "instagram", label: "Instagram", href: "/dashboard/platforms/instagram" },
+      { id: "all-channels", label: "Overview", href: "/dashboard/connected-platforms" },
       { id: "messenger", label: "Messenger", href: "/dashboard/platforms/facebook" },
+      { id: "instagram", label: "Instagram", href: "/dashboard/platforms/instagram" },
+      { id: "whatsapp", label: "WhatsApp", href: "/dashboard/platforms/whatsapp" },
       { id: "tiktok", label: "TikTok", href: "/dashboard/platforms/tiktok" },
       { id: "telegram", label: "Telegram", href: "/dashboard/platforms/telegram" },
     ],
@@ -107,6 +113,7 @@ export const NAV: NavItem[] = [
   {
     id: "settings",
     label: "Settings",
+    href: "/dashboard/settings",
     icon: SlidersHorizontal,
     children: [
       { id: "general", label: "General", href: "/dashboard/settings", icon: Sliders },

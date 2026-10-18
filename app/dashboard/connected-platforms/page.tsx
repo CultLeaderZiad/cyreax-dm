@@ -48,46 +48,39 @@ function ChannelsPageContent() {
 
   return (
     <div className="min-h-[calc(100vh-52px)] bg-[var(--bg)] text-[var(--t1)] flex flex-col select-none">
-      {/* Top Actions Bar */}
-      <div className="h-[52px] border-b border-[var(--line)] px-6 flex items-center justify-between bg-[var(--s1)] shrink-0 z-10">
-        <div className="flex items-center gap-2">
-          <span className="text-[12px] text-[var(--t3)] font-medium">{BRAND.name}</span>
-          <span className="text-[12px] text-[var(--t4)]">/</span>
-          <span className="text-[12px] text-[var(--t1)] font-semibold">Channels</span>
-        </div>
-
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleCheckHealth}
-          disabled={checkingHealth}
-          className="h-[30px] px-3 text-[12px] font-medium gap-1.5"
-        >
-          <RefreshCw
-            className={`w-3.5 h-3.5 text-[var(--t3)] ${
-              checkingHealth ? "animate-spin" : ""
-            }`}
-          />
-          <span>Check health</span>
-        </Button>
-      </div>
-
       {/* Main Content */}
       <div className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6 overflow-y-auto scrollbar-thin scrollbar-thumb-[var(--line2)]">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-start justify-between gap-4 flex-wrap pt-1">
           <div className="space-y-1">
             <h1 className="text-[20px] font-bold text-[var(--t1)] tracking-tight">
-              Channels
+              Channels & Connected Platforms
             </h1>
             <p className="text-[12.5px] text-[var(--t3)]">
               Connect each channel once per client. {BRAND.name} watches tokens and webhooks so DMs never go missing.
             </p>
           </div>
 
-          <Pill variant={connections.length > 0 ? "green" : "neutral"} dot={connections.length > 0}>
-            {connections.length} connected · 0 errors
-          </Pill>
+          <div className="flex items-center gap-2.5">
+            <Pill variant={connections.length > 0 ? "green" : "neutral"} dot={connections.length > 0}>
+              {connections.length} connected · 0 errors
+            </Pill>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleCheckHealth}
+              disabled={checkingHealth}
+              className="h-[30px] px-3 text-[12px] font-medium gap-1.5 cursor-pointer"
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 text-[var(--t3)] ${
+                  checkingHealth ? "animate-spin" : ""
+                }`}
+              />
+              <span>Check health</span>
+            </Button>
+          </div>
         </div>
 
         {/* 6 Channel Cards Grid */}

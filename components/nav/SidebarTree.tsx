@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { NAV, type NavItem, filterNavByRole } from "@/lib/nav/config"
 import { BrandLogo } from "@/components/ui/BrandLogo"
@@ -35,6 +35,7 @@ export function SidebarTree({
   onNavigate,
 }: SidebarTreeProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const { usage } = useWorkspaceUsage()
   const items = filterNavByRole(NAV, userRole)
 
@@ -78,6 +79,21 @@ export function SidebarTree({
       return next
     })
   }, [])
+
+  const handleParentClick = useCallback((item: NavItem) => {
+    if (expandedId !== item.id) {
+      setExpandedId(item.id)
+      try {
+        localStorage.setItem("cyreax_nav_open_parent", item.id)
+      } catch {}
+    }
+    if (item.href) {
+      onNavigate?.()
+      router.push(item.href)
+    } else {
+      toggleExpand(item.id)
+    }
+  }, [expandedId, onNavigate, router, toggleExpand])
 
   // Keyboard navigation for tree (ARIA compliant)
   const treeRef = useRef<HTMLDivElement>(null)
@@ -189,14 +205,20 @@ export function SidebarTree({
 
               {/* Parent Item Row */}
               {hasChildren ? (
-                <button
-                  type="button"
+                <div
                   data-parent-id={item.id}
-                  onClick={() => toggleExpand(item.id)}
+                  onClick={() => handleParentClick(item)}
                   aria-expanded={isOpen}
-                  aria-controls={`sub-${item.id}`}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      handleParentClick(item)
+                    }
+                  }}
                   className={cn(
-                    "w-full flex items-center justify-between ps-3.5 pe-2.5 rounded-[8px] transition-colors cursor-pointer text-start",
+                    "w-full flex items-center justify-between ps-3.5 pe-1.5 rounded-[8px] transition-colors cursor-pointer text-start group",
                     parentHeight,
                     isOpen || isParentActive
                       ? "text-[var(--t1)] font-medium bg-[var(--s2)]"
@@ -215,12 +237,22 @@ export function SidebarTree({
                     )}
                     <span className="text-[13px] truncate">{item.label}</span>
                   </div>
-                  {isOpen ? (
-                    <ChevronDown className="size-3.5 text-[var(--t3)] shrink-0" />
-                  ) : (
-                    <ChevronRight className="size-3.5 text-[var(--t3)] shrink-0" />
-                  )}
-                </button>
+                  <button
+                    type="button"
+                    aria-label={isOpen ? `Collapse ${item.label}` : `Expand ${item.label}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleExpand(item.id)
+                    }}
+                    className="p-1 rounded-[6px] hover:bg-[var(--s3)] text-[var(--t3)] hover:text-[var(--t1)] transition-colors cursor-pointer"
+                  >
+                    {isOpen ? (
+                      <ChevronDown className="size-3.5 shrink-0" />
+                    ) : (
+                      <ChevronRight className="size-3.5 shrink-0" />
+                    )}
+                  </button>
+                </div>
               ) : (
                 <Link
                   href={item.href || "#"}
