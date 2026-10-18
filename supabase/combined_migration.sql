@@ -1,0 +1,2451 @@
+-- ========================================================
+-- HELIXA / CYREAX DM: COMPLETE COMBINED MIGRATION SCRIPT
+-- Run this entire file in Supabase SQL Editor
+-- ========================================================
+
+-- Global Extensions and Column Prerequisites
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Ensure platform column exists on conversations and messages before constraints
+ALTER TABLE IF EXISTS public.conversations ADD COLUMN IF NOT EXISTS platform text NOT NULL DEFAULT 'instagram';
+CREATE INDEX IF NOT EXISTS idx_conversations_platform ON public.conversations(platform);
+
+ALTER TABLE IF EXISTS public.messages ADD COLUMN IF NOT EXISTS platform text NOT NULL DEFAULT 'instagram';
+CREATE INDEX IF NOT EXISTS idx_messages_platform ON public.messages(platform);
+
+-- Ensure platform_content and comment_sentiment have required columns
+ALTER TABLE IF EXISTS public.platform_content ADD COLUMN IF NOT EXISTS external_post_id TEXT;
+ALTER TABLE IF EXISTS public.platform_content ADD COLUMN IF NOT EXISTS author_name TEXT;
+ALTER TABLE IF EXISTS public.platform_content ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS public.platform_content ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE IF EXISTS public.platform_content ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE IF EXISTS public.comment_sentiment ADD COLUMN IF NOT EXISTS external_post_id TEXT;
+ALTER TABLE IF EXISTS public.comment_sentiment ADD COLUMN IF NOT EXISTS comment_id TEXT;
+ALTER TABLE IF EXISTS public.comment_sentiment ADD COLUMN IF NOT EXISTS confidence NUMERIC(4, 2) DEFAULT 1.0;
+ALTER TABLE IF EXISTS public.comment_sentiment ADD COLUMN IF NOT EXISTS raw_analysis JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS public.comment_sentiment ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
+
+
+-- --------------------------------------------------------
+-- START OF FILE: 20260813_toggle_pricing.sql
+-- --------------------------------------------------------
+
+-- ============================================================================
+-- Toggle-based pricing (monthly/annual same tier) + Enterprise inquiries
+-- ============================================================================
+
+-- Support a second price for the annual toggle on the same plan row,
+-- instead of separate Monthly/Yearly plan rows
+ALTER TABLE public.plans ADD COLUMN IF NOT EXISTS price_yearly NUMERIC(10,2);
+ALTER TABLE public.plans ADD COLUMN IF NOT EXISTS is_contact_sales BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Widen billing_cycle to allow an 'enterprise' marker (dynamic, safe
+-- against whatever values already exist — same pattern as the earlier
+-- billing_cycle fix)
+DO $$
+DECLARE
+  existing_values TEXT[];
+  new_values TEXT[] := ARRAY['monthly','yearly','lifetime','enterprise'];
+  all_values TEXT[];
+  constraint_list TEXT;
+  r RECORD;
+BEGIN
+  EXECUTE 'SELECT array_agg(DISTINCT billing_cycle) FROM public.plans' INTO existing_values;
+  IF existing_values IS NULL THEN existing_values := ARRAY[]::TEXT[]; END IF;
+  SELECT array_agg(DISTINCT v) INTO all_values FROM unnest(existing_values || new_values) AS v;
+
+  FOR r IN
+    SELECT conname FROM pg_constraint
+    WHERE conrelid = 'public.plans'::regclass
+      AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%billing_cycle%'
+  LOOP
+    EXECUTE format('ALTER TABLE public.plans DROP CONSTRAINT %I', r.conname);
+  END LOOP;
+
+  SELECT string_agg(quote_literal(v), ', ') INTO constraint_list FROM unnest(all_values) AS v;
+  EXECUTE format(
+    'ALTER TABLE public.plans ADD CONSTRAINT plans_billing_cycle_check CHECK (billing_cycle IN (%s))',
+    constraint_list
+  );
+END $$;
+
+-- Enterprise/custom plan inquiries — public lead capture, admin-reviewed
+CREATE TABLE IF NOT EXISTS public.enterprise_inquiries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID REFERENCES public.accounts(id) ON DELETE SET NULL,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  company TEXT,
+  needs_description TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  admin_note TEXT,
+  reviewed_by BIGINT REFERENCES public.users(id) ON DELETE SET NULL,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_enterprise_inquiries_status ON public.enterprise_inquiries(status);
+
+ALTER TABLE public.enterprise_inquiries ENABLE ROW LEVEL SECURITY;
+
+
+
+-- --------------------------------------------------------
+-- START OF FILE: 20260817_multi_platform_schema.sql
+-- --------------------------------------------------------
+
+-- 20260817_multi_platform_schema.sql
+-- Add 'platform' column to 'conversations' and 'messages' for multi-channel support.
+
+-- Add to conversations
+ALTER TABLE conversations
+ADD COLUMN IF NOT EXISTS platform text NOT NULL DEFAULT 'instagram';
+
+CREATE INDEX IF NOT EXISTS idx_conversations_platform ON conversations(platform);
+
+-- Add to messages
+ALTER TABLE messages
+ADD COLUMN IF NOT EXISTS platform text NOT NULL DEFAULT 'instagram';
+
+CREATE INDEX IF NOT EXISTS idx_messages_platform ON messages(platform);
+
+-- We keep is_from_instagram for backward compatibility for now,
+-- but the new platform column will be used going forward.
+
+
+
+-- --------------------------------------------------------
+-- START OF FILE: 20260910_57_platform_content_sentiment.sql
+-- --------------------------------------------------------
+
+-- ============================================================================
+-- Migration 57: Platform Content & Comment Sentiment Analysis
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.platform_content (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL CHECK (platform IN ('facebook', 'instagram', 'telegram', 'messenger', 'whatsapp')),
+  external_post_id TEXT NOT NULL,
+  permalink TEXT,
+  caption TEXT,
+  thumbnail_url TEXT,
+  author_name TEXT,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (account_id, platform, external_post_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_platform_content_account ON public.platform_content(account_id);
+CREATE INDEX IF NOT EXISTS idx_platform_content_post ON public.platform_content(external_post_id);
+CREATE INDEX IF NOT EXISTS idx_platform_content_platform_post ON public.platform_content(platform, external_post_id);
+
+CREATE TABLE IF NOT EXISTS public.comment_sentiment (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
+  platform_content_id UUID REFERENCES public.platform_content(id) ON DELETE SET NULL,
+  external_post_id TEXT NOT NULL,
+  comment_id TEXT NOT NULL UNIQUE,
+  comment_text TEXT NOT NULL,
+  sentiment TEXT NOT NULL CHECK (sentiment IN ('positive', 'neutral', 'negative')),
+  confidence NUMERIC(4, 2) DEFAULT 1.0,
+  raw_analysis JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_comment_sentiment_post ON public.comment_sentiment(external_post_id);
+CREATE INDEX IF NOT EXISTS idx_comment_sentiment_account ON public.comment_sentiment(account_id);
+CREATE INDEX IF NOT EXISTS idx_comment_sentiment_comment ON public.comment_sentiment(comment_id);
+
+ALTER TABLE public.automation_events ADD COLUMN IF NOT EXISTS post_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_automation_events_post_id ON public.automation_events(post_id);
+
+ALTER TABLE public.platform_content ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.comment_sentiment ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Accounts can view and manage their own platform content' AND tablename = 'platform_content') THEN
+    CREATE POLICY "Accounts can view and manage their own platform content"
+      ON public.platform_content
+      FOR ALL
+      USING (account_id = auth.uid())
+      WITH CHECK (account_id = auth.uid());
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Accounts can view and manage their comment sentiment' AND tablename = 'comment_sentiment') THEN
+    CREATE POLICY "Accounts can view and manage their comment sentiment"
+      ON public.comment_sentiment
+      FOR ALL
+      USING (account_id = auth.uid())
+      WITH CHECK (account_id = auth.uid());
+  END IF;
+END $$;
+
+
+
+-- --------------------------------------------------------
+-- START OF FILE: 20260930_phase1_rls_realtime.sql
+-- --------------------------------------------------------
+
+-- =============================================================================
+-- Helixa phase 1: row-level security and realtime lockdown
+-- =============================================================================
+-- Run this yourself in the Supabase SQL editor:
+--   Dashboard → SQL → New query → paste this file → Run
+--
+-- Do not point a migration runner at a production database from CI.
+-- Take a backup (or a point-in-time restore point) before running it.
+--
+-- The Next.js server uses SUPABASE_SERVICE_ROLE_KEY. In Supabase that role
+-- bypasses RLS, so webhooks and API routes keep working after this script.
+-- The anon key shipped to the browser does not bypass RLS.
+--
+-- What this changes:
+--   1. Enables RLS on the core tenant tables (deny by default).
+--   2. Lets a logged-in user read only their own rows, plus rows of an agency
+--      they have *accepted* a team seat on (agency_team_members.status = active).
+--   3. Lets an accounts.role = 'admin' user read tenant rows (admin dashboard).
+--   4. Removes token-bearing tables from the Realtime publication so access
+--      tokens are not broadcast to browsers. Column grants cannot strip
+--      columns out of a realtime payload, so the table has to leave the
+--      publication.
+--   5. Revokes SELECT on access_token / BYOK ciphertext from anon and
+--      authenticated. Service role is unaffected.
+--   6. Adds users.reconnect_required and users.token_refreshed_at for the
+--      Instagram token refresh job.
+--
+-- After it succeeds, open Database → Advisors and confirm there is no
+-- remaining policy with USING (true) on these tables. This script adds
+-- restrictive-by-default policies but does not delete unknown policies you
+-- may have created by hand. Permissive policies are OR'd together.
+-- =============================================================================
+
+-- BEGIN;
+-- ---------------------------------------------------------------------------
+-- Instagram reconnect bookkeeping (safe if the columns already exist)
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS reconnect_required BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS token_refreshed_at TIMESTAMPTZ;
+
+-- ---------------------------------------------------------------------------
+-- Ownership helpers. SECURITY DEFINER so policies can read users/accounts
+-- without recursive RLS. search_path is pinned. Not executable by anon.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.helixa_is_account_owner(target_account uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT target_account IS NOT NULL AND (
+    target_account = auth.uid()
+    OR EXISTS (
+      SELECT 1
+      FROM public.agency_team_members t
+      WHERE t.agency_account_id = target_account
+        AND t.member_account_id = auth.uid()
+        AND t.status = 'active'
+    )
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.helixa_owns_profile(profile_id bigint)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.users u
+    WHERE u.id = profile_id
+      AND public.helixa_is_account_owner(u.account_id)
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.helixa_is_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.accounts a
+    WHERE a.id = auth.uid()
+      AND a.role = 'admin'
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.helixa_is_account_owner(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.helixa_owns_profile(bigint) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.helixa_is_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.helixa_is_account_owner(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.helixa_owns_profile(bigint) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.helixa_is_admin() TO authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Enable RLS where the table exists (schema drift is expected).
+-- ---------------------------------------------------------------------------
+DO $$
+DECLARE
+  t text;
+  tables text[] := ARRAY[
+    'users',
+    'accounts',
+    'conversations',
+    'messages',
+    'automations',
+    'automation_events',
+    'automation_variants',
+    'platform_connections',
+    'leads',
+    'conversation_state',
+    'ice_breakers',
+    'ai_usage_log',
+    'media_cache',
+    'oauth_sessions',
+    'account_agent_settings',
+    'subscriptions',
+    'payment_submissions',
+    'webhook_events',
+    'dm_queue',
+    'ai_comment_themes',
+    'ai_faq_suggestions',
+    'agency_team_members'
+  ];
+BEGIN
+  FOREACH t IN ARRAY tables LOOP
+    IF to_regclass('public.' || t) IS NOT NULL THEN
+      EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+    END IF;
+  END LOOP;
+END $$;
+
+-- Helper: replace one of our policies. Unknown policies are left in place.
+CREATE OR REPLACE FUNCTION public.helixa_set_policy(
+  table_name text,
+  policy_name text,
+  command text,
+  using_expr text,
+  check_expr text DEFAULT NULL
+)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF to_regclass('public.' || table_name) IS NULL THEN
+    RETURN;
+  END IF;
+  EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', policy_name, table_name);
+  IF check_expr IS NULL THEN
+    EXECUTE format(
+      'CREATE POLICY %I ON public.%I AS PERMISSIVE FOR %s TO authenticated USING (%s)',
+      policy_name, table_name, command, using_expr
+    );
+  ELSE
+    EXECUTE format(
+      'CREATE POLICY %I ON public.%I AS PERMISSIVE FOR %s TO authenticated USING (%s) WITH CHECK (%s)',
+      policy_name, table_name, command, using_expr, check_expr
+    );
+  END IF;
+END;
+$$;
+
+-- Profiles and accounts
+SELECT public.helixa_set_policy(
+  'users', 'helixa_users_select', 'SELECT',
+  'public.helixa_is_account_owner(account_id) OR public.helixa_is_admin()'
+);
+
+-- accounts.id is the Supabase auth user id (see lib/auth.ts).
+-- Drop the original policies that compared a user_id column the app no longer uses.
+DO $$
+BEGIN
+  IF to_regclass('public.accounts') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Users can view own account" ON public.accounts';
+    EXECUTE 'DROP POLICY IF EXISTS "Admins can view all accounts" ON public.accounts';
+  END IF;
+END $$;
+
+SELECT public.helixa_set_policy(
+  'accounts', 'helixa_accounts_select', 'SELECT',
+  'id = auth.uid() OR public.helixa_is_admin()'
+);
+
+-- Business tables keyed by users.id
+SELECT public.helixa_set_policy('conversations', 'helixa_conversations_select', 'SELECT', 'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()');
+SELECT public.helixa_set_policy('messages', 'helixa_messages_select', 'SELECT', 'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()');
+SELECT public.helixa_set_policy('automations', 'helixa_automations_select', 'SELECT', 'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()');
+SELECT public.helixa_set_policy('automation_events', 'helixa_automation_events_select', 'SELECT', 'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()');
+SELECT public.helixa_set_policy('leads', 'helixa_leads_select', 'SELECT', 'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()');
+SELECT public.helixa_set_policy('conversation_state', 'helixa_conversation_state_select', 'SELECT', 'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()');
+SELECT public.helixa_set_policy('ice_breakers', 'helixa_ice_breakers_select', 'SELECT', 'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()');
+SELECT public.helixa_set_policy('ai_usage_log', 'helixa_ai_usage_log_select', 'SELECT', 'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()');
+SELECT public.helixa_set_policy('media_cache', 'helixa_media_cache_select', 'SELECT', 'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()');
+SELECT public.helixa_set_policy('subscriptions', 'helixa_subscriptions_select', 'SELECT', 'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()');
+SELECT public.helixa_set_policy('payment_submissions', 'helixa_payment_submissions_select', 'SELECT', 'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()');
+SELECT public.helixa_set_policy('webhook_events', 'helixa_webhook_events_select', 'SELECT', 'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()');
+SELECT public.helixa_set_policy('ai_comment_themes', 'helixa_ai_comment_themes_select', 'SELECT', 'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()');
+SELECT public.helixa_set_policy('ai_faq_suggestions', 'helixa_ai_faq_suggestions_select', 'SELECT', 'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()');
+
+-- Variants have no user_id; ownership goes through the parent automation.
+SELECT public.helixa_set_policy(
+  'automation_variants', 'helixa_automation_variants_select', 'SELECT',
+  'EXISTS (SELECT 1 FROM public.automations a WHERE a.id = automation_id AND (public.helixa_owns_profile(a.user_id) OR public.helixa_is_admin()))'
+);
+
+-- Tokens. Authenticated clients get no policy on oauth_sessions or dm_queue
+-- (default deny). platform_connections is readable by the owner but the
+-- access_token column is revoked below, and the table is not in Realtime.
+-- account_id was added by hand in some environments (scripts/58); only
+-- reference it when the column exists so this script still applies.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'platform_connections'
+      AND column_name = 'account_id'
+  ) THEN
+    PERFORM public.helixa_set_policy(
+      'platform_connections', 'helixa_platform_connections_select', 'SELECT',
+      'public.helixa_owns_profile(user_id) OR public.helixa_is_account_owner(account_id) OR public.helixa_is_admin()'
+    );
+  ELSE
+    PERFORM public.helixa_set_policy(
+      'platform_connections', 'helixa_platform_connections_select', 'SELECT',
+      'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()'
+    );
+  END IF;
+END $$;
+
+SELECT public.helixa_set_policy(
+  'account_agent_settings', 'helixa_account_agent_settings_select', 'SELECT',
+  'public.helixa_is_account_owner(account_id) OR public.helixa_is_admin()'
+);
+
+SELECT public.helixa_set_policy(
+  'agency_team_members', 'helixa_team_select', 'SELECT',
+  'public.helixa_is_account_owner(agency_account_id) OR member_account_id = auth.uid() OR public.helixa_is_admin()'
+);
+
+-- No client policies on these. Service role still reads and writes them.
+-- (Policies are not created, so authenticated/anon are denied once RLS is on.)
+
+DROP FUNCTION public.helixa_set_policy(text, text, text, text, text);
+
+-- ---------------------------------------------------------------------------
+-- Column privileges. Realtime is handled separately below; this stops
+-- PostgREST from returning ciphertext/plaintext tokens to the browser.
+-- ---------------------------------------------------------------------------
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'access_token'
+  ) THEN
+    EXECUTE 'REVOKE SELECT (access_token) ON public.users FROM anon, authenticated';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'platform_connections' AND column_name = 'access_token'
+  ) THEN
+    EXECUTE 'REVOKE SELECT (access_token) ON public.platform_connections FROM anon, authenticated';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'account_agent_settings' AND column_name = 'byok_key_encrypted'
+  ) THEN
+    EXECUTE 'REVOKE SELECT (byok_key_encrypted) ON public.account_agent_settings FROM anon, authenticated';
+  END IF;
+
+  IF to_regclass('public.oauth_sessions') IS NOT NULL THEN
+    EXECUTE 'REVOKE ALL ON public.oauth_sessions FROM anon, authenticated';
+  END IF;
+
+  IF to_regclass('public.dm_queue') IS NOT NULL THEN
+    EXECUTE 'REVOKE ALL ON public.dm_queue FROM anon, authenticated';
+  END IF;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- Stop broadcasting tables that contain access tokens or user secrets.
+-- messages / automation_events / accounts stay if you already added them,
+-- and the SELECT policies above limit those events to the owning user.
+-- ---------------------------------------------------------------------------
+DO $$
+DECLARE
+  rel text;
+  sensitive text[] := ARRAY[
+    'users',
+    'platform_connections',
+    'oauth_sessions',
+    'account_agent_settings',
+    'dm_queue'
+  ];
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    FOREACH rel IN ARRAY sensitive LOOP
+      IF EXISTS (
+        SELECT 1
+        FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime'
+          AND schemaname = 'public'
+          AND tablename = rel
+      ) THEN
+        EXECUTE format('ALTER PUBLICATION supabase_realtime DROP TABLE public.%I', rel);
+      END IF;
+    END LOOP;
+  END IF;
+END $$;
+
+-- COMMIT;
+
+
+-- --------------------------------------------------------
+-- START OF FILE: 20260930_phase2_workspaces_and_events.sql
+-- --------------------------------------------------------
+
+-- =============================================================================
+-- Helixa phase 2: workspaces and the inbound event queue
+-- =============================================================================
+-- Run this yourself in the Supabase SQL editor, after
+-- 20260930_phase1_rls_realtime.sql:
+--   Dashboard → SQL → New query → paste this file → Run
+--
+-- Do not point a migration runner at a production database from CI.
+-- Take a backup before running it.
+--
+-- What this changes:
+--   1. workspaces + workspace_members (owner, admin, member, client-viewer).
+--   2. One default workspace per existing account. Current profiles, and the
+--      rows that point at them, are tagged with that workspace so nothing is
+--      deleted or rewritten onto a new id.
+--   3. Accepted agency seats become memberships on the agency's default
+--      workspace. A person in several agencies can switch; they are no longer
+--      stuck on the oldest seat.
+--   4. RLS reads go through workspace membership. A client-viewer of workspace
+--      A cannot read workspace B. Service role (the Next.js server) still
+--      bypasses RLS.
+--   5. inbound_events is the webhook queue: one row per logical event, unique
+--      on the idempotency key, with claim / backoff / dead-letter columns.
+--      anon and authenticated have no access.
+-- =============================================================================
+
+-- BEGIN;
+-- ---------------------------------------------------------------------------
+-- Workspaces
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.workspaces (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  owner_account_id uuid NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS workspaces_owner_idx ON public.workspaces(owner_account_id);
+
+CREATE TABLE IF NOT EXISTS public.workspace_members (
+  workspace_id uuid NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  account_id uuid NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
+  role text NOT NULL CHECK (role IN ('owner', 'admin', 'member', 'client-viewer')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (workspace_id, account_id)
+);
+
+CREATE INDEX IF NOT EXISTS workspace_members_account_idx ON public.workspace_members(account_id);
+
+ALTER TABLE public.accounts
+  ADD COLUMN IF NOT EXISTS active_workspace_id uuid;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'accounts_active_workspace_id_fkey'
+  ) THEN
+    ALTER TABLE public.accounts
+      ADD CONSTRAINT accounts_active_workspace_id_fkey
+      FOREIGN KEY (active_workspace_id) REFERENCES public.workspaces(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS workspace_id uuid;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'users_workspace_id_fkey'
+  ) THEN
+    ALTER TABLE public.users
+      ADD CONSTRAINT users_workspace_id_fkey
+      FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+ALTER TABLE public.agency_team_members
+  ADD COLUMN IF NOT EXISTS workspace_id uuid;
+
+-- ---------------------------------------------------------------------------
+-- Backfill one default workspace per account. Idempotent: an account that
+-- already owns a workspace is left alone.
+-- ---------------------------------------------------------------------------
+INSERT INTO public.workspaces (name, owner_account_id)
+SELECT
+  COALESCE(NULLIF(split_part(a.email, '@', 1), ''), 'Workspace'),
+  a.id
+FROM public.accounts a
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.workspaces w WHERE w.owner_account_id = a.id
+);
+
+INSERT INTO public.workspace_members (workspace_id, account_id, role)
+SELECT w.id, w.owner_account_id, 'owner'
+FROM public.workspaces w
+ON CONFLICT (workspace_id, account_id) DO NOTHING;
+
+UPDATE public.accounts a
+SET active_workspace_id = w.id
+FROM public.workspaces w
+WHERE w.owner_account_id = a.id
+  AND a.active_workspace_id IS NULL;
+
+-- Tag the account's existing profile rows onto its default workspace.
+-- If an account already has several workspaces, only untagged profiles move,
+-- and only onto the oldest workspace so a later client workspace is not
+-- filled with the original account's data.
+UPDATE public.users u
+SET workspace_id = picked.id
+FROM (
+  SELECT DISTINCT ON (owner_account_id) id, owner_account_id
+  FROM public.workspaces
+  ORDER BY owner_account_id, created_at ASC
+) picked
+WHERE u.account_id = picked.owner_account_id
+  AND u.workspace_id IS NULL;
+
+-- Child rows learn their workspace from the profile they already point at.
+DO $$
+DECLARE
+  t text;
+  tables text[] := ARRAY[
+    'platform_connections',
+    'automations',
+    'automation_events',
+    'conversations',
+    'messages',
+    'leads',
+    'conversation_state',
+    'ice_breakers',
+    'ai_usage_log',
+    'ai_comment_themes',
+    'ai_faq_suggestions',
+    'media_cache',
+    'content_pool',
+    'scheduler_config',
+    'reels_posts',
+    'subscriptions',
+    'payment_submissions',
+    'manual_payments',
+    'webhook_events'
+  ];
+BEGIN
+  FOREACH t IN ARRAY tables LOOP
+    IF to_regclass('public.' || t) IS NULL THEN
+      CONTINUE;
+    END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = t AND column_name = 'user_id'
+    ) THEN
+      CONTINUE;
+    END IF;
+    EXECUTE format('ALTER TABLE public.%I ADD COLUMN IF NOT EXISTS workspace_id uuid', t);
+    EXECUTE format(
+      'UPDATE public.%I child
+       SET workspace_id = u.workspace_id
+       FROM public.users u
+       WHERE child.user_id = u.id
+         AND child.workspace_id IS NULL
+         AND u.workspace_id IS NOT NULL',
+      t
+    );
+  END LOOP;
+END $$;
+
+-- Accepted team seats join the agency's default workspace.
+-- viewer → client-viewer, editor → member, admin → admin.
+-- The owner row is left as owner if the member account is also the owner.
+INSERT INTO public.workspace_members (workspace_id, account_id, role)
+SELECT picked.id,
+       t.member_account_id,
+       CASE lower(COALESCE(t.permission_level, 'viewer'))
+         WHEN 'admin' THEN 'admin'
+         WHEN 'editor' THEN 'member'
+         WHEN 'member' THEN 'member'
+         ELSE 'client-viewer'
+       END
+FROM public.agency_team_members t
+JOIN (
+  SELECT DISTINCT ON (owner_account_id) id, owner_account_id
+  FROM public.workspaces
+  ORDER BY owner_account_id, created_at ASC
+) picked ON picked.owner_account_id = t.agency_account_id
+WHERE t.status = 'active'
+  AND t.member_account_id IS NOT NULL
+ON CONFLICT (workspace_id, account_id) DO NOTHING;
+
+UPDATE public.agency_team_members t
+SET workspace_id = picked.id
+FROM (
+  SELECT DISTINCT ON (owner_account_id) id, owner_account_id
+  FROM public.workspaces
+  ORDER BY owner_account_id, created_at ASC
+) picked
+WHERE t.agency_account_id = picked.owner_account_id
+  AND t.workspace_id IS NULL;
+
+-- New signups get a default workspace without waiting for the app.
+CREATE OR REPLACE FUNCTION public.helixa_create_default_workspace()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  ws uuid;
+BEGIN
+  INSERT INTO public.workspaces (name, owner_account_id)
+  VALUES (COALESCE(NULLIF(split_part(NEW.email, '@', 1), ''), 'Workspace'), NEW.id)
+  RETURNING id INTO ws;
+
+  INSERT INTO public.workspace_members (workspace_id, account_id, role)
+  VALUES (ws, NEW.id, 'owner');
+
+  UPDATE public.accounts SET active_workspace_id = ws WHERE id = NEW.id;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS helixa_account_default_workspace ON public.accounts;
+CREATE TRIGGER helixa_account_default_workspace
+  AFTER INSERT ON public.accounts
+  FOR EACH ROW
+  EXECUTE FUNCTION public.helixa_create_default_workspace();
+
+-- ---------------------------------------------------------------------------
+-- RLS: membership, not "oldest agency seat".
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.helixa_workspace_role(target_workspace uuid)
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT m.role
+  FROM public.workspace_members m
+  WHERE m.workspace_id = target_workspace
+    AND m.account_id = auth.uid()
+  LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.helixa_can_read_workspace(target_workspace uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT target_workspace IS NOT NULL AND (
+    public.helixa_workspace_role(target_workspace) IS NOT NULL
+    OR public.helixa_is_admin()
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.helixa_owns_profile(profile_id bigint)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.users u
+    WHERE u.id = profile_id
+      AND (
+        public.helixa_is_admin()
+        OR (
+          u.workspace_id IS NOT NULL
+          AND public.helixa_can_read_workspace(u.workspace_id)
+        )
+        OR (u.workspace_id IS NULL AND u.account_id = auth.uid())
+      )
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.helixa_workspace_role(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.helixa_can_read_workspace(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.helixa_owns_profile(bigint) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.helixa_workspace_role(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.helixa_can_read_workspace(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.helixa_owns_profile(bigint) TO authenticated;
+
+ALTER TABLE public.workspaces ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.workspace_members ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION public.helixa_set_policy(
+  table_name text,
+  policy_name text,
+  command text,
+  using_expr text,
+  check_expr text DEFAULT NULL
+)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF to_regclass('public.' || table_name) IS NULL THEN
+    RETURN;
+  END IF;
+  EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', policy_name, table_name);
+  IF check_expr IS NULL THEN
+    EXECUTE format(
+      'CREATE POLICY %I ON public.%I AS PERMISSIVE FOR %s TO authenticated USING (%s)',
+      policy_name, table_name, command, using_expr
+    );
+  ELSE
+    EXECUTE format(
+      'CREATE POLICY %I ON public.%I AS PERMISSIVE FOR %s TO authenticated USING (%s) WITH CHECK (%s)',
+      policy_name, table_name, command, using_expr, check_expr
+    );
+  END IF;
+END;
+$$;
+
+SELECT public.helixa_set_policy(
+  'workspaces', 'helixa_workspaces_select', 'SELECT',
+  'public.helixa_can_read_workspace(id) OR owner_account_id = auth.uid() OR public.helixa_is_admin()'
+);
+
+SELECT public.helixa_set_policy(
+  'workspace_members', 'helixa_workspace_members_select', 'SELECT',
+  'account_id = auth.uid() OR public.helixa_can_read_workspace(workspace_id) OR public.helixa_is_admin()'
+);
+
+SELECT public.helixa_set_policy(
+  'users', 'helixa_users_select', 'SELECT',
+  '(workspace_id IS NOT NULL AND public.helixa_can_read_workspace(workspace_id)) OR public.helixa_owns_profile(id) OR public.helixa_is_admin()'
+);
+
+DO $$
+DECLARE
+  t text;
+  tables text[] := ARRAY[
+    'conversations',
+    'messages',
+    'automations',
+    'automation_events',
+    'leads',
+    'conversation_state',
+    'ice_breakers',
+    'ai_usage_log',
+    'media_cache',
+    'subscriptions',
+    'payment_submissions',
+    'webhook_events',
+    'ai_comment_themes',
+    'ai_faq_suggestions',
+    'platform_connections'
+  ];
+  expr text;
+BEGIN
+  FOREACH t IN ARRAY tables LOOP
+    IF to_regclass('public.' || t) IS NULL THEN
+      CONTINUE;
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = t AND column_name = 'workspace_id'
+    ) AND EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = t AND column_name = 'user_id'
+    ) THEN
+      expr := '(workspace_id IS NOT NULL AND public.helixa_can_read_workspace(workspace_id)) OR public.helixa_owns_profile(user_id) OR public.helixa_is_admin()';
+    ELSIF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = t AND column_name = 'user_id'
+    ) THEN
+      expr := 'public.helixa_owns_profile(user_id) OR public.helixa_is_admin()';
+    ELSE
+      CONTINUE;
+    END IF;
+    PERFORM public.helixa_set_policy(t, 'helixa_' || t || '_select', 'SELECT', expr);
+  END LOOP;
+END $$;
+
+DROP FUNCTION public.helixa_set_policy(text, text, text, text, text);
+
+-- ---------------------------------------------------------------------------
+-- Inbound event queue. The Next.js server is the only writer.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.inbound_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  platform text NOT NULL CHECK (platform IN ('instagram', 'facebook', 'whatsapp', 'telegram')),
+  idempotency_key text NOT NULL UNIQUE,
+  account_key text,
+  workspace_id uuid,
+  payload jsonb NOT NULL,
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'done', 'dead')),
+  attempts integer NOT NULL DEFAULT 0,
+  next_attempt_at timestamptz NOT NULL DEFAULT now(),
+  locked_at timestamptz,
+  last_error text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  processed_at timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS inbound_events_due_idx
+  ON public.inbound_events (next_attempt_at)
+  WHERE status IN ('pending', 'processing');
+
+CREATE INDEX IF NOT EXISTS inbound_events_account_idx
+  ON public.inbound_events (account_key, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.inbound_rate_buckets (
+  account_key text PRIMARY KEY,
+  window_start timestamptz NOT NULL,
+  count integer NOT NULL DEFAULT 0
+);
+
+ALTER TABLE public.inbound_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.inbound_rate_buckets ENABLE ROW LEVEL SECURITY;
+
+REVOKE ALL ON public.inbound_events FROM anon, authenticated;
+REVOKE ALL ON public.inbound_rate_buckets FROM anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.claim_inbound_events(batch_size integer, lock_seconds integer)
+RETURNS SETOF public.inbound_events
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  WITH due AS (
+    SELECT e.id
+    FROM public.inbound_events e
+    WHERE (
+      e.status = 'pending' AND e.next_attempt_at <= now()
+    ) OR (
+      e.status = 'processing'
+      AND e.locked_at IS NOT NULL
+      AND e.locked_at < now() - make_interval(secs => GREATEST(lock_seconds, 30))
+    )
+    ORDER BY e.next_attempt_at
+    FOR UPDATE SKIP LOCKED
+    LIMIT GREATEST(batch_size, 1)
+  )
+  UPDATE public.inbound_events event
+  SET status = 'processing',
+      locked_at = now()
+  FROM due
+  WHERE event.id = due.id
+  RETURNING event.*;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.take_inbound_rate_slot(
+  p_account_key text,
+  p_limit integer,
+  p_window_seconds integer
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  slot public.inbound_rate_buckets%ROWTYPE;
+BEGIN
+  INSERT INTO public.inbound_rate_buckets (account_key, window_start, count)
+  VALUES (p_account_key, now(), 0)
+  ON CONFLICT (account_key) DO NOTHING;
+
+  SELECT * INTO slot
+  FROM public.inbound_rate_buckets
+  WHERE account_key = p_account_key
+  FOR UPDATE;
+
+  IF slot.window_start < now() - make_interval(secs => GREATEST(p_window_seconds, 1)) THEN
+    slot.window_start := now();
+    slot.count := 0;
+  END IF;
+
+  IF slot.count >= GREATEST(p_limit, 1) THEN
+    UPDATE public.inbound_rate_buckets
+    SET window_start = slot.window_start,
+        count = slot.count
+    WHERE account_key = p_account_key;
+    RETURN false;
+  END IF;
+
+  UPDATE public.inbound_rate_buckets
+  SET window_start = slot.window_start,
+      count = slot.count + 1
+  WHERE account_key = p_account_key;
+  RETURN true;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.claim_inbound_events(integer, integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.take_inbound_rate_slot(text, integer, integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.claim_inbound_events(integer, integer) TO service_role;
+GRANT EXECUTE ON FUNCTION public.take_inbound_rate_slot(text, integer, integer) TO service_role;
+
+-- COMMIT;
+
+
+-- --------------------------------------------------------
+-- START OF FILE: 20260930_phase3_contacts_and_clicks.sql
+-- --------------------------------------------------------
+
+-- Phase 3: workspace contacts, messaging window, message direction, click tracking.
+-- Run after 20260930_phase2_workspaces_and_events.sql. Idempotent. Does not delete rows.
+-- Do not run this from the app. Run it in the Supabase SQL editor.
+
+-- ---------------------------------------------------------------------------
+-- Outbound vs inbound. The old is_from_instagram flag meant inbound on
+-- Instagram and WhatsApp, and was false for both directions on Messenger
+-- and Telegram. sender_id matching the conversation recipient is the inbound
+-- message.
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.messages
+  ADD COLUMN IF NOT EXISTS direction text;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'messages_direction_check'
+  ) THEN
+    ALTER TABLE public.messages
+      ADD CONSTRAINT messages_direction_check
+      CHECK (direction IS NULL OR direction IN ('in', 'out'));
+  END IF;
+END $$;
+
+UPDATE public.messages m
+SET direction = CASE
+  WHEN c.recipient_id IS NOT NULL AND m.sender_id::text = c.recipient_id::text THEN 'in'
+  WHEN COALESCE(m.is_from_instagram, false) THEN 'in'
+  ELSE 'out'
+END
+FROM public.conversations c
+WHERE m.conversation_id = c.id
+  AND m.direction IS NULL;
+
+UPDATE public.messages
+SET direction = CASE WHEN COALESCE(is_from_instagram, false) THEN 'in' ELSE 'out' END
+WHERE direction IS NULL;
+
+CREATE INDEX IF NOT EXISTS messages_user_direction_idx
+  ON public.messages (user_id, direction);
+
+-- ---------------------------------------------------------------------------
+-- One contact per person per channel, scoped to the workspace.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.contacts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  user_id bigint NOT NULL,
+  channel text NOT NULL,
+  external_id text NOT NULL,
+  display_name text,
+  username text,
+  tags text[] NOT NULL DEFAULT '{}',
+  custom_fields jsonb NOT NULL DEFAULT '{}'::jsonb,
+  source text,
+  source_automation_id uuid,
+  first_seen_at timestamptz NOT NULL DEFAULT now(),
+  last_seen_at timestamptz NOT NULL DEFAULT now(),
+  last_inbound_at timestamptz,
+  bot_paused boolean NOT NULL DEFAULT false,
+  email text,
+  phone text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS contacts_user_channel_external_idx
+  ON public.contacts (user_id, channel, external_id);
+
+CREATE INDEX IF NOT EXISTS contacts_workspace_idx
+  ON public.contacts (workspace_id, last_seen_at DESC);
+
+CREATE INDEX IF NOT EXISTS contacts_last_inbound_idx
+  ON public.contacts (user_id, channel, last_inbound_at);
+
+-- ---------------------------------------------------------------------------
+-- Redirect targets for /r/[code]. A hit writes automation_events.link_click.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.tracked_links (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  code text NOT NULL UNIQUE,
+  workspace_id uuid,
+  user_id bigint,
+  automation_id uuid,
+  variant_id uuid,
+  channel text,
+  contact_external_id text,
+  destination_url text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS tracked_links_user_idx ON public.tracked_links (user_id);
+
+ALTER TABLE public.contacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tracked_links ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS helixa_contacts_select ON public.contacts;
+CREATE POLICY helixa_contacts_select ON public.contacts
+  FOR SELECT TO authenticated
+  USING (
+    (workspace_id IS NOT NULL AND public.helixa_can_read_workspace(workspace_id))
+    OR public.helixa_owns_profile(user_id)
+    OR public.helixa_is_admin()
+  );
+
+DROP POLICY IF EXISTS helixa_tracked_links_select ON public.tracked_links;
+CREATE POLICY helixa_tracked_links_select ON public.tracked_links
+  FOR SELECT TO authenticated
+  USING (
+    (workspace_id IS NOT NULL AND public.helixa_can_read_workspace(workspace_id))
+    OR public.helixa_owns_profile(user_id)
+    OR public.helixa_is_admin()
+  );
+
+-- The redirect and the webhooks use the service role, which bypasses RLS.
+-- authenticated has no insert/update policy, so the browser cannot write these.
+
+
+
+-- --------------------------------------------------------
+-- START OF FILE: 20260930_phase4_channels.sql
+-- --------------------------------------------------------
+
+-- Phase 4: WhatsApp numbers, TikTok tokens, website chat.
+-- Run after 20260930_phase3_contacts_and_clicks.sql. Idempotent. Does not delete rows.
+-- Do not run this from the app. Run it in the Supabase SQL editor.
+
+-- ---------------------------------------------------------------------------
+-- A conversation remembers which number, TikTok account, or widget it uses.
+-- The old unique (user_id, recipient_id) would collapse two WhatsApp numbers
+-- into one thread. The replacement includes platform and channel account.
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.conversations
+  ADD COLUMN IF NOT EXISTS channel_account_id text;
+
+ALTER TABLE public.conversations
+  ADD COLUMN IF NOT EXISTS external_thread_id text;
+
+DO $$
+DECLARE
+  constraint_name text;
+BEGIN
+  FOR constraint_name IN
+    SELECT con.conname
+    FROM pg_constraint con
+    JOIN pg_class rel ON rel.oid = con.conrelid
+    JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+    WHERE nsp.nspname = 'public'
+      AND rel.relname = 'conversations'
+      AND con.contype = 'u'
+      AND pg_get_constraintdef(con.oid) ILIKE '%user_id%'
+      AND pg_get_constraintdef(con.oid) ILIKE '%recipient_id%'
+      AND pg_get_constraintdef(con.oid) NOT ILIKE '%channel_account_id%'
+  LOOP
+    EXECUTE format('ALTER TABLE public.conversations DROP CONSTRAINT %I', constraint_name);
+  END LOOP;
+END $$;
+
+DO $$
+BEGIN
+  CREATE UNIQUE INDEX IF NOT EXISTS conversations_user_recipient_channel_idx
+    ON public.conversations (
+      user_id,
+      recipient_id,
+      COALESCE(platform, ''),
+      COALESCE(channel_account_id, '')
+    );
+EXCEPTION
+  WHEN unique_violation THEN
+    RAISE NOTICE 'conversations_user_recipient_channel_idx was not created because duplicate threads exist. Deduplicate, then re-run this statement.';
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- TikTok refresh tokens. SELECT is revoked the same way as access_token.
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.platform_connections
+  ADD COLUMN IF NOT EXISTS refresh_token text;
+
+ALTER TABLE public.platform_connections
+  ADD COLUMN IF NOT EXISTS token_expires_at timestamptz;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'platform_connections' AND column_name = 'refresh_token'
+  ) THEN
+    EXECUTE 'REVOKE SELECT (refresh_token) ON public.platform_connections FROM anon, authenticated';
+  END IF;
+END $$;
+
+-- Widen platform checks so tiktok and webchat can be stored and queued.
+DO $$
+DECLARE
+  constraint_name text;
+BEGIN
+  FOR constraint_name IN
+    SELECT con.conname
+    FROM pg_constraint con
+    JOIN pg_class rel ON rel.oid = con.conrelid
+    JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+    WHERE nsp.nspname = 'public'
+      AND rel.relname = 'platform_connections'
+      AND con.contype = 'c'
+      AND pg_get_constraintdef(con.oid) ILIKE '%platform%'
+      AND pg_get_constraintdef(con.oid) ILIKE '%whatsapp%'
+  LOOP
+    EXECUTE format('ALTER TABLE public.platform_connections DROP CONSTRAINT %I', constraint_name);
+  END LOOP;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'platform_connections_platform_check') THEN
+    ALTER TABLE public.platform_connections
+      ADD CONSTRAINT platform_connections_platform_check
+      CHECK (platform IN ('instagram', 'facebook', 'messenger', 'whatsapp', 'telegram', 'tiktok', 'webchat'));
+  END IF;
+END $$;
+
+DO $$
+DECLARE
+  constraint_name text;
+BEGIN
+  FOR constraint_name IN
+    SELECT con.conname
+    FROM pg_constraint con
+    JOIN pg_class rel ON rel.oid = con.conrelid
+    JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+    WHERE nsp.nspname = 'public'
+      AND rel.relname = 'inbound_events'
+      AND con.contype = 'c'
+      AND pg_get_constraintdef(con.oid) ILIKE '%platform%'
+      AND pg_get_constraintdef(con.oid) ILIKE '%instagram%'
+  LOOP
+    EXECUTE format('ALTER TABLE public.inbound_events DROP CONSTRAINT %I', constraint_name);
+  END LOOP;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'inbound_events_platform_check') THEN
+    ALTER TABLE public.inbound_events
+      ADD CONSTRAINT inbound_events_platform_check
+      CHECK (platform IN ('instagram', 'facebook', 'messenger', 'whatsapp', 'telegram', 'tiktok', 'webchat'));
+  END IF;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- Approved WhatsApp templates, copied from the WABA. The browser can read
+-- them. Only the service role writes them.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.whatsapp_templates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id bigint NOT NULL,
+  workspace_id uuid,
+  phone_number_id text NOT NULL,
+  waba_id text,
+  name text NOT NULL,
+  language text NOT NULL,
+  status text NOT NULL,
+  category text,
+  components jsonb NOT NULL DEFAULT '[]'::jsonb,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, phone_number_id, name, language)
+);
+
+CREATE INDEX IF NOT EXISTS whatsapp_templates_user_idx
+  ON public.whatsapp_templates (user_id, status);
+
+ALTER TABLE public.whatsapp_templates ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS helixa_whatsapp_templates_select ON public.whatsapp_templates;
+CREATE POLICY helixa_whatsapp_templates_select ON public.whatsapp_templates
+  FOR SELECT TO authenticated
+  USING (
+    (workspace_id IS NOT NULL AND public.helixa_can_read_workspace(workspace_id))
+    OR public.helixa_owns_profile(user_id)
+    OR public.helixa_is_admin()
+  );
+
+-- ---------------------------------------------------------------------------
+-- Website chat. Visitors have no Supabase session. secret_hash is not
+-- readable by authenticated or anon. The widget polls a server route.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.webchat_widgets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id bigint NOT NULL,
+  workspace_id uuid,
+  public_key text NOT NULL UNIQUE,
+  name text NOT NULL DEFAULT 'Chat',
+  greeting text,
+  color text NOT NULL DEFAULT '#111111',
+  locale text NOT NULL DEFAULT 'en',
+  allowed_domains text[] NOT NULL DEFAULT '{}',
+  enabled boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.webchat_visitors (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  widget_id uuid NOT NULL REFERENCES public.webchat_widgets(id) ON DELETE CASCADE,
+  visitor_id text NOT NULL,
+  secret_hash text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (widget_id, visitor_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.webchat_rate_buckets (
+  bucket_key text PRIMARY KEY,
+  window_start timestamptz NOT NULL,
+  count integer NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.webchat_widgets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.webchat_visitors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.webchat_rate_buckets ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS helixa_webchat_widgets_select ON public.webchat_widgets;
+CREATE POLICY helixa_webchat_widgets_select ON public.webchat_widgets
+  FOR SELECT TO authenticated
+  USING (
+    (workspace_id IS NOT NULL AND public.helixa_can_read_workspace(workspace_id))
+    OR public.helixa_owns_profile(user_id)
+    OR public.helixa_is_admin()
+  );
+
+-- No policy on webchat_visitors or webchat_rate_buckets: default deny.
+-- The service role bypasses RLS. Revoke the hash anyway.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'webchat_visitors' AND column_name = 'secret_hash'
+  ) THEN
+    EXECUTE 'REVOKE SELECT (secret_hash) ON public.webchat_visitors FROM anon, authenticated';
+  END IF;
+END $$;
+
+
+
+-- --------------------------------------------------------
+-- START OF FILE: 20260930_phase5_flows_broadcasts.sql
+-- --------------------------------------------------------
+
+-- Phase 5: versioned flows, durable runs, broadcasts, sequences, growth tools.
+-- Run after 20260930_phase4_channels.sql. Idempotent. Does not delete rows.
+-- Do not run this from the app. Run it in the Supabase SQL editor.
+
+ALTER TABLE public.contacts ADD COLUMN IF NOT EXISTS opted_in boolean NOT NULL DEFAULT false;
+ALTER TABLE public.contacts ADD COLUMN IF NOT EXISTS opted_out boolean NOT NULL DEFAULT false;
+ALTER TABLE public.contacts ADD COLUMN IF NOT EXISTS is_follower boolean;
+
+ALTER TABLE public.tracked_links ADD COLUMN IF NOT EXISTS broadcast_id uuid;
+
+-- ---------------------------------------------------------------------------
+-- Flows. One graph per version. Live sends read published_version_id.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.flows (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  name text NOT NULL,
+  status text NOT NULL DEFAULT 'draft',
+  channel text,
+  trigger jsonb NOT NULL DEFAULT '{}'::jsonb,
+  draft_version_id uuid,
+  published_version_id uuid,
+  source_automation_id uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'flows_status_check') THEN
+    ALTER TABLE public.flows
+      ADD CONSTRAINT flows_status_check CHECK (status IN ('draft', 'live', 'paused'));
+  END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS flows_source_automation_idx
+  ON public.flows (source_automation_id)
+  WHERE source_automation_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS flows_user_idx ON public.flows (user_id, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.flow_versions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  flow_id uuid NOT NULL REFERENCES public.flows(id) ON DELETE CASCADE,
+  version integer NOT NULL,
+  graph jsonb NOT NULL,
+  published_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (flow_id, version)
+);
+
+CREATE TABLE IF NOT EXISTS public.flow_runs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  flow_id uuid NOT NULL REFERENCES public.flows(id) ON DELETE CASCADE,
+  version_id uuid,
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  contact_id uuid,
+  contact_external_id text NOT NULL,
+  channel text NOT NULL,
+  status text NOT NULL DEFAULT 'active',
+  current_node_id text,
+  wait_kind text,
+  resume_at timestamptz,
+  step_token text NOT NULL,
+  expected_payloads jsonb NOT NULL DEFAULT '[]'::jsonb,
+  context jsonb NOT NULL DEFAULT '{}'::jsonb,
+  idempotency_key text NOT NULL UNIQUE,
+  steps integer NOT NULL DEFAULT 0,
+  last_error text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'flow_runs_status_check') THEN
+    ALTER TABLE public.flow_runs
+      ADD CONSTRAINT flow_runs_status_check
+      CHECK (status IN ('active', 'waiting', 'completed', 'failed', 'paused', 'opted_out'));
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS flow_runs_contact_idx
+  ON public.flow_runs (user_id, contact_external_id, status);
+
+CREATE TABLE IF NOT EXISTS public.flow_jobs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  user_id bigint,
+  kind text NOT NULL,
+  idempotency_key text NOT NULL UNIQUE,
+  run_id uuid,
+  flow_id uuid,
+  node_id text,
+  step_token text,
+  contact_external_id text,
+  channel text,
+  payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+  status text NOT NULL DEFAULT 'pending',
+  attempts integer NOT NULL DEFAULT 0,
+  next_attempt_at timestamptz NOT NULL DEFAULT now(),
+  locked_at timestamptz,
+  last_error text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  processed_at timestamptz
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'flow_jobs_status_check') THEN
+    ALTER TABLE public.flow_jobs
+      ADD CONSTRAINT flow_jobs_status_check
+      CHECK (status IN ('pending', 'processing', 'done', 'dead', 'cancelled'));
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS flow_jobs_due_idx
+  ON public.flow_jobs (next_attempt_at)
+  WHERE status IN ('pending', 'processing');
+
+CREATE TABLE IF NOT EXISTS public.flow_node_stats (
+  flow_id uuid NOT NULL REFERENCES public.flows(id) ON DELETE CASCADE,
+  node_id text NOT NULL,
+  runs integer NOT NULL DEFAULT 0,
+  clicks integer NOT NULL DEFAULT 0,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (flow_id, node_id)
+);
+
+-- ---------------------------------------------------------------------------
+-- Broadcasts and drip sequences. Each recipient is one queue row.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.broadcasts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  name text NOT NULL,
+  channel text NOT NULL,
+  segment jsonb NOT NULL DEFAULT '{}'::jsonb,
+  content jsonb NOT NULL DEFAULT '{}'::jsonb,
+  template_name text,
+  template_language text,
+  message_tag text,
+  status text NOT NULL DEFAULT 'draft',
+  scheduled_at timestamptz,
+  per_minute integer NOT NULL DEFAULT 30,
+  stats jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'broadcasts_status_check') THEN
+    ALTER TABLE public.broadcasts
+      ADD CONSTRAINT broadcasts_status_check
+      CHECK (status IN ('draft', 'scheduled', 'sending', 'sent', 'cancelled'));
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS broadcasts_user_idx ON public.broadcasts (user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.broadcast_recipients (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  broadcast_id uuid NOT NULL REFERENCES public.broadcasts(id) ON DELETE CASCADE,
+  contact_id uuid,
+  contact_external_id text NOT NULL,
+  channel text NOT NULL,
+  status text NOT NULL DEFAULT 'queued',
+  skip_reason text,
+  idempotency_key text NOT NULL UNIQUE,
+  sent_at timestamptz,
+  opened_at timestamptz,
+  clicked_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS broadcast_recipients_contact_idx
+  ON public.broadcast_recipients (contact_external_id, status);
+
+CREATE TABLE IF NOT EXISTS public.sequences (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  name text NOT NULL,
+  channel text NOT NULL,
+  segment jsonb NOT NULL DEFAULT '{}'::jsonb,
+  steps jsonb NOT NULL DEFAULT '[]'::jsonb,
+  status text NOT NULL DEFAULT 'draft',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sequences_status_check') THEN
+    ALTER TABLE public.sequences
+      ADD CONSTRAINT sequences_status_check CHECK (status IN ('draft', 'live', 'paused'));
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.sequence_enrollments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  sequence_id uuid NOT NULL REFERENCES public.sequences(id) ON DELETE CASCADE,
+  contact_id uuid,
+  contact_external_id text NOT NULL,
+  channel text NOT NULL,
+  step_index integer NOT NULL DEFAULT 0,
+  status text NOT NULL DEFAULT 'active',
+  next_send_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (sequence_id, contact_external_id)
+);
+
+-- ---------------------------------------------------------------------------
+-- Creator growth: link-in-bio, ref links, giveaways.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.bio_pages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  slug text NOT NULL UNIQUE,
+  title text NOT NULL,
+  subtitle text,
+  collect_email boolean NOT NULL DEFAULT true,
+  collect_phone boolean NOT NULL DEFAULT true,
+  flow_id uuid,
+  locale text NOT NULL DEFAULT 'en',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.ref_links (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  channel text NOT NULL,
+  handle text NOT NULL,
+  code text NOT NULL,
+  flow_id uuid,
+  url text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, channel, code)
+);
+
+CREATE TABLE IF NOT EXISTS public.giveaways (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  name text NOT NULL,
+  keyword text NOT NULL,
+  channel text NOT NULL DEFAULT 'instagram',
+  media_id text,
+  status text NOT NULL DEFAULT 'open',
+  winners jsonb NOT NULL DEFAULT '[]'::jsonb,
+  winner_count integer NOT NULL DEFAULT 1,
+  drawn_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'giveaways_status_check') THEN
+    ALTER TABLE public.giveaways
+      ADD CONSTRAINT giveaways_status_check CHECK (status IN ('open', 'drawn', 'closed'));
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.giveaway_entries (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  giveaway_id uuid NOT NULL REFERENCES public.giveaways(id) ON DELETE CASCADE,
+  contact_external_id text NOT NULL,
+  contact_id uuid,
+  entered_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (giveaway_id, contact_external_id)
+);
+
+-- ---------------------------------------------------------------------------
+-- Queue claim. Service role only.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.claim_flow_jobs(batch_size integer, lock_seconds integer)
+RETURNS SETOF public.flow_jobs
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  WITH due AS (
+    SELECT j.id
+    FROM public.flow_jobs j
+    WHERE (
+      j.status = 'pending' AND j.next_attempt_at <= now()
+    ) OR (
+      j.status = 'processing'
+      AND j.locked_at IS NOT NULL
+      AND j.locked_at < now() - make_interval(secs => GREATEST(lock_seconds, 30))
+    )
+    ORDER BY j.next_attempt_at
+    FOR UPDATE SKIP LOCKED
+    LIMIT GREATEST(batch_size, 1)
+  )
+  UPDATE public.flow_jobs job
+  SET status = 'processing',
+      locked_at = now()
+  FROM due
+  WHERE job.id = due.id
+  RETURNING job.*;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.bump_flow_node_stat(
+  p_flow_id uuid,
+  p_node_id text,
+  p_runs integer,
+  p_clicks integer
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.flow_node_stats (flow_id, node_id, runs, clicks)
+  VALUES (p_flow_id, p_node_id, GREATEST(COALESCE(p_runs, 0), 0), GREATEST(COALESCE(p_clicks, 0), 0))
+  ON CONFLICT (flow_id, node_id) DO UPDATE
+  SET runs = public.flow_node_stats.runs + GREATEST(COALESCE(p_runs, 0), 0),
+      clicks = public.flow_node_stats.clicks + GREATEST(COALESCE(p_clicks, 0), 0),
+      updated_at = now();
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.claim_flow_jobs(integer, integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.bump_flow_node_stat(uuid, text, integer, integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.claim_flow_jobs(integer, integer) TO service_role;
+GRANT EXECUTE ON FUNCTION public.bump_flow_node_stat(uuid, text, integer, integer) TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- RLS. The server uses the service role and bypasses these policies.
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.flows ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.flow_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.flow_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.flow_jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.flow_node_stats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.broadcasts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.broadcast_recipients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sequences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sequence_enrollments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bio_pages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ref_links ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.giveaways ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.giveaway_entries ENABLE ROW LEVEL SECURITY;
+
+REVOKE ALL ON public.flow_jobs FROM anon, authenticated;
+
+DO $$
+DECLARE
+  tbl text;
+BEGIN
+  FOREACH tbl IN ARRAY ARRAY[
+    'flows', 'flow_runs', 'broadcasts', 'sequences', 'bio_pages', 'ref_links', 'giveaways'
+  ]
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS helixa_%s_select ON public.%I', tbl, tbl);
+    EXECUTE format(
+      'CREATE POLICY helixa_%s_select ON public.%I FOR SELECT TO authenticated USING (
+        (workspace_id IS NOT NULL AND public.helixa_can_read_workspace(workspace_id))
+        OR public.helixa_owns_profile(user_id)
+        OR public.helixa_is_admin()
+      )',
+      tbl, tbl
+    );
+  END LOOP;
+END $$;
+
+-- Child tables that have no workspace_id / user_id of their own.
+DROP POLICY IF EXISTS helixa_flow_versions_select ON public.flow_versions;
+CREATE POLICY helixa_flow_versions_select ON public.flow_versions
+  FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.flows f
+      WHERE f.id = flow_id
+        AND (
+          (f.workspace_id IS NOT NULL AND public.helixa_can_read_workspace(f.workspace_id))
+          OR public.helixa_owns_profile(f.user_id)
+          OR public.helixa_is_admin()
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS helixa_flow_node_stats_select ON public.flow_node_stats;
+CREATE POLICY helixa_flow_node_stats_select ON public.flow_node_stats
+  FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.flows f
+      WHERE f.id = flow_id
+        AND (
+          (f.workspace_id IS NOT NULL AND public.helixa_can_read_workspace(f.workspace_id))
+          OR public.helixa_owns_profile(f.user_id)
+          OR public.helixa_is_admin()
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS helixa_broadcast_recipients_select ON public.broadcast_recipients;
+CREATE POLICY helixa_broadcast_recipients_select ON public.broadcast_recipients
+  FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.broadcasts b
+      WHERE b.id = broadcast_id
+        AND (
+          (b.workspace_id IS NOT NULL AND public.helixa_can_read_workspace(b.workspace_id))
+          OR public.helixa_owns_profile(b.user_id)
+          OR public.helixa_is_admin()
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS helixa_sequence_enrollments_select ON public.sequence_enrollments;
+CREATE POLICY helixa_sequence_enrollments_select ON public.sequence_enrollments
+  FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.sequences s
+      WHERE s.id = sequence_id
+        AND (
+          (s.workspace_id IS NOT NULL AND public.helixa_can_read_workspace(s.workspace_id))
+          OR public.helixa_owns_profile(s.user_id)
+          OR public.helixa_is_admin()
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS helixa_giveaway_entries_select ON public.giveaway_entries;
+CREATE POLICY helixa_giveaway_entries_select ON public.giveaway_entries
+  FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.giveaways g
+      WHERE g.id = giveaway_id
+        AND (
+          (g.workspace_id IS NOT NULL AND public.helixa_can_read_workspace(g.workspace_id))
+          OR public.helixa_owns_profile(g.user_id)
+          OR public.helixa_is_admin()
+        )
+    )
+  );
+
+
+
+-- --------------------------------------------------------
+-- START OF FILE: 20260930_phase6_differentiators.sql
+-- --------------------------------------------------------
+
+-- Phase 6: Arabic agent, agency white-label, catalog, and integrations.
+-- Run after 20260930_phase5_flows_broadcasts.sql. Idempotent. Does not delete rows.
+-- Do not run this from the app. Enable the pgvector extension in the Supabase
+-- dashboard before running this file if CREATE EXTENSION is restricted.
+
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- ---------------------------------------------------------------------------
+-- Arabic-first agent. One settings row per workspace profile (users.id).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.ai_agent_settings (
+  user_id bigint PRIMARY KEY,
+  workspace_id uuid,
+  enabled boolean NOT NULL DEFAULT true,
+  persona_name text NOT NULL DEFAULT 'Helixa',
+  persona text NOT NULL DEFAULT '',
+  tone text NOT NULL DEFAULT 'friendly',
+  handoff_below numeric NOT NULL DEFAULT 0.45,
+  stay_on_topic boolean NOT NULL DEFAULT true,
+  min_similarity numeric NOT NULL DEFAULT 0.12,
+  qualify_fields jsonb NOT NULL DEFAULT '["name","phone","email"]'::jsonb,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ai_agent_settings_tone_check') THEN
+    ALTER TABLE public.ai_agent_settings
+      ADD CONSTRAINT ai_agent_settings_tone_check CHECK (tone IN ('friendly', 'professional', 'concise'));
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.knowledge_sources (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  kind text NOT NULL,
+  title text NOT NULL DEFAULT '',
+  body text NOT NULL DEFAULT '',
+  source_url text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'knowledge_sources_kind_check') THEN
+    ALTER TABLE public.knowledge_sources
+      ADD CONSTRAINT knowledge_sources_kind_check
+      CHECK (kind IN ('faq', 'product', 'policy', 'website', 'document'));
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS knowledge_sources_user_idx ON public.knowledge_sources (user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.knowledge_chunks (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_id uuid REFERENCES public.knowledge_sources(id) ON DELETE CASCADE,
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  content text NOT NULL,
+  embedding vector(384),
+  embedder text NOT NULL DEFAULT 'hash-v1',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS knowledge_chunks_user_idx ON public.knowledge_chunks (user_id, embedder);
+
+CREATE INDEX IF NOT EXISTS knowledge_chunks_embedding_idx
+  ON public.knowledge_chunks
+  USING hnsw (embedding vector_cosine_ops);
+
+CREATE TABLE IF NOT EXISTS public.ai_answer_logs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  contact_external_id text,
+  channel text,
+  question text NOT NULL,
+  answer text NOT NULL,
+  dialect text,
+  gulf text,
+  arabizi boolean NOT NULL DEFAULT false,
+  confidence numeric,
+  handoff boolean NOT NULL DEFAULT false,
+  handoff_reason text,
+  sources jsonb NOT NULL DEFAULT '[]'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS ai_answer_logs_user_idx ON public.ai_answer_logs (user_id, created_at DESC);
+
+CREATE OR REPLACE FUNCTION public.match_knowledge_chunks(
+  p_user_id bigint,
+  p_embedding vector(384),
+  p_embedder text,
+  p_limit int
+)
+RETURNS TABLE (id uuid, source_id uuid, content text, similarity float)
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT c.id, c.source_id, c.content, (1 - (c.embedding <=> p_embedding))::float AS similarity
+  FROM public.knowledge_chunks c
+  WHERE c.user_id = p_user_id
+    AND c.embedder = p_embedder
+    AND c.embedding IS NOT NULL
+  ORDER BY c.embedding <=> p_embedding
+  LIMIT GREATEST(1, LEAST(COALESCE(p_limit, 4), 20));
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Agency white-label. A custom domain resolves to one agency.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.agencies (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_account_id uuid NOT NULL,
+  name text NOT NULL,
+  app_name text NOT NULL DEFAULT 'Helixa',
+  logo_url text,
+  primary_color text NOT NULL DEFAULT '#5b4dff',
+  accent_color text NOT NULL DEFAULT '#e5a93c',
+  custom_domain text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS agencies_domain_idx
+  ON public.agencies (lower(custom_domain))
+  WHERE custom_domain IS NOT NULL AND custom_domain <> '';
+
+CREATE INDEX IF NOT EXISTS agencies_owner_idx ON public.agencies (owner_account_id);
+
+ALTER TABLE public.workspaces ADD COLUMN IF NOT EXISTS agency_id uuid;
+
+CREATE TABLE IF NOT EXISTS public.client_reports (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  agency_id uuid,
+  cadence text NOT NULL DEFAULT 'weekly',
+  format text NOT NULL DEFAULT 'link',
+  recipient_email text NOT NULL,
+  enabled boolean NOT NULL DEFAULT true,
+  next_send_at timestamptz,
+  last_sent_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'client_reports_cadence_check') THEN
+    ALTER TABLE public.client_reports
+      ADD CONSTRAINT client_reports_cadence_check CHECK (cadence IN ('weekly', 'monthly'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'client_reports_format_check') THEN
+    ALTER TABLE public.client_reports
+      ADD CONSTRAINT client_reports_format_check CHECK (format IN ('pdf', 'link'));
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.client_report_runs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  report_id uuid REFERENCES public.client_reports(id) ON DELETE CASCADE,
+  workspace_id uuid,
+  period_label text NOT NULL,
+  kpis jsonb NOT NULL DEFAULT '{}'::jsonb,
+  share_token text NOT NULL UNIQUE,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- ---------------------------------------------------------------------------
+-- Catalog and orders.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.products (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  sku text,
+  name text NOT NULL,
+  description text,
+  price_cents integer NOT NULL DEFAULT 0,
+  currency text NOT NULL DEFAULT 'EGP',
+  image_url text,
+  product_url text,
+  in_stock boolean NOT NULL DEFAULT true,
+  source text NOT NULL DEFAULT 'manual',
+  external_id text,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'products_source_check') THEN
+    ALTER TABLE public.products
+      ADD CONSTRAINT products_source_check CHECK (source IN ('manual', 'csv', 'shopify', 'woocommerce'));
+  END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS products_external_idx
+  ON public.products (user_id, source, external_id)
+  WHERE external_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS products_user_idx ON public.products (user_id, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.orders (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  contact_id uuid,
+  contact_external_id text,
+  channel text,
+  status text NOT NULL DEFAULT 'pending_payment',
+  currency text NOT NULL DEFAULT 'EGP',
+  total_cents integer NOT NULL DEFAULT 0,
+  items jsonb NOT NULL DEFAULT '[]'::jsonb,
+  payment_provider text,
+  payment_link text,
+  payment_ref text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_status_check') THEN
+    ALTER TABLE public.orders
+      ADD CONSTRAINT orders_status_check
+      CHECK (status IN ('draft', 'pending_payment', 'paid', 'fulfilled', 'cancelled', 'refunded'));
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS orders_user_idx ON public.orders (user_id, created_at DESC);
+
+-- ---------------------------------------------------------------------------
+-- Integrations: signed outgoing webhooks, API keys, provider secrets.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.outgoing_webhook_endpoints (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  url text NOT NULL,
+  secret_ciphertext text NOT NULL,
+  events jsonb NOT NULL DEFAULT '[]'::jsonb,
+  enabled boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.outgoing_webhook_deliveries (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  endpoint_id uuid REFERENCES public.outgoing_webhook_endpoints(id) ON DELETE CASCADE,
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  event text NOT NULL,
+  payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+  status text NOT NULL DEFAULT 'pending',
+  attempts integer NOT NULL DEFAULT 0,
+  next_attempt_at timestamptz NOT NULL DEFAULT now(),
+  last_error text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'outgoing_webhook_deliveries_status_check') THEN
+    ALTER TABLE public.outgoing_webhook_deliveries
+      ADD CONSTRAINT outgoing_webhook_deliveries_status_check
+      CHECK (status IN ('pending', 'done', 'dead'));
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS outgoing_webhook_due_idx
+  ON public.outgoing_webhook_deliveries (next_attempt_at)
+  WHERE status = 'pending';
+
+CREATE TABLE IF NOT EXISTS public.workspace_api_keys (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  user_id bigint NOT NULL,
+  name text NOT NULL DEFAULT 'Key',
+  prefix text NOT NULL,
+  key_hash text NOT NULL UNIQUE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  last_used_at timestamptz
+);
+
+CREATE TABLE IF NOT EXISTS public.integration_configs (
+  user_id bigint NOT NULL,
+  workspace_id uuid,
+  kind text NOT NULL,
+  config jsonb NOT NULL DEFAULT '{}'::jsonb,
+  secret_ciphertext text,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, kind)
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'integration_configs_kind_check') THEN
+    ALTER TABLE public.integration_configs
+      ADD CONSTRAINT integration_configs_kind_check
+      CHECK (kind IN ('paymob', 'stripe', 'shopify', 'woocommerce', 'sheets', 'hubspot'));
+  END IF;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- RLS. The app uses the service role. These policies cover a logged-in read.
+-- ---------------------------------------------------------------------------
+ALTER TABLE public.ai_agent_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.knowledge_sources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.knowledge_chunks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_answer_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agencies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.client_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.client_report_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.outgoing_webhook_endpoints ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.outgoing_webhook_deliveries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.workspace_api_keys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.integration_configs ENABLE ROW LEVEL SECURITY;
+
+REVOKE ALL ON public.outgoing_webhook_deliveries FROM anon, authenticated;
+REVOKE ALL ON public.workspace_api_keys FROM anon, authenticated;
+REVOKE ALL ON public.integration_configs FROM anon, authenticated;
+
+DO $$
+DECLARE
+  tbl text;
+BEGIN
+  FOREACH tbl IN ARRAY ARRAY[
+    'ai_agent_settings', 'knowledge_sources', 'knowledge_chunks', 'ai_answer_logs',
+    'client_reports', 'products', 'orders', 'outgoing_webhook_endpoints'
+  ]
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS helixa_%s_select ON public.%I', tbl, tbl);
+    EXECUTE format(
+      'CREATE POLICY helixa_%s_select ON public.%I FOR SELECT TO authenticated USING (
+        (workspace_id IS NOT NULL AND public.helixa_can_read_workspace(workspace_id))
+        OR public.helixa_owns_profile(user_id)
+        OR public.helixa_is_admin()
+      )',
+      tbl, tbl
+    );
+  END LOOP;
+END $$;
+
+DROP POLICY IF EXISTS helixa_agencies_select ON public.agencies;
+CREATE POLICY helixa_agencies_select ON public.agencies
+  FOR SELECT TO authenticated
+  USING (owner_account_id = auth.uid() OR public.helixa_is_admin());
+
+DROP POLICY IF EXISTS helixa_client_report_runs_select ON public.client_report_runs;
+CREATE POLICY helixa_client_report_runs_select ON public.client_report_runs
+  FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.client_reports r
+      WHERE r.id = report_id
+        AND (
+          (r.workspace_id IS NOT NULL AND public.helixa_can_read_workspace(r.workspace_id))
+          OR public.helixa_owns_profile(r.user_id)
+          OR public.helixa_is_admin()
+        )
+    )
+  );
+
+
+
+-- --------------------------------------------------------
+-- START OF FILE: 20260930_phase7_launch.sql
+-- --------------------------------------------------------
+
+-- Phase 7: plans, usage meters, reseller billing, trials, dunning, data deletion.
+-- Run after 20260930_phase6_differentiators.sql. Do not run this from the app.
+-- Idempotent. It does not delete tenant rows.
+
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS bot_locale text NOT NULL DEFAULT 'en';
+ALTER TABLE public.accounts ADD COLUMN IF NOT EXISTS bot_locale text NOT NULL DEFAULT 'en';
+
+CREATE TABLE IF NOT EXISTS public.billing_accounts (
+  account_id uuid PRIMARY KEY,
+  plan_id text NOT NULL,
+  status text NOT NULL DEFAULT 'trialing',
+  interval text NOT NULL DEFAULT 'month',
+  provider text,
+  provider_customer_id text,
+  provider_subscription_id text,
+  current_period_end timestamptz,
+  trial_ends_at timestamptz,
+  cancel_at_period_end boolean NOT NULL DEFAULT false,
+  scheduled_plan_id text,
+  grace_until timestamptz,
+  dunning_step integer NOT NULL DEFAULT 0,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'billing_accounts_status_check') THEN
+    ALTER TABLE public.billing_accounts
+      ADD CONSTRAINT billing_accounts_status_check
+      CHECK (status IN ('trialing', 'active', 'past_due', 'canceled', 'expired'));
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.usage_meters (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id uuid NOT NULL,
+  metric text NOT NULL,
+  period text NOT NULL,
+  used integer NOT NULL DEFAULT 0,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (account_id, metric, period)
+);
+
+CREATE INDEX IF NOT EXISTS usage_meters_account_idx ON public.usage_meters (account_id, period);
+
+CREATE TABLE IF NOT EXISTS public.client_workspace_prices (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agency_id uuid NOT NULL,
+  workspace_id uuid NOT NULL UNIQUE,
+  amount_cents integer NOT NULL,
+  currency text NOT NULL DEFAULT 'usd',
+  interval text NOT NULL DEFAULT 'month',
+  provider text NOT NULL DEFAULT 'stripe',
+  active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.client_invoices (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agency_id uuid NOT NULL,
+  workspace_id uuid NOT NULL,
+  user_id bigint,
+  amount_cents integer NOT NULL,
+  currency text NOT NULL,
+  provider text NOT NULL,
+  status text NOT NULL DEFAULT 'open',
+  provider_reference text,
+  checkout_url text,
+  period_start timestamptz,
+  period_end timestamptz,
+  due_at timestamptz,
+  paid_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS client_invoices_workspace_idx ON public.client_invoices (workspace_id, created_at DESC);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'client_invoices_status_check') THEN
+    ALTER TABLE public.client_invoices
+      ADD CONSTRAINT client_invoices_status_check
+      CHECK (status IN ('open', 'paid', 'past_due', 'void'));
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.data_deletion_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  confirmation_code text NOT NULL UNIQUE,
+  provider text NOT NULL,
+  external_user_id text,
+  status text NOT NULL DEFAULT 'received',
+  detail text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  completed_at timestamptz
+);
+
+CREATE OR REPLACE FUNCTION public.increment_usage(p_account uuid, p_metric text, p_period text, p_delta int)
+RETURNS int
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  next_used int;
+BEGIN
+  INSERT INTO public.usage_meters (account_id, metric, period, used)
+  VALUES (p_account, p_metric, p_period, GREATEST(COALESCE(p_delta, 1), 0))
+  ON CONFLICT (account_id, metric, period)
+  DO UPDATE SET used = public.usage_meters.used + EXCLUDED.used, updated_at = now()
+  RETURNING used INTO next_used;
+  RETURN next_used;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.increment_usage(uuid, text, text, int) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.increment_usage(uuid, text, text, int) TO service_role;
+
+ALTER TABLE public.billing_accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.usage_meters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.client_workspace_prices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.client_invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.data_deletion_requests ENABLE ROW LEVEL SECURITY;
+
+REVOKE ALL ON public.data_deletion_requests FROM anon, authenticated;
+
+DROP POLICY IF EXISTS helixa_billing_accounts_select ON public.billing_accounts;
+CREATE POLICY helixa_billing_accounts_select ON public.billing_accounts
+  FOR SELECT TO authenticated
+  USING (account_id = auth.uid() OR public.helixa_is_admin());
+
+DROP POLICY IF EXISTS helixa_usage_meters_select ON public.usage_meters;
+CREATE POLICY helixa_usage_meters_select ON public.usage_meters
+  FOR SELECT TO authenticated
+  USING (account_id = auth.uid() OR public.helixa_is_admin());
+
+DROP POLICY IF EXISTS helixa_client_prices_select ON public.client_workspace_prices;
+CREATE POLICY helixa_client_prices_select ON public.client_workspace_prices
+  FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.agencies a
+      WHERE a.id = agency_id AND (a.owner_account_id = auth.uid() OR public.helixa_is_admin())
+    )
+  );
+
+DROP POLICY IF EXISTS helixa_client_invoices_select ON public.client_invoices;
+CREATE POLICY helixa_client_invoices_select ON public.client_invoices
+  FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.agencies a
+      WHERE a.id = agency_id AND (a.owner_account_id = auth.uid() OR public.helixa_is_admin())
+    )
+  );
+
+
+
+-- --------------------------------------------------------
+-- START OF FILE: 20260930_phase7_tiktok_windows.sql
+-- --------------------------------------------------------
+
+-- TikTok DM windows: 10 business messages in the 48 hours after each user message.
+-- Run after 20260930_phase7_launch.sql. Do not run this from the app.
+-- Idempotent. It does not delete tenant rows.
+
+CREATE TABLE IF NOT EXISTS public.tiktok_dm_windows (
+  business_open_id text NOT NULL,
+  contact_external_id text NOT NULL,
+  window_started_at timestamptz NOT NULL,
+  business_sends integer NOT NULL DEFAULT 0,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (business_open_id, contact_external_id)
+);
+
+ALTER TABLE public.tiktok_dm_windows ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.tiktok_dm_windows FROM anon, authenticated;
+
+
+
+-- --------------------------------------------------------
+-- START OF FILE: 20261002120000_payment_ledger.sql
+-- --------------------------------------------------------
+
+-- Payment ledger for merchant commerce (Paymob/Tap) and platform-billing receipts.
+-- Each callback now binds to the stored payment intent using the id the provider
+-- signed, never body metadata, and guards every row on status='pending' so a
+-- replay is a no-op.
+--
+-- RLS: billing_accounts owns entitlements. This ledger is write-once for a given
+-- provider/transaction id and is read by the receipts router; it does not change
+-- what a tenant may do. Impose grants as in your deployment (admin/service_role).
+
+-- payment_intents: the single source of truth the callbacks verify against
+CREATE TABLE IF NOT EXISTS public.payment_intents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id uuid NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
+  order_id text,            -- legacy orders.id the merchant_order_id pointed at (nullable)
+  invoice_id uuid,          -- client_invoices.id (nullable)
+  provider text NOT NULL,   -- paymob | tap | stripe
+  provider_order_id text NOT NULL,  -- Paymob obj.id / Tap charge id / Stripe session id
+  amount_minor integer NOT NULL,
+  currency text NOT NULL,
+  status text NOT NULL DEFAULT 'pending',  -- pending | paid | cancelled | failed
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.payment_intents ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'payment_intents_provider_check') THEN
+    ALTER TABLE public.payment_intents
+      ADD CONSTRAINT payment_intents_provider_check
+      CHECK (provider IN ('paymob', 'tap', 'stripe'));
+  END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_payment_intents_provider_order
+  ON public.payment_intents (provider, provider_order_id);
+
+-- payment_receipts: idempotent log for every successful capture, keyed by the
+-- provider's own transaction id so replays never duplicate a receipt.
+CREATE TABLE IF NOT EXISTS public.payment_receipts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  provider text NOT NULL,
+  provider_order_id text NOT NULL,
+  transaction_id text NOT NULL,   -- provider's transaction/charge id
+  account_id uuid NOT NULL,
+  amount_minor integer NOT NULL,
+  currency text NOT NULL,
+  status text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  reminders_sent boolean NOT NULL DEFAULT false
+);
+
+ALTER TABLE public.payment_receipts ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'payment_receipts_provider_check') THEN
+    ALTER TABLE public.payment_receipts
+      ADD CONSTRAINT payment_receipts_provider_check
+      CHECK (provider IN ('paymob', 'tap', 'stripe'));
+  END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_payment_receipts_transaction
+  ON public.payment_receipts (provider, transaction_id);
+
