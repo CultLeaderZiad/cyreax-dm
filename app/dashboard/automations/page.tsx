@@ -392,8 +392,8 @@ function AutomationsPageContent() {
                 userId={userId}
                 triggerSource={
                   editRule && editRule.trigger_source !== "ice_breaker"
-                    ? editRule.trigger_source
-                    : "comment"
+                    ? (editRule.platform === "telegram" || editRule.platform === "whatsapp" || editRule.platform === "webchat" ? "dm" : editRule.trigger_source)
+                    : (selectedChannel === "telegram" || selectedChannel === "whatsapp" || selectedChannel === "webchat" ? "dm" : "comment")
                 }
                 editRule={editRule}
                 initialIntent={searchParams?.get("intent") || undefined}

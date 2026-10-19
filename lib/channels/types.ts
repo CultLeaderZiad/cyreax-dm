@@ -175,6 +175,7 @@ export interface NormalizedInbound {
 export interface AutomationRule {
   id: string
   name?: string
+  platform?: string | null
   trigger_source?: string | null
   trigger_type?: string | null
   trigger_value?: string | null

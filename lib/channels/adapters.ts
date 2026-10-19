@@ -257,11 +257,17 @@ export function createWhatsAppAdapter(fetchImpl: FetchLike = defaultFetch()): Ch
   }
 }
 
+function escapeTgHtml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+}
+
 function telegramKeyboard(buttons: Array<OutboundButton | QuickReply> | undefined) {
   if (!buttons?.length) return undefined
   const rows = buttons.map((button) => {
     const title = button.title
-    if ("type" in button && button.type === "web_url" && button.url) return [{ text: title, url: button.url }]
+    if ("type" in button && button.type === "web_url" && button.url && button.url.startsWith("http")) {
+      return [{ text: title, url: button.url }]
+    }
     const payload = ("payload" in button && button.payload) || ("url" in button && button.url) || title
     return [{ text: title, callback_data: payload }]
   })
@@ -289,21 +295,22 @@ export function createTelegramAdapter(fetchImpl: FetchLike = defaultFetch()): Ch
     },
     async sendCard(ctx, card) {
       if (!ctx.recipientId) return { ok: false, error: "missing_chat" }
-      const caption = `*${card.title}*${card.subtitle ? `\n\n${card.subtitle}` : ""}`
+      const caption = `<b>${escapeTgHtml(card.title)}</b>${card.subtitle ? `\n\n${escapeTgHtml(card.subtitle)}` : ""}`
       const keyboard = telegramKeyboard(card.buttons)
       if (card.image_url?.startsWith("http")) {
-        return call(ctx.accessToken, "sendPhoto", {
+        const photoOutcome = await call(ctx.accessToken, "sendPhoto", {
           chat_id: ctx.recipientId,
           photo: card.image_url,
           caption,
-          parse_mode: "Markdown",
+          parse_mode: "HTML",
           reply_markup: keyboard,
         })
+        if (photoOutcome.ok) return photoOutcome
       }
       return call(ctx.accessToken, "sendMessage", {
         chat_id: ctx.recipientId,
         text: caption,
-        parse_mode: "Markdown",
+        parse_mode: "HTML",
         reply_markup: keyboard,
       })
     },

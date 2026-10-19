@@ -256,6 +256,8 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
 
   /* ── Platform style for this render ── */
   const ps = PLATFORM_STYLES[platform] || PLATFORM_STYLES.instagram
+  const isMessagingOnlyPlatform = platform === "telegram" || platform === "whatsapp" || platform === "webchat"
+  const effectiveTriggerSource = isMessagingOnlyPlatform ? "dm" : triggerSource
 
   /* ============================================================
      HANDLERS — kept in parent so sub-components stay stateless
@@ -501,10 +503,10 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
   /* Auto name */
   useEffect(() => {
     if (name || isEditing) return
-    const isReplyAll = triggerSource === "comment" && triggers.length === 0
-    if (isReplyAll) setName("Reply to every comment")
+    const isReplyAll = (effectiveTriggerSource === "comment" || effectiveTriggerSource === "dm") && triggers.length === 0
+    if (isReplyAll) setName(isMessagingOnlyPlatform ? "Reply to every message" : "Reply to every comment")
     else if (triggers.length > 0) setName(`Reply to "${triggers[0]}"`)
-  }, [triggers, name, isEditing, triggerSource])
+  }, [triggers, name, isEditing, effectiveTriggerSource, isMessagingOnlyPlatform])
 
   /* ---------- helpers ---------- */
   const addButton = () => {
@@ -523,9 +525,9 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
     setQuickReplies(quickReplies.map((q) => (q.id === id ? { ...q, title } : q)))
   const removeQuickReply = (id: string) => setQuickReplies(quickReplies.filter((q) => q.id !== id))
 
-  const needsKeywords = triggerSource === "dm" || (triggerSource === "story" && storyTriggerType !== "mention")
+  const needsKeywords = effectiveTriggerSource === "dm" || (effectiveTriggerSource === "story" && storyTriggerType !== "mention")
 
-  const whenValid = triggerSource === "comment"
+  const whenValid = (effectiveTriggerSource === "comment" && !isMessagingOnlyPlatform)
     ? hasSelectedReelOption
     : true
 
@@ -542,12 +544,12 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
 
   /* Plain-language summary sentence */
   const summary = useMemo(() => {
-    const isReplyAll = (triggerSource === "comment" || triggerSource === "dm") && triggers.length === 0
+    const isReplyAll = (effectiveTriggerSource === "comment" || effectiveTriggerSource === "dm") && triggers.length === 0
     const who =
-      triggerSource === "comment"
+      effectiveTriggerSource === "comment"
         ? isReplyAll ? "anyone comments on your post" : `someone comments ${triggers.length ? `"${triggers[0]}"` : "a keyword"}`
-        : triggerSource === "dm"
-          ? isReplyAll ? "anyone DMs you" : `someone DMs you ${triggers.length ? `"${triggers[0]}"` : "a keyword"}`
+        : effectiveTriggerSource === "dm"
+          ? isReplyAll ? (isMessagingOnlyPlatform ? `anyone messages your ${ps.label} bot` : "anyone DMs you") : `someone messages ${triggers.length ? `"${triggers[0]}"` : "a keyword"}`
           : storyTriggerType === "mention" ? "someone mentions you in a story"
             : storyTriggerType === "reaction" ? "someone reacts to your story"
               : "someone replies to your story"
@@ -555,16 +557,16 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
       replyMode === "public_only" ? "reply publicly"
         : type === "card" ? "send them a card with buttons"
           : type === "media" ? `send them ${mediaType === "image" ? "an image" : `a ${mediaType}`}`
-            : "send them a DM"
+            : "send them a message"
     return { who, what }
-  }, [triggerSource, triggers, storyTriggerType, replyMode, type, mediaType])
+  }, [effectiveTriggerSource, triggers, storyTriggerType, replyMode, type, mediaType, isMessagingOnlyPlatform, ps.label])
 
   /* ---------- save ---------- */
   const handleSubmit = async () => {
     if (!canSave || saving) return
     setSaving(true)
 
-    const isReplyAll = (triggerSource === "comment" || triggerSource === "dm") && triggers.length === 0
+    const isReplyAll = (effectiveTriggerSource === "comment" || effectiveTriggerSource === "dm") && triggers.length === 0
 
     const content: any = { check_follow: checkFollow }
     if (delaySeconds > 0) content.delay_seconds = delaySeconds
@@ -578,7 +580,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
       }
     }
 
-    if (triggerSource === "comment") {
+    if (effectiveTriggerSource === "comment") {
       content.reply_mode = replyMode
       if (publicReplies.length > 0) content.public_replies = publicReplies
       if (includeReplies) content.include_replies = true
@@ -616,14 +618,14 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
     const payload = {
       userId,
       name,
-      trigger_source: triggerSource,
-      trigger_type: isReplyAll ? "reply_all" : triggerSource === "story" ? storyTriggerType : "keyword",
-      trigger_value: isReplyAll ? (triggerSource === "comment" ? "ALL_COMMENTS" : "ALL")
-        : triggerSource === "story" && storyTriggerType === "mention" ? "ALL_MENTIONS"
-          : triggerSource === "story" && storyTriggerType === "reaction" && triggers.length === 0 ? "ALL_REACTIONS"
+      trigger_source: effectiveTriggerSource,
+      trigger_type: isReplyAll ? "reply_all" : effectiveTriggerSource === "story" ? storyTriggerType : "keyword",
+      trigger_value: isReplyAll ? (effectiveTriggerSource === "comment" ? "ALL_COMMENTS" : "ALL")
+        : effectiveTriggerSource === "story" && storyTriggerType === "mention" ? "ALL_MENTIONS"
+          : effectiveTriggerSource === "story" && storyTriggerType === "reaction" && triggers.length === 0 ? "ALL_REACTIONS"
             : triggers.length > 0 ? triggers.join(", ") : "ALL",
       content,
-      specific_media_id: platform === "tiktok" ? null : selectedReel?.id || null,
+      specific_media_id: (platform === "tiktok" || isMessagingOnlyPlatform) ? null : selectedReel?.id || null,
       platform,
       automation_variants: variants.map(v => ({
         id: v.id.startsWith("new_") ? undefined : v.id,
@@ -714,9 +716,37 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
             <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-300">
               <StepHeader
                 number={1}
-                title={triggerSource === "comment" ? "Select the target post/reel" : triggerSource === "dm" ? "When someone DMs you" : "When someone interacts with your story"}
-                description={triggerSource === "comment" ? "Choose the specific media to automate." : "Set the conditions that launch this automation."}
+                title={
+                  isMessagingOnlyPlatform
+                    ? `When someone messages your ${ps.label} bot`
+                    : triggerSource === "comment"
+                    ? "Select the target post/reel"
+                    : triggerSource === "dm"
+                    ? "When someone DMs you"
+                    : "When someone interacts with your story"
+                }
+                description={
+                  isMessagingOnlyPlatform
+                    ? `Set the keywords that trigger automated replies on ${ps.label}.`
+                    : triggerSource === "comment"
+                    ? "Choose the specific media to automate."
+                    : "Set the conditions that launch this automation."
+                }
               />
+
+              {isMessagingOnlyPlatform && (
+                <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02] flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${ps.badgeBg} ${ps.badgeText} shrink-0`}>
+                    {ps.icon}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-white">Direct Message Trigger</p>
+                    <p className="text-[11px] text-neutral-400">
+                      Triggers automatically whenever an incoming message is received on your {ps.label} bot.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {triggerSource === "story" && (
                 <div className="space-y-3">
@@ -748,7 +778,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 </div>
               )}
 
-              {triggerSource === "comment" && platform === "tiktok" && (
+              {triggerSource === "comment" && !isMessagingOnlyPlatform && platform === "tiktok" && (
                 <div className="space-y-2">
                   <p className="text-xs text-neutral-400 leading-relaxed">
                     A keyword on a TikTok comment posts a public reply, for example “Check your DMs” or “DM us PRICE”. It does not DM that commenter. Comment-to-Message DMs stay limited to high-intent comments on accounts registered in Vietnam, Indonesia, or Thailand.
@@ -760,7 +790,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 </div>
               )}
 
-              {triggerSource === "comment" && platform !== "tiktok" && (
+              {triggerSource === "comment" && !isMessagingOnlyPlatform && platform !== "tiktok" && (
                 <ReelPostPicker
                   loadingReels={loadingReels}
                   reels={reels}
@@ -777,9 +807,9 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
               )}
 
               {/* Configure keywords only after selection (for Comment triggers) or always for others */}
-              {(triggerSource !== "comment" || hasSelectedReelOption) && (
+              {(effectiveTriggerSource !== "comment" || hasSelectedReelOption) && (
                 <KeywordMatchConfig
-                  triggerSource={triggerSource}
+                  triggerSource={effectiveTriggerSource}
                   storyTriggerType={storyTriggerType}
                   triggers={triggers}
                   setTriggers={setTriggers}

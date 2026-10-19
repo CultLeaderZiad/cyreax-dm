@@ -162,7 +162,9 @@ export function AutomationsTable({
                           </>
                         ) : (
                           <>
-                            {rule.trigger_source === "comment" ? (
+                            {rule.platform === "telegram" || rule.platform === "whatsapp" || rule.platform === "webchat" ? (
+                              <Send className="w-3 h-3 text-[var(--t3)] shrink-0" />
+                            ) : rule.trigger_source === "comment" ? (
                               <MessageCircle className="w-3 h-3 text-[var(--t3)] shrink-0" />
                             ) : rule.trigger_source === "dm" ? (
                               <Send className="w-3 h-3 text-[var(--t3)] shrink-0" />
@@ -172,7 +174,11 @@ export function AutomationsTable({
                               <Star className="w-3 h-3 text-[var(--t3)] shrink-0" />
                             )}
                             <span>
-                              {rule.trigger_source === "comment"
+                              {rule.platform === "telegram" || rule.platform === "whatsapp" || rule.platform === "webchat"
+                                ? keywords.length > 0
+                                  ? "Message contains"
+                                  : "Any incoming message"
+                                : rule.trigger_source === "comment"
                                 ? keywords.length > 0
                                   ? "Comment contains"
                                   : "Any comment on selected posts"

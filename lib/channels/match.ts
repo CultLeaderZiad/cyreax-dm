@@ -19,11 +19,13 @@ function postMatches(rule: AutomationRule, mediaId: string | null | undefined, m
 }
 
 function isCommentRule(rule: AutomationRule): boolean {
+  if (rule.platform === "telegram" || rule.platform === "whatsapp" || rule.platform === "webchat") return false
   return rule.trigger_source === "comment"
 }
 
 function isDmRule(rule: AutomationRule, includeUntyped: boolean): boolean {
   if (rule.trigger_source === "dm") return true
+  if (rule.platform === "telegram" || rule.platform === "whatsapp" || rule.platform === "webchat") return true
   if (includeUntyped && !rule.trigger_source) return true
   return false
 }
