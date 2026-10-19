@@ -270,13 +270,12 @@ function AutomationsPageContent() {
   }
 
   const handleDuplicateRule = (rule: Automation) => {
-    const duplicated: Automation = {
-      ...rule,
-      id: `dup-${Date.now()}`,
+    const { id: _ignoredId, created_at: _ignoredCreatedAt, ...rest } = rule
+    const duplicated = {
+      ...rest,
       name: `${rule.name} (Copy)`,
       is_active: false,
-      created_at: new Date().toISOString(),
-    }
+    } as unknown as Automation
     setEditRule(duplicated)
     setShowCreateForm(true)
     toast.success(`Duplicated "${rule.name}" as draft`)
@@ -284,7 +283,6 @@ function AutomationsPageContent() {
 
   const handleSelectTemplate = (template: TemplateItem) => {
     setEditRule({
-      id: `template-${Date.now()}`,
       user_id: userId || "",
       name: template.title,
       trigger_source: template.triggerSource,
@@ -294,7 +292,6 @@ function AutomationsPageContent() {
       response_content: {
         message: template.defaultReply || template.description,
       },
-      created_at: new Date().toISOString(),
     } as unknown as Automation)
     setShowCreateForm(true)
     toast.info(`Loaded template: ${template.title}`)

@@ -23,33 +23,6 @@ interface QaItem {
   category: string
 }
 
-const initialQaItems: QaItem[] = [
-  {
-    id: "qa-1",
-    question: "بكام الشحن لجدة والرياض؟",
-    answer: "الشحن لجميع مدن المملكة بـ 25 ريال، والتوصيل خلال 2-3 أيام عمل.",
-    category: "Shipping",
-  },
-  {
-    id: "qa-2",
-    question: "هل المنتجات مرخصة من الغذاء والدواء؟",
-    answer: "نعم جميع منتجاتنا معتمدة ومسجلة في هيئة الغذاء والدواء السعودية وصالحة للاستخدام 100%.",
-    category: "Compliance",
-  },
-  {
-    id: "qa-3",
-    question: "طرق الدفع المتاحة؟",
-    answer: "مدى، فيزا، ماستركارد، تابي، وتمارا على 4 دفعات بدون فوائد.",
-    category: "Payment",
-  },
-  {
-    id: "qa-4",
-    question: "سياسة الاسترجاع والاستبدال؟",
-    answer: "الاسترجاع متاح خلال 7 أيام من استلام الطلب بشرط بقاء المنتج بغلافه الأصلي.",
-    category: "Policy",
-  },
-]
-
 interface SourceItem {
   id: string
   icon: React.ComponentType<{ className?: string }>
@@ -68,32 +41,8 @@ export function KnowledgePanel({
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [sources, setSources] = useState<SourceItem[]>([
-    {
-      id: "web-1",
-      icon: Globe,
-      name: "nourcosmetics.com · 38 pages",
-      statusText: "synced 2h ago",
-      pill: null,
-    },
-    {
-      id: "cat-1",
-      icon: Package,
-      name: "Product catalog · 62 items",
-      statusText: null,
-      pill: <Pill variant="green" dot={false}>Synced</Pill>,
-    },
-    {
-      id: "faq-1",
-      icon: FileText,
-      name: "FAQ (Arabic) · 41 answers",
-      statusText: null,
-      pill: <Pill variant="amber" dot={false}>7 gaps</Pill>,
-    },
-  ])
-
-  // Full mode states
-  const [qaItems, setQaItems] = useState<QaItem[]>(initialQaItems)
+  const [sources, setSources] = useState<SourceItem[]>([])
+  const [qaItems, setQaItems] = useState<QaItem[]>([])
   const [qaSearch, setQaSearch] = useState("")
   const [editingQa, setEditingQa] = useState<QaItem | null>(null)
   const [deletingQaId, setDeletingQaId] = useState<string | null>(null)
@@ -101,12 +50,14 @@ export function KnowledgePanel({
   const [newQuestion, setNewQuestion] = useState("")
   const [newAnswer, setNewAnswer] = useState("")
   const [newCategory, setNewCategory] = useState("General")
+  const [isLoading, setIsLoading] = useState(true)
 
   const loadKnowledge = React.useCallback(() => {
+    setIsLoading(true)
     fetch("/api/ai-agent/knowledge")
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data?.sources) && data.sources.length > 0) {
+        if (Array.isArray(data?.sources)) {
           const apiSources = data.sources.map((s: any) => ({
             id: s.id,
             icon: s.kind === "website" ? Globe : s.kind === "product" ? Package : FileText,
@@ -124,12 +75,18 @@ export function KnowledgePanel({
               answer: s.body || "",
               category: s.kind === "policy" ? "Policy" : "FAQ",
             }))
-          if (faqs.length > 0) {
-            setQaItems(faqs)
-          }
+          setQaItems(faqs)
+        } else {
+          setSources([])
+          setQaItems([])
         }
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error("[KnowledgePanel] load error:", err)
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
   }, [])
 
   React.useEffect(() => {
@@ -287,32 +244,39 @@ export function KnowledgePanel({
 
         {/* Source items */}
         <div className="space-y-2">
-          {sources.map((src) => {
-            const Icon = src.icon
-            return (
-              <div
-                key={src.id}
-                className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 flex items-center justify-between gap-3 hover:bg-[var(--s3)] transition-colors"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Icon className="w-4 h-4 text-[var(--t3)] shrink-0" />
-                  <span className="text-[12px] text-[var(--t1)] font-medium truncate">
-                    {src.name}
-                  </span>
-                </div>
-
-                <div className="shrink-0 text-right">
-                  {src.pill ? (
-                    src.pill
-                  ) : (
-                    <span className="font-mono text-[11px] text-[var(--t3)]">
-                      {src.statusText}
+          {sources.length === 0 ? (
+            <div className="py-4 text-center text-xs text-[var(--t3)] rounded-lg border border-dashed border-[var(--line)] bg-[var(--s2)]/40 p-3">
+              <p className="text-[11.5px] text-[var(--t2)] font-medium">No knowledge documents yet</p>
+              <p className="text-[10.5px] text-[var(--t3)]">Upload PDFs, catalogs, or policy files below</p>
+            </div>
+          ) : (
+            sources.map((src) => {
+              const Icon = src.icon
+              return (
+                <div
+                  key={src.id}
+                  className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 flex items-center justify-between gap-3 hover:bg-[var(--s3)] transition-colors"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Icon className="w-4 h-4 text-[var(--t3)] shrink-0" />
+                    <span className="text-[12px] text-[var(--t1)] font-medium truncate">
+                      {src.name}
                     </span>
-                  )}
+                  </div>
+
+                  <div className="shrink-0 text-right">
+                    {src.pill ? (
+                      src.pill
+                    ) : (
+                      <span className="font-mono text-[11px] text-[var(--t3)]">
+                        {src.statusText}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })
+          )}
         </div>
 
         {/* Upload dropzone (drag-over turns border --goldline) */}
@@ -383,9 +347,28 @@ export function KnowledgePanel({
           {/* Q&A List */}
           <div className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
             {filteredQa.length === 0 ? (
-              <div className="py-8 text-center text-xs text-[var(--t3)]">
-                No matching Q&A entries found.
-              </div>
+              qaSearch ? (
+                <div className="py-8 text-center text-xs text-[var(--t3)]">
+                  No matching Q&A entries found for &quot;{qaSearch}&quot;.
+                </div>
+              ) : (
+                <div className="py-8 text-center text-xs text-[var(--t3)] rounded-lg border border-dashed border-[var(--line)] bg-[var(--s2)]/30 p-6 my-2">
+                  <div className="w-8 h-8 rounded-full bg-[var(--gold)]/10 text-[var(--gold)] flex items-center justify-center mx-auto mb-2 font-mono text-xs">?</div>
+                  <p className="font-semibold text-[var(--t1)] mb-1 text-[13px]">No Q&A entries yet</p>
+                  <p className="text-[11.5px] text-[var(--t3)] max-w-sm mx-auto mb-3.5 leading-relaxed">
+                    Add customer questions and your approved answers. The AI agent will respond to customer inquiries across all channels using this exact knowledge.
+                  </p>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => setIsAddQaOpen(true)}
+                    className="h-[28px] text-xs font-medium gap-1 mx-auto"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Add your first Q&A</span>
+                  </Button>
+                </div>
+              )
             ) : (
               filteredQa.map((qa) => (
                 <div

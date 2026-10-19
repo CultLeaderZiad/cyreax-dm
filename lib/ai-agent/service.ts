@@ -62,15 +62,41 @@ function asVector(value: unknown): number[] {
   return []
 }
 
-async function retrieve(supabase: Db, userId: string | number, message: string): Promise<RetrievedChunk[]> {
+async function retrieve(
+  supabase: Db,
+  userId: string | number,
+  message: string,
+  workspaceId?: string | null
+): Promise<RetrievedChunk[]> {
+  const { computeLexicalOverlap } = await import("@/lib/ai-agent/retrieve")
   const embedded = await embedText(message)
   const rpc = await callMatch(supabase, userId, embedded.vector, embedded.embedder)
-  if (rpc && rpc.length > 0) return rpc
-  const selected = await supabase
+  if (rpc && rpc.length > 0) {
+    return rpc
+      .map((chunk) => {
+        const lexical = computeLexicalOverlap(message, chunk.content)
+        const boosted = lexical > 0.15 ? Math.max(chunk.similarity, 0.55 + lexical * 0.4) : chunk.similarity
+        return {
+          ...chunk,
+          similarity: Number(Math.min(0.99, boosted).toFixed(4)),
+        }
+      })
+      .sort((a, b) => b.similarity - a.similarity)
+  }
+
+  let selected = await supabase
     .from("knowledge_chunks")
     .select("id, source_id, content, embedding, embedder")
     .eq("user_id", userId)
     .limit(200)
+
+  if ((!selected.data || selected.data.length === 0) && workspaceId) {
+    selected = await supabase
+      .from("knowledge_chunks")
+      .select("id, source_id, content, embedding, embedder")
+      .eq("workspace_id", workspaceId)
+      .limit(200)
+  }
 
   let chunks: KnowledgeChunk[] = []
   if (!selected.error && Array.isArray(selected.data) && selected.data.length > 0) {
@@ -86,15 +112,23 @@ async function retrieve(supabase: Db, userId: string | number, message: string):
 
   // Fallback directly to knowledge_sources if chunks are empty
   if (chunks.length === 0) {
-    const { data: sources } = await supabase
+    let sourceQuery = await supabase
       .from("knowledge_sources")
       .select("id, kind, title, body")
       .eq("user_id", userId)
       .limit(50)
-    if (Array.isArray(sources) && sources.length > 0) {
-      const { computeLexicalOverlap } = await import("@/lib/ai-agent/retrieve")
-      return sources
-        .map((s) => {
+
+    if ((!sourceQuery.data || sourceQuery.data.length === 0) && workspaceId) {
+      sourceQuery = await supabase
+        .from("knowledge_sources")
+        .select("id, kind, title, body")
+        .eq("workspace_id", workspaceId)
+        .limit(50)
+    }
+
+    if (Array.isArray(sourceQuery.data) && sourceQuery.data.length > 0) {
+      return sourceQuery.data
+        .map((s: any) => {
           const content = `Q: ${s.title}\nA: ${s.body}`
           const lexical = computeLexicalOverlap(message, `${s.title} ${s.body}`)
           return {
@@ -102,10 +136,10 @@ async function retrieve(supabase: Db, userId: string | number, message: string):
             sourceId: String(s.id),
             title: s.title,
             content,
-            similarity: Number(Math.max(0.2, 0.45 + lexical * 0.5).toFixed(4)),
+            similarity: Number(Math.max(0.25, 0.55 + lexical * 0.4).toFixed(4)),
           }
         })
-        .sort((a, b) => b.similarity - a.similarity)
+        .sort((a: RetrievedChunk, b: RetrievedChunk) => b.similarity - a.similarity)
         .slice(0, 4)
     }
     return []
@@ -138,7 +172,7 @@ async function callMatch(supabase: Db, userId: string | number, vector: number[]
 export async function answerWithWorkspaceAgent(input: AgentTurnRequest): Promise<AgentDecision | null> {
   const settings = await loadSettings(input.supabase, input.userId)
   if (!settings.enabled) return null
-  const retrieved = await retrieve(input.supabase, input.userId, input.message)
+  const retrieved = await retrieve(input.supabase, input.userId, input.message, input.workspaceId)
   const detection = detectDialect(input.message)
   const system = buildAgentPrompt({ settings, detection, retrieved, goal: input.goal })
   const history = (input.history || []).slice(-8).map((item) => ({

@@ -59,9 +59,15 @@ export function decideAgentTurn(input: {
   let confidence = Number(model.confidence ?? 0.8)
   if (!rawReply && chosen.length > 0 && (chosen[0].similarity >= input.settings.minSimilarity)) {
     const topContent = chosen[0].content
-    const answerMatch = topContent.match(/(?:A:|الجواب:|الإجابة:)\s*([^\n]+(?:\n[^\n]+)*)/i)
-    rawReply = answerMatch ? answerMatch[1].trim() : topContent
-    confidence = Math.max(confidence, chosen[0].similarity)
+    const parts = topContent.split(/\n\s*(?:A|الجواب|الإجابة|ج):\s*/i)
+    if (parts.length > 1) {
+      rawReply = parts.slice(1).join("\n").trim()
+    } else {
+      const answerMatch = topContent.match(/(?:A:|الجواب:|الإجابة:|ج:)\s*([^\n]+(?:\n[^\n]+)*)/i)
+      rawReply = answerMatch ? answerMatch[1].trim() : topContent
+    }
+    // High confidence for direct Q&A knowledge match so guardrails don't append handoff warnings
+    confidence = Math.max(0.85, chosen[0].similarity)
   }
 
   const guarded = applyGuardrails({

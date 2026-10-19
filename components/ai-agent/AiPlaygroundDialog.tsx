@@ -15,13 +15,6 @@ interface ChatTurn {
   sources?: Array<{ id: string; excerpt: string; similarity: number }>
 }
 
-const SAMPLE_QUESTIONS = [
-  "بكام الشحن لجدة والرياض؟",
-  "طرق الدفع المتاحة؟",
-  "هل المنتجات مرخصة من الغذاء والدواء؟",
-  "سياسة الاسترجاع والاستبدال؟",
-]
-
 export function AiPlaygroundDialog({
   open,
   onOpenChange,
@@ -32,11 +25,12 @@ export function AiPlaygroundDialog({
   const [messages, setMessages] = useState<ChatTurn[]>([
     {
       role: "assistant",
-      content: "أهلاً بك! أنا المساعد الذكي الخاص بك. اسألني أي سؤال عن المنتجات، الشحن، أو سياسات المتجر لتجربة إجاباتي.",
+      content: "أهلاً بك! أنا المساعد الذكي الخاص بك. اسألني أي سؤال لتجربة إجاباتي.",
     },
   ])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [suggestionChips, setSuggestionChips] = useState<string[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -44,8 +38,28 @@ export function AiPlaygroundDialog({
   }
 
   useEffect(() => {
-    if (open) scrollToBottom()
-  }, [messages, open])
+    if (open) {
+      scrollToBottom()
+      fetch("/api/ai-agent/knowledge")
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data?.sources) && data.sources.length > 0) {
+            const dynamicTitles = data.sources
+              .filter((s: any) => s.title && (s.kind === "faq" || s.kind === "policy" || !s.kind))
+              .map((s: any) => s.title)
+              .slice(0, 5)
+            if (dynamicTitles.length > 0) {
+              setSuggestionChips(dynamicTitles)
+              return
+            }
+          }
+          setSuggestionChips(["How can I order?", "Tell me about your business."])
+        })
+        .catch(() => {
+          setSuggestionChips([])
+        })
+    }
+  }, [open])
 
   const handleSend = async (textToSend?: string) => {
     const text = (textToSend || input).trim()
@@ -145,20 +159,22 @@ export function AiPlaygroundDialog({
         </div>
 
         {/* Quick Suggestion Chips */}
-        <div className="px-4 py-2 border-b border-[var(--line)] bg-[var(--s1)] flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
-          <span className="text-[11px] text-[var(--t4)] shrink-0 font-medium">Quick test:</span>
-          {SAMPLE_QUESTIONS.map((q, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => handleSend(q)}
-              disabled={isLoading}
-              className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--s2)] hover:bg-[var(--s3)] border border-[var(--line)] text-[var(--t2)] hover:text-[var(--t1)] transition-colors shrink-0 cursor-pointer disabled:opacity-50"
-            >
-              {q}
-            </button>
-          ))}
-        </div>
+        {suggestionChips.length > 0 && (
+          <div className="px-4 py-2 border-b border-[var(--line)] bg-[var(--s1)] flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+            <span className="text-[11px] text-[var(--t4)] shrink-0 font-medium">Quick test:</span>
+            {suggestionChips.map((q, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSend(q)}
+                disabled={isLoading}
+                className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--s2)] hover:bg-[var(--s3)] border border-[var(--line)] text-[var(--t2)] hover:text-[var(--t1)] transition-colors shrink-0 cursor-pointer disabled:opacity-50"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Message Feed */}
         <div className="flex-1 p-4 overflow-y-auto space-y-3.5 scrollbar-thin scrollbar-thumb-[var(--line2)]">

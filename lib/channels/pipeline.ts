@@ -269,7 +269,31 @@ async function maybeAi(
   event: NormalizedInbound,
   conversationId?: string,
 ) {
-  if (!tenant.aiEnabled) return false
+  let aiActive = tenant.aiEnabled
+  if (!aiActive) {
+    try {
+      const { data: aiSettings } = await supabase
+        .from("ai_agent_settings")
+        .select("enabled")
+        .eq("user_id", tenant.userId)
+        .maybeSingle()
+      if (aiSettings && aiSettings.enabled !== false) {
+        aiActive = true
+      } else if (!aiSettings) {
+        const { data: ks } = await supabase
+          .from("knowledge_sources")
+          .select("id")
+          .eq("user_id", tenant.userId)
+          .limit(1)
+        if (ks && ks.length > 0) {
+          aiActive = true
+        }
+      }
+    } catch {
+      // non-blocking
+    }
+  }
+  if (!aiActive) return false
   try {
     const { accountIdForProfile, assertWithinLimit, incrementMeter, loadAccount, PlanLimitError } = await import("@/lib/billing/enforce")
     const accountId = await accountIdForProfile(supabase, tenant.userId)

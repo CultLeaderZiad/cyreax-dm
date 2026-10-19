@@ -1027,7 +1027,7 @@ export function ChannelCards({
               Customize Website Chat Widget
             </DialogTitle>
             <DialogDescription className="text-xs text-[var(--t3)]">
-              Adjust widget appearance and initial greeting for nourcosmetics.com.
+              Adjust widget appearance and initial greeting for your website.
             </DialogDescription>
           </DialogHeader>
 

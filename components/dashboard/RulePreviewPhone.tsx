@@ -228,11 +228,11 @@ export function RulePreviewPhone({
             </div>
           )}
 
-          {/* Lead Capture Sequence Simulator */}
+          {/* Lead Capture Sequence Simulator (Ordered: Name -> Phone -> Email) */}
           {captureName && (
             <>
               <div className="flex justify-end items-end gap-1.5 animate-in fade-in zoom-in-95 duration-200">
-                <div className={`${outgoingBubble} text-white rounded-2xl rounded-br-sm px-4 py-2 text-[14px] max-w-[80%] leading-snug`}>
+                <div className={`${outgoingBubble} text-white rounded-2xl rounded-br-sm px-3.5 py-2 text-[13px] max-w-[80%] leading-snug`}>
                   What is your name?
                 </div>
               </div>
@@ -240,8 +240,26 @@ export function RulePreviewPhone({
                 <div className="w-7 h-7 rounded-full bg-neutral-800 flex items-center justify-center text-[10px] text-white shrink-0">
                   U
                 </div>
-                <div className="bg-[#262626] text-white rounded-2xl rounded-bl-sm px-4 py-2.5 text-[14px] max-w-[75%] leading-snug">
+                <div className="bg-[#262626] text-white rounded-2xl rounded-bl-sm px-3.5 py-2 text-[13px] max-w-[75%] leading-snug">
                   Customer Name
+                </div>
+              </div>
+            </>
+          )}
+
+          {capturePhoneField && (
+            <>
+              <div className="flex justify-end items-end gap-1.5 animate-in fade-in zoom-in-95 duration-200">
+                <div className={`${outgoingBubble} text-white rounded-2xl rounded-br-sm px-3.5 py-2 text-[13px] max-w-[80%] leading-snug`}>
+                  What is your phone/WhatsApp number?
+                </div>
+              </div>
+              <div className="flex justify-start items-end gap-2">
+                <div className="w-7 h-7 rounded-full bg-neutral-800 flex items-center justify-center text-[10px] text-white shrink-0">
+                  U
+                </div>
+                <div className="bg-[#262626] text-white rounded-2xl rounded-bl-sm px-3.5 py-2 text-[13px] max-w-[75%] leading-snug font-mono">
+                  +966 50 123 4567
                 </div>
               </div>
             </>
@@ -250,7 +268,7 @@ export function RulePreviewPhone({
           {captureEmail && (
             <>
               <div className="flex justify-end items-end gap-1.5 animate-in fade-in zoom-in-95 duration-200">
-                <div className={`${outgoingBubble} text-white rounded-2xl rounded-br-sm px-4 py-2 text-[14px] max-w-[80%] leading-snug`}>
+                <div className={`${outgoingBubble} text-white rounded-2xl rounded-br-sm px-3.5 py-2 text-[13px] max-w-[80%] leading-snug`}>
                   What is your email address?
                 </div>
               </div>
@@ -258,8 +276,8 @@ export function RulePreviewPhone({
                 <div className="w-7 h-7 rounded-full bg-neutral-800 flex items-center justify-center text-[10px] text-white shrink-0">
                   U
                 </div>
-                <div className="bg-[#262626] text-white rounded-2xl rounded-bl-sm px-4 py-2.5 text-[14px] max-w-[75%] leading-snug">
-                  john@example.com
+                <div className="bg-[#262626] text-white rounded-2xl rounded-bl-sm px-3.5 py-2 text-[13px] max-w-[75%] leading-snug">
+                  customer@example.com
                 </div>
               </div>
             </>
@@ -267,19 +285,19 @@ export function RulePreviewPhone({
 
           {/* Outgoing Reply Bubble */}
           {hasDMContent(type, messageText, cardTitle, mediaUrl) ? (
-            <div className="flex justify-end items-end gap-1.5 animate-in fade-in zoom-in-95 duration-200">
-              <div className="max-w-[80%] space-y-1.5 flex flex-col items-end">
+            <div className="flex justify-end items-end gap-1.5 animate-in fade-in zoom-in-95 duration-200 w-full">
+              <div className="w-full flex flex-col items-end">
                 {type === "text" && (
-                  <div className={`${outgoingBubble} text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-[14px] whitespace-pre-wrap break-words leading-snug`}>
+                  <div className={`${outgoingBubble} text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-[13.5px] whitespace-pre-wrap break-words leading-snug max-w-[85%]`}>
                     {messageText || "Type message content..."}
                   </div>
                 )}
                 {type === "card" && (
-                  <div className="flex flex-col gap-1.5 w-full items-end">
-                    <div className="bg-[#262626] rounded-2xl rounded-br-sm w-[85%] overflow-hidden border border-white/10 shadow-sm flex flex-col">
+                  <div className="w-full flex justify-end">
+                    <div className="bg-[#262626] rounded-2xl rounded-br-sm w-full max-w-[270px] overflow-hidden border border-white/10 shadow-md flex flex-col">
                       {/* Minimal style skips image */}
                       {cardStyle !== "minimal" && (
-                        <div className={cardStyle === "classic" ? "flex flex-row items-center p-2 gap-3" : ""}>
+                        <div className={cardStyle === "classic" ? "flex flex-row items-center p-2.5 gap-2.5" : ""}>
                           {/* Image Area */}
                           {cardImage ? (
                             <img
@@ -287,24 +305,24 @@ export function RulePreviewPhone({
                               alt="Card Preview"
                               className={
                                 cardStyle === "classic"
-                                  ? "w-16 h-16 rounded-xl object-cover shrink-0"
-                                  : "w-full h-32 object-cover"
+                                  ? "w-14 h-14 rounded-lg object-cover shrink-0"
+                                  : "w-full aspect-[1.91/1] object-cover"
                               }
                             />
                           ) : (
                             <div
                               className={`${
-                                cardStyle === "classic" ? "w-16 h-16 rounded-xl" : "w-full h-32"
+                                cardStyle === "classic" ? "w-14 h-14 rounded-lg" : "w-full aspect-[1.91/1]"
                               } bg-neutral-800 flex items-center justify-center shrink-0`}
                             >
-                              <ImageIcon className="w-6 h-6 text-neutral-600" />
+                              <ImageIcon className="w-5 h-5 text-neutral-600" />
                             </div>
                           )}
 
                           {/* Text Area for Classic (Inline) */}
                           {cardStyle === "classic" && (
-                            <div className="flex-1 min-w-0">
-                              <div className="text-[13px] font-semibold text-white leading-tight truncate">
+                            <div className="flex-1 min-w-0" dir="auto">
+                              <div className="text-[13px] font-semibold text-white leading-snug line-clamp-2">
                                 {cardTitle || "Card Title"}
                               </div>
                               {cardSubtitle && (
@@ -319,12 +337,12 @@ export function RulePreviewPhone({
 
                       {/* Text Area for Modern / Minimal (Stacked) */}
                       {cardStyle !== "classic" && (
-                        <div className="p-3">
-                          <div className="text-[14px] font-semibold text-white leading-tight">
+                        <div className="p-3 space-y-1" dir="auto">
+                          <div className="text-[13.5px] font-semibold text-white leading-snug line-clamp-2">
                             {cardTitle || "Card Title"}
                           </div>
                           {cardSubtitle && (
-                            <div className="text-[12px] text-neutral-400 mt-1 leading-snug whitespace-pre-wrap">
+                            <div className="text-[11.5px] text-neutral-400 leading-snug line-clamp-3">
                               {cardSubtitle}
                             </div>
                           )}
@@ -333,25 +351,24 @@ export function RulePreviewPhone({
 
                       {/* Buttons Area */}
                       {buttons.length > 0 ? (
-                        <div className="flex flex-col border-t border-white/10">
+                        <div className="flex flex-col border-t border-white/10 divide-y divide-white/10">
                           {buttons
                             .filter((b) => b.title)
-                            .map((b, idx) => (
+                            .map((b) => (
                               <div
                                 key={b.id}
                                 onClick={() => {
                                   if (b.url) window.open(b.url, "_blank")
                                 }}
-                                className={`text-center py-2.5 text-[14px] text-[#0095F6] font-medium hover:bg-white/5 cursor-pointer transition-colors ${
-                                  idx > 0 ? "border-t border-white/10" : ""
-                                }`}
+                                dir="auto"
+                                className="text-center py-2 px-3 text-[13px] text-[#3897f0] font-semibold hover:bg-white/5 cursor-pointer transition-colors truncate"
                               >
                                 {b.title}
                               </div>
                             ))}
                         </div>
                       ) : (
-                        <div className="border-t border-white/10 text-center py-2.5 text-[14px] text-neutral-500 font-medium italic">
+                        <div className="border-t border-white/10 text-center py-2 text-[13px] text-neutral-500 font-medium italic">
                           Button Link
                         </div>
                       )}

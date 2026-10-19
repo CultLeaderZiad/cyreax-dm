@@ -40,9 +40,9 @@ export async function processLeadCapture(
   if (!currentState && parsedContent.lead_capture) {
     const lc = parsedContent.lead_capture
     let nextStep = ""
-    if (lc.require_email) nextStep = "ask_email"
+    if (lc.require_name) nextStep = "ask_name"
     else if (lc.require_phone) nextStep = "ask_phone"
-    else if (lc.require_name) nextStep = "ask_name"
+    else if (lc.require_email) nextStep = "ask_email"
 
     if (nextStep) {
       // Start the sequence
@@ -77,9 +77,9 @@ export async function processLeadCapture(
     // Determine next step
     const lc = parsedContent.lead_capture || {}
     let nextStep = ""
-    if (lc.require_email && !stateData.email) nextStep = "ask_email"
+    if (lc.require_name && !stateData.name) nextStep = "ask_name"
     else if (lc.require_phone && !stateData.phone) nextStep = "ask_phone"
-    else if (lc.require_name && !stateData.name) nextStep = "ask_name"
+    else if (lc.require_email && !stateData.email) nextStep = "ask_email"
 
     currentStep = nextStep
 

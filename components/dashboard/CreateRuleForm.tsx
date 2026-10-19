@@ -191,7 +191,8 @@ interface CreateRuleFormProps {
 }
 
 export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, initialIntent, defaultPlatform }: CreateRuleFormProps) {
-  const isEditing = !!editRule
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  const isEditing = Boolean(editRule?.id && UUID_REGEX.test(String(editRule.id)))
   const [step, setStep] = useState(0)
 
   /* ---------- WHEN ---------- */
@@ -866,9 +867,9 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 <ToggleRow icon={<Eye className="w-5 h-5" />} title="Mimic active typing status" sub="Displays typing bubble indicators to look completely organic." on={typingIndicator} onToggle={() => setTypingIndicator(!typingIndicator)} />
 
                 <FieldLabel>Lead Capture Sequence (Pre-Delivery)</FieldLabel>
-                <ToggleRow icon={<AtSign className="w-5 h-5" />} title="Ask for Email" sub="Capture the user's email address before sending the payload." on={captureEmail} onToggle={() => setCaptureEmail(!captureEmail)} />
-                <ToggleRow icon={<Phone className="w-5 h-5" />} title="Ask for Phone Number" sub="Capture the user's phone number before sending the payload." on={capturePhone} onToggle={() => setCapturePhone(!capturePhone)} />
-                <ToggleRow icon={<Smile className="w-5 h-5" />} title="Ask for Name" sub="Capture the user's name before sending the payload." on={captureName} onToggle={() => setCaptureName(!captureName)} />
+                <ToggleRow icon={<Smile className="w-5 h-5" />} title="Ask for Name" sub="Capture the user's name first for personal, friendly follow-up." on={captureName} onToggle={() => setCaptureName(!captureName)} />
+                <ToggleRow icon={<Phone className="w-5 h-5" />} title="Ask for Phone Number" sub="Capture mobile or WhatsApp number before sending the payload." on={capturePhone} onToggle={() => setCapturePhone(!capturePhone)} />
+                <ToggleRow icon={<AtSign className="w-5 h-5" />} title="Ask for Email" sub="Capture the user's email address for confirmation and offers." on={captureEmail} onToggle={() => setCaptureEmail(!captureEmail)} />
 
                 {platform !== "telegram" && platform !== "whatsapp" && platform !== "tiktok" && platform !== "webchat" && (
                   <div className="flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/[0.01]">

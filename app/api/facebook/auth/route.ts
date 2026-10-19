@@ -19,7 +19,8 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url)
-  const configId = searchParams.get("config_id") || process.env.NEXT_PUBLIC_FACEBOOK_CONFIG_ID || process.env.FACEBOOK_CONFIG_ID || "957445130313793"
+  // Only use config_id if explicitly requested by client; never default to WhatsApp config ID
+  const configId = searchParams.get("config_id")
 
   let url: string
   if (configId) {

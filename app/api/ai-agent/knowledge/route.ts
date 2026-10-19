@@ -6,29 +6,6 @@ import { saveKnowledge } from "@/lib/ai-agent/ingest"
 
 const KINDS = new Set(["faq", "product", "policy", "website", "document"])
 
-const DEFAULT_SEED_FAQS = [
-  {
-    title: "بكام الشحن لجدة والرياض؟",
-    body: "الشحن لجميع مدن المملكة بـ 25 ريال، والتوصيل خلال 2-3 أيام عمل.",
-    kind: "faq" as const,
-  },
-  {
-    title: "هل المنتجات مرخصة من الغذاء والدواء؟",
-    body: "نعم جميع منتجاتنا معتمدة ومسجلة في هيئة الغذاء والدواء السعودية وصالحة للاستخدام 100%.",
-    kind: "faq" as const,
-  },
-  {
-    title: "طرق الدفع المتاحة؟",
-    body: "مدى، فيزا، ماستركارد، تابي، وتمارا على 4 دفعات بدون فوائد.",
-    kind: "faq" as const,
-  },
-  {
-    title: "سياسة الاسترجاع والاستبدال؟",
-    body: "الاسترجاع متاح خلال 7 أيام من استلام الطلب بشرط بقاء المنتج بغلافه الأصلي.",
-    kind: "faq" as const,
-  },
-]
-
 export async function GET(request: NextRequest) {
   const session = await workspaceSession(request)
   if ("response" in session && session.response) return session.response
@@ -43,31 +20,6 @@ export async function GET(request: NextRequest) {
   if (error) {
     if (isMissingTable(error)) return NextResponse.json({ sources: [], migration_required: true })
     return NextResponse.json({ error: "Failed to load knowledge" }, { status: 500 })
-  }
-
-  // Auto-seed default Q&As if none exist yet for this workspace
-  if (!data || data.length === 0) {
-    try {
-      for (const faq of DEFAULT_SEED_FAQS) {
-        await saveKnowledge({
-          supabase: session.supabase,
-          userId: session.userId,
-          workspaceId: session.workspaceId,
-          kind: faq.kind,
-          title: faq.title,
-          body: faq.body,
-        })
-      }
-      const refreshed = await session.supabase
-        .from("knowledge_sources")
-        .select("id, kind, title, body, source_url, created_at")
-        .eq("user_id", session.userId)
-        .order("created_at", { ascending: false })
-        .limit(100)
-      return NextResponse.json({ sources: refreshed.data || [] })
-    } catch (seedErr) {
-      console.warn("[knowledge GET] auto-seed error:", seedErr)
-    }
   }
 
   return NextResponse.json({ sources: data || [] })
