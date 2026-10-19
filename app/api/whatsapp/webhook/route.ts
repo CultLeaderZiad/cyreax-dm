@@ -3,26 +3,9 @@ export const dynamic = "force-dynamic"
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { devWebhookSignatureBypass, whatsappVerifyTokenMatches } from "@/lib/whatsapp/webhook-guard"
 
 export { processWhatsAppWebhookBody } from "@/lib/channels/ingress"
-
-function isAuthorizedVerifyToken(candidate: string | null): boolean {
-  if (!candidate) return false
-  const validTokens = [
-    process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
-    process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN,
-    process.env.FACEBOOK_WEBHOOK_VERIFY_TOKEN,
-    process.env.META_VERIFY_TOKEN,
-    process.env.META_WEBHOOK_VERIFY_TOKEN,
-    process.env.WEBHOOK_VERIFY_TOKEN,
-  ].filter(Boolean) as string[]
-
-  if (validTokens.length === 0) return false
-
-  return validTokens.some(
-    (expected) => expected === candidate || expected.toLowerCase() === candidate.toLowerCase()
-  )
-}
 
 const APP_SECRET = process.env.META_APP_SECRET || process.env.INSTAGRAM_APP_SECRET
 
@@ -42,7 +25,7 @@ export async function GET(request: NextRequest) {
   const token = searchParams.get("hub.verify_token")
   const challenge = searchParams.get("hub.challenge")
 
-  if (mode === "subscribe" && challenge && isAuthorizedVerifyToken(token)) {
+  if (mode === "subscribe" && challenge && whatsappVerifyTokenMatches(token, process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN)) {
     return new Response(challenge, {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
@@ -59,7 +42,8 @@ export async function POST(request: NextRequest) {
     const rawBody = await request.text()
     const signature = request.headers.get("x-hub-signature-256")
     if (!isValidSignature(rawBody, signature)) {
-      if (process.env.DISABLE_WEBHOOK_SIGNATURE_CHECK !== "true") {
+      // Dev-only bypass; NODE_ENV or VERCEL_ENV production always requires a valid HMAC.
+      if (!devWebhookSignatureBypass()) {
         return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
       }
     }

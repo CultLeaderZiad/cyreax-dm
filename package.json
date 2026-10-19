@@ -8,7 +8,7 @@
     "dev": "next dev --webpack",
     "lint": "eslint .",
     "start": "next start",
-    "test": "node --experimental-strip-types --import ./tests/register.mjs --test tests/phase1.test.mts tests/phase2.test.mts tests/phase3.test.mts tests/phase4.test.mts tests/phase5.test.mts tests/phase6.test.mts tests/phase7.test.mts tests/phase8.test.mts tests/tiktok-mena.test.mts tests/inbox-helpers.test.mts",
+    "test": "node --experimental-strip-types --import ./tests/register.mjs --test tests/phase1.test.mts tests/phase2.test.mts tests/phase3.test.mts tests/phase4.test.mts tests/phase5.test.mts tests/phase6.test.mts tests/phase7.test.mts tests/phase8.test.mts tests/tiktok-mena.test.mts tests/inbox-helpers.test.mts tests/security-guards.test.mts",
     "seed": "node --experimental-strip-types scripts/seed-demo.mts"
   },
   "dependencies": {

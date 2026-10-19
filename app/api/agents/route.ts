@@ -1,7 +1,22 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
+import { scopedAccountId, type AccountScopeMethod } from "@/lib/account-scope"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { getSessionUser } from "@/lib/auth"
+import { listMemberships } from "@/lib/workspaces"
+
+async function accountIdForAgentRequest(
+  sessionAccountId: string,
+  requestedAccountId: string | null | undefined,
+  method: AccountScopeMethod,
+): Promise<string | null> {
+  const requested = typeof requestedAccountId === "string" ? requestedAccountId.trim() : ""
+  if (!sessionAccountId) return null
+  if (!requested || requested === sessionAccountId) return sessionAccountId
+  const supabase = await getSupabaseBypassClient()
+  const memberships = await listMemberships(supabase, sessionAccountId)
+  return scopedAccountId(sessionAccountId, requested, memberships, method)
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,10 +24,10 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-    
-    // We can also extract accountId from query param or session, defaulting to the authenticated user
-    const searchParams = req.nextUrl.searchParams
-    const accId = searchParams.get("accountId") || user.id
+
+    // Never trust a client-supplied accountId. Own account, or a workspace the caller belongs to.
+    const accId = await accountIdForAgentRequest(user.id, req.nextUrl.searchParams.get("accountId"), "GET")
+    if (!accId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
     const supabase = await getSupabaseBypassClient()
     
@@ -84,10 +99,10 @@ export async function PATCH(req: NextRequest) {
     }
 
     const { accountId, agentId, is_enabled, byok_key, byok_provider } = await req.json()
-    // Use the passed accountId or default to the user's id
-    const accId = accountId || user.id
+    const accId = await accountIdForAgentRequest(user.id, typeof accountId === "string" ? accountId : null, "PATCH")
+    if (!accId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-    if (!accId || !agentId) return NextResponse.json({ error: "Missing ids" }, { status: 400 })
+    if (!agentId) return NextResponse.json({ error: "Missing ids" }, { status: 400 })
 
     const supabase = await getSupabaseBypassClient()
 
