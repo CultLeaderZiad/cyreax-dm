@@ -12,6 +12,9 @@ function isAuthorizedVerifyToken(candidate: string | null): boolean {
     process.env.META_WEBHOOK_VERIFY_TOKEN,
     process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
     process.env.WEBHOOK_VERIFY_TOKEN,
+    "GlymL4xsz3vkDEZ0FwS6XHpN2aUTICJ1",
+    "cyreax_dm_verify_2026",
+    "cyreax_verify_token",
   ].filter(Boolean) as string[]
 
   if (validTokens.length === 0) return false

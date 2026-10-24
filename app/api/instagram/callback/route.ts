@@ -250,6 +250,29 @@ export async function POST(request: NextRequest) {
 
     if (upsertError) throw upsertError
 
+    // Also sync to platform_connections table for multi-channel consistency
+    try {
+      const igPlatformData: any = {
+        user_id: profileId,
+        account_id: account.id,
+        platform: "instagram",
+        page_id: businessAccountId,
+        external_account_id: businessAccountId,
+        access_token: sealAccessToken(accessToken),
+        metadata: { username, profile_pic: profilePic, webhook_subscribed: true },
+        workspace_id: workspaceId || null,
+      }
+      const { data: existingIgConn } = await db.from("platform_connections")
+        .select("id").eq("platform", "instagram").eq("page_id", businessAccountId).maybeSingle()
+      if (existingIgConn) {
+        await db.from("platform_connections").update(igPlatformData).eq("id", existingIgConn.id)
+      } else {
+        await db.from("platform_connections").insert(igPlatformData)
+      }
+    } catch (e) {
+      console.warn("[v0] Could not sync to platform_connections:", e)
+    }
+
     // 6. Return response (no need for insta_session cookie, we use Supabase Auth now)
     const response = NextResponse.json({ success: true, username, userId: String(profileId), profilePic })
     return clearCode(response)

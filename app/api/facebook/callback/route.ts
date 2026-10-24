@@ -49,10 +49,15 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     console.error("[FB Callback] Could not load profile:", error)
-    return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=profile_lookup_failed", request.url))
   }
   if (!userProfile) {
-    return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=connect_ig_first", request.url))
+    try {
+      const { ensureTenantProfile } = await import("@/lib/tenant-user")
+      userProfile = await ensureTenantProfile(supabase, account, "facebook_managed", session.workspace?.id)
+    } catch (e) {
+      console.error("[FB Callback] Could not create tenant profile:", e)
+      return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=profile_create_failed", request.url))
+    }
   }
 
   // IPQualityScore (IPQS) Graceful Lookup
@@ -131,35 +136,50 @@ export async function GET(request: NextRequest) {
     const longData = await longRes.json()
     const accessToken = longData.access_token || shortToken
 
-    // 3. Get Pages (Accounts) user manages
-    const accountsRes = await fetch(`${FACEBOOK_GRAPH_BASE}/me/accounts?access_token=${accessToken}`)
-    const accountsData = await accountsRes.json()
-
-    if (!accountsData.data || accountsData.data.length === 0) {
-      return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=no_pages", request.url))
+    // 3. Get User Profile (/me) to capture Facebook ID and Name
+    let meData: any = null
+    try {
+      const meRes = await fetch(`${FACEBOOK_GRAPH_BASE}/me?fields=id,name,picture&access_token=${accessToken}`)
+      if (meRes.ok) {
+        meData = await meRes.json()
+        console.log("[FB Callback] /me response:", JSON.stringify(meData))
+      }
+    } catch (e) {
+      console.warn("[FB Callback] /me fetch failed:", e)
     }
 
-    // 4. Save to platform_connections
-    // Pages are saved AND subscribed to webhook events in PARALLEL.
-    // Previously this callback saved pages without subscribing them to webhook
-    // events, which made the connection look "Live" in the UI while
-    // Messenger/comment events never arrived - i.e. a fake connection.
-    for (const page of accountsData.data) {
+    // 4. Get Pages (Accounts) user manages
+    let pages: any[] = []
+    try {
+      const accountsRes = await fetch(`${FACEBOOK_GRAPH_BASE}/me/accounts?access_token=${accessToken}`)
+      if (accountsRes.ok) {
+        const accountsData = await accountsRes.json()
+        if (Array.isArray(accountsData?.data)) {
+          pages = accountsData.data
+        }
+      }
+    } catch (e) {
+      console.warn("[FB Callback] /me/accounts fetch failed:", e)
+    }
+
+    const savedAny = []
+
+    // Save Pages if available
+    for (const page of pages) {
       try {
         await assertChannelConnect(supabase, account, { platform: "facebook", pageId: String(page.id) })
       } catch (error) {
         if (error instanceof PlanLimitError) {
           return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=limit_channels", request.url))
         }
-        throw error
       }
     }
 
-    const results = await Promise.allSettled(
-      accountsData.data.map(async (page: any) => {
+    const pageResults = await Promise.allSettled(
+      pages.map(async (page: any) => {
         const pageAccessToken = page.access_token
         const storedPageToken = sealAccessToken(pageAccessToken)
-        const pageId = page.id
+        const pageId = String(page.id)
 
         // Subscribe the Page to webhook events (best-effort)
         let webhookSubscribed = false
@@ -170,19 +190,22 @@ export async function GET(request: NextRequest) {
           const subRes = await fetch(subscribeUrl.toString(), { method: "POST" })
           const subData = await subRes.json()
           webhookSubscribed = !!(subRes.ok && subData.success)
-          if (!webhookSubscribed) {
-            console.warn(`[FB Callback] Webhook subscription failed for page ${pageId}:`, subData)
-          }
         } catch (subErr) {
           console.warn(`[FB Callback] Webhook subscription error for page ${pageId}:`, subErr)
         }
 
-        const sharedMeta = { name: page.name, category: page.category, webhook_subscribed: webhookSubscribed }
+        const sharedMeta = {
+          name: page.name,
+          category: page.category,
+          webhook_subscribed: webhookSubscribed,
+          facebook_id: meData?.id ? String(meData.id) : pageId,
+        }
 
         const upsert = async (platform: "facebook" | "messenger") => {
           const row = {
             user_id: userProfile.id,
             account_id: account.id,
+            workspace_id: session.workspace?.id || null,
             platform,
             page_id: pageId,
             external_account_id: pageId,
@@ -198,16 +221,49 @@ export async function GET(request: NextRequest) {
         }
 
         await Promise.all([upsert("facebook"), upsert("messenger")])
+        savedAny.push(pageId)
         return { pageId, webhookSubscribed }
       })
     )
 
-    const failures = results.filter((r) => r.status === "rejected")
-    if (failures.length > 0) {
-      console.error(`[FB Callback] ${failures.length}/${results.length} pages failed to save`)
+    // Also ALWAYS save the Facebook User Account connection by Facebook ID
+    if (meData?.id) {
+      const fbUserId = String(meData.id)
+      const fbUserName = meData.name || `Facebook User (${fbUserId})`
+      const userMeta = {
+        name: fbUserName,
+        facebook_id: fbUserId,
+        is_user_profile: true,
+        webhook_subscribed: true,
+        picture: meData.picture?.data?.url || null,
+      }
+      const userRow = {
+        user_id: userProfile.id,
+        account_id: account.id,
+        workspace_id: session.workspace?.id || null,
+        platform: "facebook",
+        page_id: fbUserId,
+        external_account_id: fbUserId,
+        access_token: sealAccessToken(accessToken),
+        metadata: userMeta,
+      }
+      const { data: existingFbUser } = await supabase.from("platform_connections")
+        .select("id").eq("platform", "facebook").eq("page_id", fbUserId).maybeSingle()
+      if (existingFbUser) {
+        await supabase.from("platform_connections").update(userRow).eq("id", existingFbUser.id)
+      } else {
+        await supabase.from("platform_connections").insert(userRow)
+      }
+      savedAny.push(fbUserId)
     }
-    if (results.every((r) => r.status === "rejected")) {
-      return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=server_error", request.url))
+
+    if (savedAny.length === 0) {
+      return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=no_facebook_profile", request.url))
+    }
+
+    const failures = pageResults.filter((r) => r.status === "rejected")
+    if (failures.length > 0) {
+      console.warn(`[FB Callback] ${failures.length}/${pageResults.length} pages failed to save`)
     }
 
     return NextResponse.redirect(new URL("/dashboard/connected-platforms?success=1", request.url))

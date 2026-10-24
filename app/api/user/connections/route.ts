@@ -63,6 +63,14 @@ export async function GET(request: NextRequest) {
         .eq("workspace_id", result.workspace.id)
     )
   }
+  if (account?.id) {
+    queries.push(
+      supabase
+        .from("platform_connections")
+        .select("id, platform, page_id, metadata, connected_at")
+        .eq("account_id", account.id)
+    )
+  }
 
   const perIdResults = await Promise.all(queries)
 
@@ -143,11 +151,12 @@ export async function DELETE(request: NextRequest) {
     // disconnect attempt with "Failed to disconnect".
     const { data: row, error: rowError } = await supabase
       .from("platform_connections")
-      .select("id, user_id, platform, page_id, external_account_id, access_token, metadata")
+      .select("id, user_id, account_id, platform, page_id, external_account_id, access_token, metadata")
       .eq("id", connectionId)
       .maybeSingle()
 
-    if (rowError || !row || !ownedUserIds.has(String(row.user_id))) {
+    const isOwner = row && (ownedUserIds.has(String(row.user_id)) || (account?.id && row.account_id === account.id))
+    if (rowError || !row || !isOwner) {
       return NextResponse.json({ error: "Connection not found or does not belong to your account" }, { status: 404 })
     }
 

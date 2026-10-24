@@ -98,6 +98,11 @@ export function ChannelCards({
 
   // TikTok setup
   const [tiktokRegionModalOpen, setTiktokRegionModalOpen] = useState(false)
+  const [tiktokModalOpen, setTiktokModalOpen] = useState(false)
+  const [tiktokUsername, setTiktokUsername] = useState("")
+  const [tiktokAccountId, setTiktokAccountId] = useState("")
+  const [tiktokRegion, setTiktokRegion] = useState("EG")
+  const [tiktokConnecting, setTiktokConnecting] = useState(false)
 
   // Webchat widget
   const [widgetModalOpen, setWidgetModalOpen] = useState(false)
@@ -194,6 +199,41 @@ export function ChannelCards({
       toast.error("Network error connecting Telegram bot")
     } finally {
       setTelegramConnecting(false)
+    }
+  }
+
+  // Connect TikTok handler
+  const handleSaveTikTok = async () => {
+    if (!tiktokUsername.trim()) {
+      toast.error("Please enter your TikTok username")
+      return
+    }
+
+    setTiktokConnecting(true)
+    try {
+      const res = await fetch("/api/tiktok/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: tiktokUsername.trim(),
+          account_id: tiktokAccountId.trim() || undefined,
+          region: tiktokRegion,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(`Connected TikTok account ${data.connection?.username || tiktokUsername}!`)
+        setTiktokModalOpen(false)
+        setTiktokUsername("")
+        setTiktokAccountId("")
+        onRefresh?.()
+      } else {
+        toast.error(data.error || "Failed to connect TikTok")
+      }
+    } catch {
+      toast.error("Network error connecting TikTok")
+    } finally {
+      setTiktokConnecting(false)
     }
   }
 
@@ -336,9 +376,14 @@ export function ChannelCards({
                       <div className="w-5 h-5 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[9.5px] font-semibold text-[var(--t1)] shrink-0">
                         {(page.metadata?.name || page.page_id || "F")[0].toUpperCase()}
                       </div>
-                      <span className="text-[11.5px] font-medium text-[var(--t1)] truncate">
-                        {page.metadata?.name || `Page ${page.page_id}`}
-                      </span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[11.5px] font-medium text-[var(--t1)] truncate">
+                          {page.metadata?.name || `Facebook ${page.page_id}`}
+                        </span>
+                        <span className="text-[9.5px] text-[var(--t3)] font-mono truncate">
+                          ID: {page.metadata?.facebook_id || page.page_id}
+                        </span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <ChannelBadge channel="facebook" size="sm" className="w-4 h-4 rounded-full" />
@@ -548,12 +593,15 @@ export function ChannelCards({
               variant="primary"
               size="sm"
               onClick={() => {
-                if (onConnectTikTok) onConnectTikTok()
-                else toast.info("Opening TikTok Business Account authorization...")
+                if (onConnectTikTok) {
+                  onConnectTikTok()
+                } else {
+                  setTiktokModalOpen(true)
+                }
               }}
               className="h-[28px] px-3 text-[11.5px] font-medium"
             >
-              Connect TikTok
+              {tiktokConnection ? "Reconnect TikTok" : "Connect TikTok"}
             </Button>
 
             <Button
@@ -1014,6 +1062,98 @@ export function ChannelCards({
               className="h-[28px] text-xs"
             >
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* TikTok Connect Account Modal */}
+      <Dialog open={tiktokModalOpen} onOpenChange={setTiktokModalOpen}>
+        <DialogContent className="sm:max-w-md bg-[var(--s1)] border-[var(--line)] text-[var(--t1)]">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold flex items-center gap-2">
+              <ChannelBadge channel="tiktok" size="sm" />
+              Connect TikTok Account
+            </DialogTitle>
+            <DialogDescription className="text-xs text-[var(--t3)]">
+              Automate TikTok comment replies, keyword triggers, and DMs.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div>
+              <label className="text-[11.5px] text-[var(--t2)] font-medium block mb-1">
+                TikTok Username / Handle
+              </label>
+              <div className="relative">
+                <span className="absolute left-2.5 top-2 text-[var(--t3)] font-mono text-xs">@</span>
+                <input
+                  value={tiktokUsername}
+                  onChange={(e) => setTiktokUsername(e.target.value.replace(/^@/, ""))}
+                  placeholder="brand_official"
+                  className="w-full h-8 bg-[var(--s2)] border border-[var(--line)] rounded-[6px] pl-6 pr-2.5 text-xs text-[var(--t1)] focus:outline-none focus:border-[var(--line2)] font-mono"
+                />
+              </div>
+              <p className="text-[10.5px] text-[var(--t3)] mt-1">
+                Your public TikTok creator or business account handle.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-[11.5px] text-[var(--t2)] font-medium block mb-1">
+                Region / Country
+              </label>
+              <select
+                value={tiktokRegion}
+                onChange={(e) => setTiktokRegion(e.target.value)}
+                className="w-full h-8 bg-[var(--s2)] border border-[var(--line)] rounded-[6px] px-2 text-xs text-[var(--t1)] focus:outline-none cursor-pointer"
+              >
+                <option value="EG">Egypt (MENA)</option>
+                <option value="SA">Saudi Arabia (KSA)</option>
+                <option value="AE">United Arab Emirates (UAE)</option>
+                <option value="KW">Kuwait</option>
+                <option value="QA">Qatar</option>
+                <option value="US">United States</option>
+                <option value="GLOBAL">Global / Other</option>
+              </select>
+            </div>
+
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 space-y-1 text-[11px] text-[var(--t3)]">
+              <div className="font-semibold text-[var(--t1)]">Automation features:</div>
+              <div>✓ Instant auto-reply to comments with keyword triggers</div>
+              <div>✓ Direct conversion links (tiktok.me ref routing)</div>
+              <div>✓ AI FAQ answering and lead capture</div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setTiktokModalOpen(false)
+                window.location.href = "/api/tiktok/auth"
+              }}
+              className="h-[28px] text-xs font-medium mr-auto"
+            >
+              Sign in with TikTok
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setTiktokModalOpen(false)}
+              className="h-[28px] text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleSaveTikTok}
+              disabled={tiktokConnecting}
+              className="h-[28px] text-xs font-medium"
+            >
+              {tiktokConnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Connect Account"}
             </Button>
           </DialogFooter>
         </DialogContent>
