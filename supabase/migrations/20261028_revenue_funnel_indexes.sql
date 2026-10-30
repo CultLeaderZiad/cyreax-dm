@@ -30,13 +30,13 @@ DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
-    WHERE tablename = 'orders' AND policyname = 'helixa_orders_workspace_select'
+    WHERE tablename = 'orders' AND policyname IN ('helixa_orders_workspace_select', 'helixa_orders_select')
   ) THEN
     CREATE POLICY helixa_orders_workspace_select ON public.orders
       FOR SELECT TO authenticated
       USING (
         public.helixa_owns_profile(user_id)
-        OR (workspace_id IS NOT NULL AND public.helixa_can_access_workspace(workspace_id, 'viewer'))
+        OR (workspace_id IS NOT NULL AND public.helixa_can_read_workspace(workspace_id))
         OR public.helixa_is_admin()
       );
   END IF;
