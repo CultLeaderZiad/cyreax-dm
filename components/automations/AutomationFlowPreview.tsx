@@ -18,7 +18,7 @@ interface AutomationFlowPreviewProps {
 export function AutomationFlowPreview({ automation, onTest }: AutomationFlowPreviewProps) {
   if (!automation) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-[var(--s1)] border-l border-[var(--line)] select-none">
+      <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-[var(--s1)] border-s border-[var(--line)] select-none">
         <div className="w-10 h-10 rounded-xl bg-[var(--s2)] border border-[var(--line)] flex items-center justify-center text-[var(--t3)] mb-3">
           <GitBranch className="w-5 h-5" />
         </div>
@@ -92,7 +92,7 @@ export function AutomationFlowPreview({ automation, onTest }: AutomationFlowPrev
   )
 
   return (
-    <div className="h-full flex flex-col bg-[var(--s1)] border-l border-[var(--line)] overflow-y-auto select-none scrollbar-thin scrollbar-thumb-[var(--line2)] scrollbar-track-transparent">
+    <div className="h-full flex flex-col bg-[var(--s1)] border-s border-[var(--line)] overflow-y-auto select-none scrollbar-thin scrollbar-thumb-[var(--line2)] scrollbar-track-transparent">
       {/* Header */}
       <div className="p-4 border-b border-[var(--line)] flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">

@@ -184,7 +184,7 @@ export function RulePreviewPhone({
                     {(editRule?.name || "T").substring(0, 1)}
                   </div>
                 </div>
-                <div className="absolute bottom-0 -right-0.5 w-3 h-3 bg-[#31a24c] rounded-full border-2 border-black" />
+                <div className="absolute bottom-0 -end-0.5 w-3 h-3 bg-[#31a24c] rounded-full border-2 border-black" />
               </div>
               <div className="leading-tight flex flex-col justify-center">
                 <div className="flex items-center gap-1">
@@ -201,7 +201,7 @@ export function RulePreviewPhone({
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-4 text-white pr-1">
+          <div className="flex items-center gap-4 text-white pe-1">
             <Phone className="w-5 h-5" />
             <Video className="w-6 h-6" />
           </div>
@@ -221,7 +221,7 @@ export function RulePreviewPhone({
 
           {/* Typing indicator simulator */}
           {typingIndicator && (
-            <div className="flex justify-end pr-1 animate-pulse">
+            <div className="flex justify-end pe-1 animate-pulse">
               <span className="text-[9px] text-neutral-500 font-mono-ui italic">
                 typing indicator active...
               </span>

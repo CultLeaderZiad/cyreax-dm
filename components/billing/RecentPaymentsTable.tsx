@@ -102,7 +102,7 @@ export function RecentPaymentsTable({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-[12px] border-collapse" aria-label="Recent payments table">
+          <table className="w-full text-start text-[12px] border-collapse" aria-label="Recent payments table">
             <thead>
               <tr className="border-b border-[var(--line)] bg-[var(--s2)]/40 font-mono text-[10.5px] uppercase tracking-wider text-[var(--t3)]">
                 <th scope="col" className="py-2.5 px-4 font-medium">
@@ -117,7 +117,7 @@ export function RecentPaymentsTable({
                 <th scope="col" className="py-2.5 px-3 font-medium">
                   Status
                 </th>
-                <th scope="col" className="py-2.5 px-4 font-medium text-right">
+                <th scope="col" className="py-2.5 px-4 font-medium text-end">
                   Amount
                 </th>
               </tr>
@@ -133,7 +133,7 @@ export function RecentPaymentsTable({
                     <bdi>{p.reference}</bdi>
                   </td>
                   <td className="py-3 px-3">{renderStatusPill(p)}</td>
-                  <td className="py-3 px-4 text-right font-mono text-[12.5px] font-semibold text-[var(--t1)] tabular-nums">
+                  <td className="py-3 px-4 text-end font-mono text-[12.5px] font-semibold text-[var(--t1)] tabular-nums">
                     <bdi>{p.amount}</bdi>
                   </td>
                 </tr>

@@ -24,7 +24,7 @@ interface ConversationListProps {
   onSelect: (id: string, username: string, recipientId: string, platform: string) => void
 }
 
-type TabFilter = "open" | "mine" | "unassigned" | "ai"
+type TabFilter = "open" | "needs_human" | "mine" | "unassigned" | "ai"
 
 function formatRelativeTime(dateStr?: string): string {
   if (!dateStr) return ""
@@ -79,6 +79,13 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
         const plat = (c.platform || "instagram").toLowerCase()
         if (plat !== selectedChannel.toLowerCase()) return false
       }
+      // Tab filter
+      if (activeTab === "needs_human" && !c.bot_paused) return false
+      if (activeTab === "mine" && (c as any).assigned_to !== userId) return false
+      if (activeTab === "unassigned" && (c as any).assigned_to) return false
+      if (activeTab === "ai" && !(c as any).ai_handled && (c as any).status !== "ai") return false
+      if (activeTab === "open" && ((c as any).is_archived || (c as any).status === "closed")) return false
+
       // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim()
@@ -88,16 +95,18 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
       }
       return true
     })
-  }, [rawConversations, selectedChannel, searchQuery])
+  }, [rawConversations, selectedChannel, searchQuery, activeTab, userId])
 
   // Computed tab counts from real conversations
   const counts = useMemo(() => {
     const open = rawConversations.filter((c: any) => !c.is_archived && c.status !== "closed").length
+    const needsHuman = rawConversations.filter((c: any) => Boolean(c.bot_paused)).length
     const mine = rawConversations.filter((c: any) => c.assigned_to === userId).length
     const unassigned = rawConversations.filter((c: any) => !c.assigned_to).length
     const ai = rawConversations.filter((c: any) => c.ai_handled || c.status === "ai").length
     return {
       open,
+      needsHuman,
       mine,
       unassigned,
       ai,
@@ -311,10 +320,11 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
           )}
         </div>
 
-        {/* Horizontally scrollable segmented control tabs */}
+        {/* Horizontally scrollable segmented control tabs / filter chips */}
         <div className="flex items-center gap-1.5 p-1 bg-[var(--s2)] border border-[var(--line)] rounded-[8px] overflow-x-auto no-scrollbar text-[12px]">
           {[
             { id: "open", label: isAr ? "مفتوح" : "Open", count: counts.open },
+            { id: "needs_human", label: isAr ? "تدخل بشري" : "Needs human", count: counts.needsHuman },
             { id: "mine", label: isAr ? "خاص بي" : "Mine", count: counts.mine },
             { id: "unassigned", label: isAr ? "غير معين" : "Unassigned", count: counts.unassigned },
             { id: "ai", label: isAr ? "الذكاء الاصطناعي" : "AI handling", count: counts.ai },
@@ -482,7 +492,7 @@ export function ConversationList({ userId, selectedId, onSelect }: ConversationL
                       )}
                       {isBotPaused && (
                         <Pill variant="amber">
-                          AI paused
+                          {isAr ? "تدخل بشري" : "Needs human"}
                         </Pill>
                       )}
                       {assignedTo && (

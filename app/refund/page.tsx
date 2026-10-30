@@ -29,7 +29,7 @@ export default function RefundPage() {
 
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">1. How to Cancel (Stripe, Paymob &amp; Tap)</h2>
-                        <ul className="list-disc pl-6 space-y-2 mt-2">
+                        <ul className="list-disc ps-6 space-y-2 mt-2">
                             <li>Cancel from your dashboard: go to <strong className="text-white">Billing &amp; Subscription</strong> and select "Cancel subscription". A confirmation dialog will appear before the cancellation is applied.</li>
                             <li>Cancellation stops all future recurring charges immediately across Stripe, Paymob, or Tap.</li>
                             <li>Your plan stays active until the end of the period you already paid for. After that, your account moves to the expired state: your data and configuration are preserved, but automations pause until you renew.</li>

@@ -32,7 +32,7 @@ export default function PrivacyPage() {
 
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">1. Information We Collect</h2>
-                        <ul className="list-disc pl-6 space-y-2 mt-2">
+                        <ul className="list-disc ps-6 space-y-2 mt-2">
                             <li><strong className="text-white">Account information:</strong> your email address, username, and authentication credentials (managed through Supabase Auth, including optional Google sign-in), and the plan you choose.</li>
                             <li><strong className="text-white">Workspace data you type in:</strong> automation rules, flows, broadcasts, product catalog, and knowledge-base text.</li>
                             <li><strong className="text-white">Connected platform data:</strong> when you connect Instagram, Facebook, WhatsApp, or TikTok, we store the account or page identifiers and the access tokens those platforms issue. Tokens are encrypted at rest. We also store the automation rules you create and the message content those platforms send to our webhooks — including comments, direct messages, and story interactions — so they can appear in your inbox and trigger your automations.</li>
@@ -47,7 +47,7 @@ export default function PrivacyPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">2. How We Use Information</h2>
                         <p>We use the collected information solely to:</p>
-                        <ul className="list-disc pl-6 space-y-2 mt-2">
+                        <ul className="list-disc ps-6 space-y-2 mt-2">
                             <li>Run your automation rules, post-trigger replies, story responses, and outbound DMs.</li>
                             <li>Render your inbox conversations, contacts list, and performance analytics.</li>
                             <li>Process your subscription and verify manual payment submissions.</li>
@@ -90,7 +90,7 @@ export default function PrivacyPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">5. Data Sharing &amp; Sub-Processors</h2>
                         <p>We share data only with the specific services required to run the Service:</p>
-                        <ul className="list-disc pl-6 space-y-2 mt-2">
+                        <ul className="list-disc ps-6 space-y-2 mt-2">
                             <li><strong className="text-white">Supabase</strong> — database hosting, authentication, and storage. Your account data, connected-platform tokens, message content, and BYOK keys are stored in Supabase (Postgres).</li>
                             <li><strong className="text-white">Stripe, Paymob, and Tap</strong> — payment processing and subscription billing. Card details are entered on the provider&apos;s secure checkout; we receive only customer identifiers, subscription status, and payment confirmation.</li>
                             <li><strong className="text-white">Meta (Facebook, Instagram, and WhatsApp)</strong> — when you connect Facebook or Instagram, our dashboard loads the Facebook JavaScript SDK (connect.facebook.net) on Connected Platforms to run the OAuth login dialog. When connected, message and comment data flows through Meta&apos;s APIs to run your automations.</li>
@@ -108,7 +108,7 @@ export default function PrivacyPage() {
                         <p>
                             {BRAND.name} recognizes and adheres to applicable regional data protection frameworks:
                         </p>
-                        <ul className="list-disc pl-6 space-y-2 mt-2">
+                        <ul className="list-disc ps-6 space-y-2 mt-2">
                             <li><strong className="text-white">Egypt (Law No. 151 of 2020):</strong> We process personal data in accordance with the Egyptian Personal Data Protection Law. For agencies utilizing {BRAND.name} to manage client messages, {BRAND.name} acts as a <strong className="text-white">Data Processor</strong>, while the agency acts as the <strong className="text-white">Data Controller</strong>.</li>
                             <li><strong className="text-white">Saudi Arabia (PDPL):</strong> Compliance with the Saudi Personal Data Protection Law (Royal Decree M/19). Operators may access, rectify, or request deletion of personal records.</li>
                             <li><strong className="text-white">United Arab Emirates (Federal Decree-Law No. 45 of 2021):</strong> Adherence to the UAE PDPL principles regarding lawful processing, confidentiality, and cross-border transfers.</li>

@@ -35,7 +35,7 @@ export default function AccessibilityPage() {
 
           <section>
             <h2 className="text-xl font-bold text-white mb-3">2. Accessibility Features</h2>
-            <ul className="list-disc pl-6 space-y-2 mt-2">
+            <ul className="list-disc ps-6 space-y-2 mt-2">
               <li>
                 <strong className="text-white">Keyboard Navigation:</strong> All interactive elements, including flow builders, drawer menus, modal dialogs, and conversational composers, are navigable using standard keyboard inputs.
               </li>
@@ -56,7 +56,7 @@ export default function AccessibilityPage() {
             <p>
               We welcome your feedback on the accessibility of {BRAND.name}. If you encounter accessibility barriers, or need accommodation while using our tools, please contact our team:
             </p>
-            <ul className="list-disc pl-6 space-y-1 mt-2">
+            <ul className="list-disc ps-6 space-y-1 mt-2">
               <li>
                 <strong className="text-white">Email:</strong>{" "}
                 {BRAND.emails.support ? (

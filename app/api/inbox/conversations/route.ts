@@ -44,10 +44,35 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        // Enrich conversations with last message preview
+        // Fetch contacts with bot_paused = true
+        const recipientIds = (conversations || []).map((c: any) => c.recipient_id).filter(Boolean)
+        const pausedSet = new Set<string>()
+
+        if (recipientIds.length > 0) {
+            const { data: pausedContacts } = await supabase
+                .from("contacts")
+                .select("external_id, channel, bot_paused")
+                .eq("user_id", igUserId)
+                .eq("bot_paused", true)
+                .in("external_id", recipientIds)
+
+            if (pausedContacts) {
+                for (const cnt of pausedContacts) {
+                    pausedSet.add(cnt.external_id)
+                    if (cnt.channel) pausedSet.add(`${cnt.channel}:${cnt.external_id}`)
+                }
+            }
+        }
+
+        // Enrich conversations with last message preview and bot_paused status
         const enriched = (conversations || []).map((c: any) => ({
             ...c,
             last_message_preview: lastMessages[c.id] || null,
+            bot_paused: Boolean(
+                c.bot_paused ||
+                pausedSet.has(c.recipient_id) ||
+                (c.platform && pausedSet.has(`${c.platform}:${c.recipient_id}`))
+            ),
         }))
 
         return NextResponse.json(enriched)

@@ -71,9 +71,7 @@ export function ChannelCards({
 
   // Dynamic connection filtering
   const igConnection = connections.find((c) => c.platform === "instagram")
-  const fbConnections = connections.filter(
-    (c) => c.platform === "facebook" || c.platform === "messenger"
-  )
+  const fbConnections = connections.filter((c) => c.platform === "facebook")
   const waConnections = connections.filter((c) => c.platform === "whatsapp")
   const tgConnection = connections.find((c) => c.platform === "telegram")
   const tiktokConnection = connections.find((c) => c.platform === "tiktok")
@@ -95,6 +93,9 @@ export function ChannelCards({
 
   // Facebook setup
   const [facebookModalOpen, setFacebookModalOpen] = useState(false)
+  const [facebookPageIdInput, setFacebookPageIdInput] = useState("")
+  const [facebookPageNameInput, setFacebookPageNameInput] = useState("")
+  const [facebookAddingById, setFacebookAddingById] = useState(false)
 
   // TikTok setup
   const [tiktokRegionModalOpen, setTiktokRegionModalOpen] = useState(false)
@@ -202,39 +203,44 @@ export function ChannelCards({
     }
   }
 
-  // Connect TikTok handler
-  const handleSaveTikTok = async () => {
-    if (!tiktokUsername.trim()) {
-      toast.error("Please enter your TikTok username")
+  // Connect Facebook Page by ID handler
+  const handleConnectPageById = async () => {
+    if (!facebookPageIdInput.trim()) {
+      toast.error("Please enter a valid Facebook Page ID")
       return
     }
 
-    setTiktokConnecting(true)
+    setFacebookAddingById(true)
     try {
-      const res = await fetch("/api/tiktok/connect", {
+      const res = await fetch("/api/facebook/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: tiktokUsername.trim(),
-          account_id: tiktokAccountId.trim() || undefined,
-          region: tiktokRegion,
+          page_id: facebookPageIdInput.trim(),
+          name: facebookPageNameInput.trim() || undefined,
         }),
       })
       const data = await res.json()
       if (res.ok) {
-        toast.success(`Connected TikTok account ${data.connection?.username || tiktokUsername}!`)
-        setTiktokModalOpen(false)
-        setTiktokUsername("")
-        setTiktokAccountId("")
+        toast.success(`Connected Facebook page ${data.page?.name || facebookPageIdInput}!`)
+        setFacebookModalOpen(false)
+        setFacebookPageIdInput("")
+        setFacebookPageNameInput("")
         onRefresh?.()
       } else {
-        toast.error(data.error || "Failed to connect TikTok")
+        toast.error(data.error || "Failed to connect Facebook page")
       }
     } catch {
-      toast.error("Network error connecting TikTok")
+      toast.error("Network error connecting Facebook page")
     } finally {
-      setTiktokConnecting(false)
+      setFacebookAddingById(false)
     }
+  }
+
+  // Connect TikTok handler (real OAuth start)
+  const handleSaveTikTok = () => {
+    setTiktokModalOpen(false)
+    window.location.href = "/api/tiktok/auth"
   }
 
   return (
@@ -367,37 +373,53 @@ export function ChannelCards({
             {/* Connected Pages or Empty State */}
             {fbConnections.length > 0 ? (
               <div className="space-y-1.5 max-h-[110px] overflow-y-auto">
-                {fbConnections.map((page) => (
-                  <div
-                    key={page.id}
-                    className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-5 h-5 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[9.5px] font-semibold text-[var(--t1)] shrink-0">
-                        {(page.metadata?.name || page.page_id || "F")[0].toUpperCase()}
+                {fbConnections.map((page) => {
+                  const isUser = page.metadata?.is_user_profile
+                  const isPending = page.metadata?.status === "pending_confirmation"
+                  return (
+                    <div
+                      key={page.id}
+                      className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-5 h-5 rounded-full bg-[var(--s3)] border border-[var(--line2)] flex items-center justify-center font-mono text-[9.5px] font-semibold text-[var(--t1)] shrink-0">
+                          {(page.metadata?.name || page.page_id || "F")[0].toUpperCase()}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-[11.5px] font-medium text-[var(--t1)] truncate">
+                              {page.metadata?.name || `Facebook ${page.page_id}`}
+                            </span>
+                            {isPending && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-medium shrink-0">
+                                Pending
+                              </span>
+                            )}
+                            {isUser && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-white/10 text-neutral-300 font-mono shrink-0">
+                                User Account
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[9.5px] text-[var(--t3)] font-mono truncate">
+                            ID: {page.metadata?.facebook_id || page.page_id} · Associated with main account
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[11.5px] font-medium text-[var(--t1)] truncate">
-                          {page.metadata?.name || `Facebook ${page.page_id}`}
-                        </span>
-                        <span className="text-[9.5px] text-[var(--t3)] font-mono truncate">
-                          ID: {page.metadata?.facebook_id || page.page_id}
-                        </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <ChannelBadge channel="facebook" size="sm" className="w-4 h-4 rounded-full" />
+                        <ChannelBadge channel="messenger" size="sm" className="w-4 h-4 rounded-full" />
+                        <button
+                          onClick={() => handleDisconnect(page.id, page.metadata?.name || "Facebook Page")}
+                          title="Disconnect page"
+                          className="text-[10px] text-[var(--t4)] hover:text-red-400 p-0.5 ms-1 transition-colors"
+                        >
+                          ✕
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <ChannelBadge channel="facebook" size="sm" className="w-4 h-4 rounded-full" />
-                      <ChannelBadge channel="messenger" size="sm" className="w-4 h-4 rounded-full" />
-                      <button
-                        onClick={() => handleDisconnect(page.id, page.metadata?.name || "Facebook Page")}
-                        title="Disconnect page"
-                        className="text-[10px] text-[var(--t4)] hover:text-red-400 p-0.5 ml-1 transition-colors"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <div className="rounded-lg border border-dashed border-[var(--line2)] p-2.5 text-center text-[11.5px] text-[var(--t3)]">
@@ -596,7 +618,7 @@ export function ChannelCards({
                 if (onConnectTikTok) {
                   onConnectTikTok()
                 } else {
-                  setTiktokModalOpen(true)
+                  window.location.href = "/api/tiktok/auth"
                 }
               }}
               className="h-[28px] px-3 text-[11.5px] font-medium"
@@ -974,14 +996,52 @@ export function ChannelCards({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2 py-2 text-xs text-[var(--t2)]">
-            <p>
-              {BRAND.name} requests read and manage permissions for Facebook Page comments and Messenger conversations.
+          <div className="space-y-3 py-2 text-xs text-[var(--t2)]">
+            <p className="leading-relaxed">
+              Connect additional Facebook pages to automate comments and Messenger. All connected pages are associated with your main account.
             </p>
-            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-3 text-[11px] text-[var(--t3)] space-y-1">
-              <div>✓ Automatic webhook subscription for page comments</div>
-              <div>✓ Unified inbox routing to {BRAND.name} Live Inbox</div>
-              <div>✓ Multi-page support per client workspace</div>
+
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-3 space-y-2.5">
+              <span className="text-[11.5px] font-semibold text-[var(--t1)] block">Link Page by ID</span>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  placeholder="Facebook Page ID (e.g. 61595813917573)"
+                  value={facebookPageIdInput}
+                  onChange={(e) => setFacebookPageIdInput(e.target.value)}
+                  className="w-full h-8 bg-[var(--s3)] border border-[var(--line)] rounded-[6px] px-2.5 text-xs text-[var(--t1)] font-mono placeholder:text-[var(--t4)] focus:outline-none"
+                />
+                <input
+                  type="text"
+                  placeholder="Page Name (e.g. Cultleaderzoz Connected Page)"
+                  value={facebookPageNameInput}
+                  onChange={(e) => setFacebookPageNameInput(e.target.value)}
+                  className="w-full h-8 bg-[var(--s3)] border border-[var(--line)] rounded-[6px] px-2.5 text-xs text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none"
+                />
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleConnectPageById}
+                  disabled={facebookAddingById || !facebookPageIdInput.trim()}
+                  className="h-[28px] text-xs font-medium w-full"
+                >
+                  {facebookAddingById ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Link Page to Main Account"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-[10.5px] text-[var(--t4)]">
+              <div className="h-px bg-[var(--line)] flex-1" />
+              <span>OR CONNECT VIA FACEBOOK LOGIN</span>
+              <div className="h-px bg-[var(--line)] flex-1" />
+            </div>
+
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-2.5 text-[11px] text-[var(--t3)] space-y-1">
+              <div>✓ Automatically loads all Pages managed by your Facebook user profile</div>
+              <div>✓ Enables instant Messenger and comment automation</div>
+              <div className="text-[10px] text-[var(--gold)] pt-0.5">
+                💡 <em>Make sure you are switched to your main personal account (Ziad Sabry) when authorizing on Facebook.</em>
+              </div>
             </div>
           </div>
 
@@ -1086,12 +1146,12 @@ export function ChannelCards({
                 TikTok Username / Handle
               </label>
               <div className="relative">
-                <span className="absolute left-2.5 top-2 text-[var(--t3)] font-mono text-xs">@</span>
+                <span className="absolute start-2.5 top-2 text-[var(--t3)] font-mono text-xs">@</span>
                 <input
                   value={tiktokUsername}
                   onChange={(e) => setTiktokUsername(e.target.value.replace(/^@/, ""))}
                   placeholder="brand_official"
-                  className="w-full h-8 bg-[var(--s2)] border border-[var(--line)] rounded-[6px] pl-6 pr-2.5 text-xs text-[var(--t1)] focus:outline-none focus:border-[var(--line2)] font-mono"
+                  className="w-full h-8 bg-[var(--s2)] border border-[var(--line)] rounded-[6px] ps-6 pe-2.5 text-xs text-[var(--t1)] focus:outline-none focus:border-[var(--line2)] font-mono"
                 />
               </div>
               <p className="text-[10.5px] text-[var(--t3)] mt-1">
@@ -1130,17 +1190,6 @@ export function ChannelCards({
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => {
-                setTiktokModalOpen(false)
-                window.location.href = "/api/tiktok/auth"
-              }}
-              className="h-[28px] text-xs font-medium mr-auto"
-            >
-              Sign in with TikTok
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
               onClick={() => setTiktokModalOpen(false)}
               className="h-[28px] text-xs"
             >
@@ -1150,10 +1199,9 @@ export function ChannelCards({
               variant="default"
               size="sm"
               onClick={handleSaveTikTok}
-              disabled={tiktokConnecting}
               className="h-[28px] text-xs font-medium"
             >
-              {tiktokConnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Connect Account"}
+              Sign in with TikTok
             </Button>
           </DialogFooter>
         </DialogContent>

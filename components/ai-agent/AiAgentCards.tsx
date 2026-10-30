@@ -254,7 +254,7 @@ export function AiAgentCards({
             {agent.metrics.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-[var(--line)]">
                 {agent.metrics.map((m) => (
-                  <div key={m.label} className="text-left">
+                  <div key={m.label} className="text-start">
                     <div className="font-mono text-[13px] font-semibold text-[var(--t1)] tabular-nums">
                       {m.value}
                     </div>

@@ -1,9 +1,105 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark, .dark *));
 
-:root,
+:root:not(.dark) {
+  /* ─── Light, Restrained-Gold WCAG AA Tokens ─── */
+  --bg: #F8F9FA;
+  --s1: #FFFFFF;
+  --s2: #F1F3F5;
+  --s3: #E9ECEF;
+  --s4: #DEE2E6;
+
+  --line: #E5E7EB;
+  --line2: #D1D5DB;
+  --line3: #9CA3AF;
+
+  --t1: #111827;
+  --t2: #374151;
+  --t3: #4B5563;
+  --t4: #6B7280;
+
+  --gold: #A16207;
+  --gold2: #854D0E;
+  --goldbg: rgba(161, 98, 7, 0.08);
+  --goldline: rgba(161, 98, 7, 0.22);
+
+  --green: #15803D;
+  --greenbg: rgba(21, 128, 61, 0.10);
+  --red: #DC2626;
+  --redbg: rgba(220, 38, 38, 0.10);
+  --amber: #B45309;
+  --amberbg: rgba(180, 83, 9, 0.10);
+  --blue: #2563EB;
+  --bluebg: rgba(37, 99, 235, 0.10);
+
+  --bubble-out: #E0E7FF;
+
+  /* ─── Radii ─── */
+  --radius-ctrl: 6px;
+  --radius-row: 8px;
+  --radius-card: 12px;
+  --radius-modal: 16px;
+  --radius-pill: 10px;
+  --radius: 0.375rem;
+
+  /* ─── Shadcn Semantic Tokens Mapped to System Tokens ─── */
+  --background: var(--bg);
+  --foreground: var(--t1);
+
+  --card: var(--s1);
+  --card-foreground: var(--t1);
+
+  --popover: var(--s1);
+  --popover-foreground: var(--t1);
+
+  --primary: var(--t1);
+  --primary-foreground: #FFFFFF;
+
+  --secondary: var(--s2);
+  --secondary-foreground: var(--t1);
+
+  --muted: var(--s2);
+  --muted-foreground: var(--t2);
+
+  --accent: var(--s3);
+  --accent-foreground: var(--t1);
+
+  --destructive: var(--red);
+  --destructive-foreground: #FFFFFF;
+
+  --border: var(--line);
+  --input: var(--line2);
+  --ring: var(--t1);
+
+  /* ─── Sidebar Tokens ─── */
+  --sidebar: var(--s1);
+  --sidebar-foreground: var(--t2);
+  --sidebar-primary: var(--gold);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-border: var(--line);
+  --sidebar-accent: var(--s3);
+  --sidebar-accent-foreground: var(--t1);
+  --sidebar-ring: var(--t1);
+
+  /* Clean fallbacks for legacy references */
+  --brand: var(--gold);
+  --brand-hover: var(--gold2);
+  --brand-glow: transparent;
+  --gold-primary: var(--gold);
+  --gold-hover: var(--gold2);
+  --gold-light: var(--gold2);
+  --gold-glow: transparent;
+  --gold-badge-bg: var(--goldbg);
+  --gold-border: var(--goldline);
+
+  --surface-0: var(--bg);
+  --surface-1: var(--s1);
+  --surface-2: var(--s2);
+  --surface-3: var(--s3);
+}
+
 .dark {
   /* ─── Dark, Restrained-Gold Redesign Tokens ─── */
   --bg: #09090B;

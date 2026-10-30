@@ -98,7 +98,7 @@ export default function AgencyPage() {
         <Stat label="Revenue (cents)" value={totals?.revenueCents || 0} />
       </section>
       <div className="overflow-x-auto border border-white/10 rounded-2xl">
-        <table className="w-full text-sm text-left">
+        <table className="w-full text-sm text-start">
           <thead className="text-neutral-500 text-xs uppercase"><tr><th className="px-4 py-3">Client</th><th className="px-4 py-3">Contacts</th><th className="px-4 py-3">Orders</th><th className="px-4 py-3">AI replies</th></tr></thead>
           <tbody>
             {(overview.data?.clients || []).map((client: { workspaceId: string; name: string; kpis: { newContacts: number; orders: number; aiReplies: number } }) => (

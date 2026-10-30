@@ -491,7 +491,7 @@ export default function AdminPage() {
               className="group relative border border-white/[0.07] rounded-2xl p-5 bg-gradient-to-b from-white/[0.035] to-white/[0.01] hover:border-white/[0.14] transition-all duration-300 overflow-hidden"
             >
               <div
-                className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                className="absolute -top-10 -end-10 w-24 h-24 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                 style={{ background: accent }}
               />
               <div className="relative flex items-center gap-3">
@@ -529,7 +529,7 @@ export default function AdminPage() {
           >
             {tab === "users" ? "Users" : tab === "audit" ? "Audit Log" : tab === "payments" ? "Payments" : tab === "matrix" ? "Plan Matrix" : tab === "banner" ? "Banner" : tab === "smtp" ? "SMTP Settings" : "Subscribers"}
             {tab === "payments" && pendingPayments.length > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-[#03010A]" />
+              <span className="absolute -top-0.5 -end-0.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-[#03010A]" />
             )}
           </button>
         ))}
@@ -583,7 +583,7 @@ export default function AdminPage() {
                 <thead>
                   <tr className="border-b border-white/[0.08] bg-white/[0.02]">
                     {["Email", "Plan", "Role", "Trial Left", "Flagged", "Joined"].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-neutral-500 uppercase tracking-wider text-[10px]">{h}</th>
+                      <th key={h} className="px-4 py-3 text-start text-neutral-500 uppercase tracking-wider text-[10px]">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -757,7 +757,7 @@ export default function AdminPage() {
                     onClick={() => setEditFlagged(f => !f)}
                     className={`relative w-10 h-5 rounded-full transition-colors ${editFlagged ? "bg-orange-500" : "bg-white/10"}`}
                   >
-                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${editFlagged ? "translate-x-5" : ""}`} />
+                    <span className={`absolute top-0.5 start-0.5 w-4 h-4 rounded-full bg-white transition-transform ${editFlagged ? "translate-x-5" : ""}`} />
                   </button>
                 </div>
 
@@ -779,7 +779,7 @@ export default function AdminPage() {
                     onClick={() => setEditBanned(b => !b)}
                     className={`relative w-10 h-5 rounded-full transition-colors ${editBanned ? "bg-red-500" : "bg-white/10"}`}
                   >
-                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${editBanned ? "translate-x-5" : ""}`} />
+                    <span className={`absolute top-0.5 start-0.5 w-4 h-4 rounded-full bg-white transition-transform ${editBanned ? "translate-x-5" : ""}`} />
                   </button>
                 </div>
 
@@ -814,7 +814,7 @@ export default function AdminPage() {
             <thead>
               <tr className="border-b border-white/[0.08] bg-white/[0.02]">
                 {["Time", "Admin", "Action", "Target", "Details"].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-neutral-500 uppercase tracking-wider text-[10px]">{h}</th>
+                  <th key={h} className="px-4 py-3 text-start text-neutral-500 uppercase tracking-wider text-[10px]">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -843,7 +843,7 @@ export default function AdminPage() {
             <thead>
               <tr className="border-b border-white/[0.08] bg-white/[0.02]">
                 {["Time", "Email", "Transaction Ref", "Amount", "Ordered Plan", "Note (Client Name)", "Actions"].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-neutral-500 uppercase tracking-wider text-[10px]">{h}</th>
+                  <th key={h} className="px-4 py-3 text-start text-neutral-500 uppercase tracking-wider text-[10px]">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -899,7 +899,7 @@ export default function AdminPage() {
                 onClick={() => setBannerState(s => ({ ...s, isActive: !s.isActive }))}
                 className={`relative w-12 h-6 rounded-full transition-colors ${bannerState.isActive ? "bg-green-500" : "bg-white/10"}`}
               >
-                <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${bannerState.isActive ? "translate-x-6" : ""}`} />
+                <span className={`absolute top-1 start-1 w-4 h-4 rounded-full bg-white transition-transform ${bannerState.isActive ? "translate-x-6" : ""}`} />
               </button>
             </div>
 
@@ -976,7 +976,7 @@ export default function AdminPage() {
           </div>
 
           <div className="border border-white/[0.08] rounded-xl overflow-x-auto">
-            <table className="w-full font-mono text-sm text-left">
+            <table className="w-full font-mono text-sm text-start">
               <thead>
                 <tr className="border-b border-white/[0.08] bg-white/[0.02]">
                   <th className="px-6 py-4 text-neutral-400 font-medium">Agent</th>
@@ -1000,7 +1000,7 @@ export default function AdminPage() {
                           <p className="text-xs text-neutral-500 max-w-xs truncate">{agent.description}</p>
                         </div>
                         {!agent.is_active && (
-                          <span className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded uppercase tracking-wider ml-2">
+                          <span className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded uppercase tracking-wider ms-2">
                             Inactive
                           </span>
                         )}
@@ -1094,7 +1094,7 @@ export default function AdminPage() {
                 onClick={() => setSmtpSettings(s => ({ ...s, secure: !s.secure }))}
                 className={`relative w-10 h-5 rounded-full transition-colors ${smtpSettings.secure ? "bg-green-500" : "bg-white/10"}`}
               >
-                <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${smtpSettings.secure ? "translate-x-5" : ""}`} />
+                <span className={`absolute top-0.5 start-0.5 w-4 h-4 rounded-full bg-white transition-transform ${smtpSettings.secure ? "translate-x-5" : ""}`} />
               </button>
             </div>
 
@@ -1180,13 +1180,13 @@ export default function AdminPage() {
             <div className="text-center font-mono text-neutral-500 text-xs py-8 text-white">Loading subscribers...</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-start border-collapse">
                 <thead>
                   <tr className="border-b border-white/[0.08] font-mono text-[10px] text-neutral-500 uppercase tracking-wider">
-                    <th className="pb-3 pl-4">Name</th>
+                    <th className="pb-3 ps-4">Name</th>
                     <th className="pb-3">Email</th>
                     <th className="pb-3">Subscribed At</th>
-                    <th className="pb-3 text-right pr-4">Actions</th>
+                    <th className="pb-3 text-end pe-4">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.04]">
@@ -1194,10 +1194,10 @@ export default function AdminPage() {
                     .filter(s => s.email.toLowerCase().includes(subscribersSearch.toLowerCase()) || (s.name && s.name.toLowerCase().includes(subscribersSearch.toLowerCase())))
                     .map(sub => (
                       <tr key={sub.id} className="text-xs text-neutral-300 font-mono hover:bg-white/[0.02] transition-colors">
-                        <td className="py-4 pl-4 font-bold text-white">{sub.name || "—"}</td>
+                        <td className="py-4 ps-4 font-bold text-white">{sub.name || "—"}</td>
                         <td className="py-4 font-bold text-white">{sub.email}</td>
                         <td className="py-4">{new Date(sub.created_at).toLocaleString()}</td>
-                        <td className="py-4 text-right pr-4">
+                        <td className="py-4 text-end pe-4">
                           <button
                             onClick={() => deleteSubscriber(sub.id)}
                             className="text-red-400 hover:text-red-300 transition-colors p-1"

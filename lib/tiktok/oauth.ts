@@ -1,6 +1,7 @@
 import { TIKTOK_API_BASE, TIKTOK_OAUTH_SCOPES, tiktokAppId, tiktokAppSecret, tiktokRedirectUri } from "@/lib/tiktok/config"
 import type { FetchLike } from "@/lib/channels/types"
 import { defaultFetch } from "@/lib/channels/http"
+import { openAccessToken, sealAccessToken } from "@/lib/token-crypto"
 
 export interface TikTokToken {
   accessToken: string
@@ -80,4 +81,57 @@ export function tiktokTokenNeedsRefresh(expiresAt: string | null | undefined, no
   const at = Date.parse(expiresAt)
   if (!Number.isFinite(at)) return true
   return at - now < 2 * 60 * 60 * 1000
+}
+
+export async function refreshTikTokTokens(
+  supabase: any,
+  fetchImpl: FetchLike = defaultFetch(),
+): Promise<{ ok: boolean; scanned?: number; refreshed?: number; skipped?: number | string; errors?: number; error?: string }> {
+  const { data, error } = await supabase
+    .from("platform_connections")
+    .select("id, access_token, refresh_token, token_expires_at")
+    .eq("platform", "tiktok")
+    .limit(200)
+  if (error) {
+    if (/refresh_token|token_expires_at|platform_connections/i.test(error.message || "")) {
+      return { ok: true, skipped: "migration" }
+    }
+    console.error("[cron/refresh-tiktok-tokens]", error.message)
+    return { ok: false, error: "Failed to load TikTok connections" }
+  }
+
+  const summary = { scanned: (data || []).length, refreshed: 0, skipped: 0, errors: 0 }
+  for (const row of data || []) {
+    if (!row.refresh_token || !tiktokTokenNeedsRefresh(row.token_expires_at)) {
+      summary.skipped++
+      continue
+    }
+    let refresh = ""
+    try {
+      refresh = openAccessToken(row.refresh_token) || ""
+    } catch {
+      summary.errors++
+      continue
+    }
+    if (!refresh) {
+      summary.skipped++
+      continue
+    }
+    const renewed = await refreshTikTokToken(refresh, fetchImpl)
+    if (!renewed.ok) {
+      summary.errors++
+      continue
+    }
+    const { error: updateError } = await supabase
+      .from("platform_connections")
+      .update({
+        access_token: sealAccessToken(renewed.token.accessToken),
+        refresh_token: renewed.token.refreshToken ? sealAccessToken(renewed.token.refreshToken) : row.refresh_token,
+        token_expires_at: tiktokTokenExpiry(renewed.token.expiresIn),
+      })
+      .eq("id", row.id)
+    if (updateError) summary.errors++
+    else summary.refreshed++
+  }
+  return { ok: true, ...summary }
 }

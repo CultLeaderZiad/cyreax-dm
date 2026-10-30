@@ -46,7 +46,7 @@ export default function CookiesPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">2. Cookies We Set</h2>
                         <div className="overflow-x-auto mt-2">
-                            <table className="w-full text-sm border border-white/10 rounded-xl overflow-hidden text-left">
+                            <table className="w-full text-sm border border-white/10 rounded-xl overflow-hidden text-start">
                                 <thead className="bg-white/[0.04] text-white">
                                     <tr>
                                         <th className="px-4 py-3 font-semibold">Cookie</th>
@@ -75,7 +75,7 @@ export default function CookiesPage() {
 
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">3. Data Processing Summary</h2>
-                        <ul className="list-disc pl-6 space-y-2 mt-2">
+                        <ul className="list-disc ps-6 space-y-2 mt-2">
                             <li><strong className="text-white">Legal bases (GDPR &amp; Egypt/GCC PDPL):</strong> contract performance (running your automations and billing), legitimate interest (service security, abuse prevention), and compliance with legal accounting obligations.</li>
                             <li><strong className="text-white">Sub-processors:</strong> Supabase (hosting/database/auth), Stripe, Paymob, and Tap (payment processing), Vercel (hosting/analytics), Sentry (error diagnostics), IPQualityScore (OAuth fraud protection), Meta, TikTok, and Telegram (platform APIs), and AI providers (Groq by default, or your configured BYOK keys). Complete details in the <Link href="/privacy" className="text-[var(--gold,#D6AE5C)] hover:underline">Privacy Policy</Link>.</li>
                             <li><strong className="text-white">International transfers:</strong> our processors store and process data in secure cloud regions outside Egypt/GCC; they maintain contractual and technical safeguards for cross-border transfers.</li>

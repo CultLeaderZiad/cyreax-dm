@@ -264,7 +264,7 @@ export function KnowledgePanel({
                     </span>
                   </div>
 
-                  <div className="shrink-0 text-right">
+                  <div className="shrink-0 text-end">
                     {src.pill ? (
                       src.pill
                     ) : (
@@ -335,12 +335,12 @@ export function KnowledgePanel({
 
           {/* Search bar */}
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-[var(--t3)] absolute left-3 top-2.5" />
+            <Search className="w-3.5 h-3.5 text-[var(--t3)] absolute start-3 top-2.5" />
             <input
               value={qaSearch}
               onChange={(e) => setQaSearch(e.target.value)}
               placeholder="Search knowledge questions, answers, or tags..."
-              className="w-full h-8 pl-8 pr-3 bg-[var(--s2)] border border-[var(--line)] rounded-lg text-xs text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none"
+              className="w-full h-8 ps-8 pe-3 bg-[var(--s2)] border border-[var(--line)] rounded-lg text-xs text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none"
             />
           </div>
 

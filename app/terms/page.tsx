@@ -42,7 +42,7 @@ export default function TermsPage() {
 
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">2. Accounts</h2>
-                        <ul className="list-disc pl-6 space-y-2 mt-2">
+                        <ul className="list-disc ps-6 space-y-2 mt-2">
                             <li>You must be allowed to operate the Instagram, Facebook, WhatsApp, Telegram, or TikTok account you connect.</li>
                             <li>You are responsible for safeguarding your account password, API keys, and for all activity under your account.</li>
                             <li>You must provide accurate account and payment contact information.</li>
@@ -86,7 +86,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">7. Acceptable Use</h2>
                         <p>You agree not to use the Service to:</p>
-                        <ul className="list-disc pl-6 space-y-2 mt-2">
+                        <ul className="list-disc ps-6 space-y-2 mt-2">
                             <li>Send spam, unsolicited bulk messages, or deceptive content.</li>
                             <li>Violate the Meta Platform Terms, Instagram, Facebook, WhatsApp, or TikTok rules, or Telegram&apos;s terms.</li>
                             <li>Present {BRAND.name} as a Meta or TikTok product.</li>

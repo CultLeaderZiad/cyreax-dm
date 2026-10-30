@@ -44,15 +44,15 @@ export function AutomationsTable({
   return (
     <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-[12px] border-collapse select-none">
+        <table className="w-full text-start text-[12px] border-collapse select-none">
           <thead className="sticky top-0 z-10 bg-[var(--s1)]">
             <tr className="border-b border-[var(--line)] bg-[var(--s2)]/70 font-mono text-[10.5px] uppercase tracking-wider text-[var(--t3)]">
               <th className="py-2.5 px-4 font-medium">Automation</th>
               <th className="py-2.5 px-3 font-medium">Channel</th>
-              <th className="py-2.5 px-3 font-medium text-right">Runs 7d</th>
-              <th className="py-2.5 px-3 font-medium text-right">→ Lead</th>
+              <th className="py-2.5 px-3 font-medium text-end">Runs 7d</th>
+              <th className="py-2.5 px-3 font-medium text-end">→ Lead</th>
               <th className="py-2.5 px-4 font-medium text-center">Status</th>
-              <th className="py-2.5 px-3 font-medium text-right sr-only">Actions</th>
+              <th className="py-2.5 px-3 font-medium text-end sr-only">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--line)]">
@@ -213,12 +213,12 @@ export function AutomationsTable({
                   </td>
 
                   {/* Runs 7d column */}
-                  <td className="py-3 px-3 text-right font-mono text-[11.5px] text-[var(--t2)] tabular-nums">
+                  <td className="py-3 px-3 text-end font-mono text-[11.5px] text-[var(--t2)] tabular-nums">
                     {runsCount}
                   </td>
 
                   {/* → Lead column */}
-                  <td className="py-3 px-3 text-right font-mono text-[11.5px] tabular-nums">
+                  <td className="py-3 px-3 text-end font-mono text-[11.5px] tabular-nums">
                     {leadRate !== "—" ? (
                       <span className="text-[var(--green)] font-medium">{leadRate}</span>
                     ) : (
@@ -245,7 +245,7 @@ export function AutomationsTable({
                   </td>
 
                   {/* Actions (visible on hover) */}
-                  <td className="py-3 px-3 text-right" onClick={(e) => e.stopPropagation()}>
+                  <td className="py-3 px-3 text-end" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       {onEdit && (
                         <button

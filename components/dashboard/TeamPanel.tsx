@@ -166,13 +166,13 @@ export function TeamPanel() {
       {userRole === "admin" && (
         <form onSubmit={handleInvite} className="flex gap-2 mb-6">
           <div className="flex-1 relative">
-            <Mail className="w-4 h-4 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Mail className="w-4 h-4 text-neutral-500 absolute start-3 top-1/2 -translate-y-1/2" />
             <input
               type="email"
               placeholder="colleague@agency.com"
               value={inviteEmail}
               onChange={e => setInviteEmail(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg py-2 pl-9 pr-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#e5a93c]/50"
+              className="w-full bg-white/5 border border-white/10 rounded-lg py-2 ps-9 pe-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-[#e5a93c]/50"
               required
             />
           </div>

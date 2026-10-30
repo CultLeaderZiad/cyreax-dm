@@ -34,7 +34,7 @@ export function TimelineStepper({
                 onClick={() => {
                   if (i < step || stepValid[step]) setStep(i)
                 }}
-                className="flex items-center gap-3 group text-left focus:outline-none cursor-pointer"
+                className="flex items-center gap-3 group text-start focus:outline-none cursor-pointer"
               >
                 <div
                   className={cn(
@@ -64,7 +64,7 @@ export function TimelineStepper({
                 <div className="flex-1 h-[1px] mx-2 relative bg-[var(--line)] overflow-hidden">
                   <div
                     className={cn(
-                      "absolute inset-y-0 left-0 transition-all duration-300 bg-[var(--gold)]",
+                      "absolute inset-y-0 start-0 transition-all duration-300 bg-[var(--gold)]",
                       isCompleted ? "w-full" : "w-0"
                     )}
                   />

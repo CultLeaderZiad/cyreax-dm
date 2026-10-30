@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { devWebhookSignatureBypass } from "@/lib/webhooks/signature-guard"
 
 function isAuthorizedVerifyToken(candidate: string | null): boolean {
   if (!candidate) return false
@@ -66,15 +67,8 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get("x-hub-signature-256")
     
     if (!isValidSignature(rawBody, signature)) {
-      const computed = APP_SECRETS.map(
-        (s, i) =>
-          `${i === 0 ? "FB" : "META"}:${crypto.createHmac("sha256", s).update(rawBody, "utf8").digest("hex").slice(0, 12)}`,
-      ).join(" ")
-      console.error(
-        `[fb-webhook] 401: ${!signature ? "no x-hub-signature-256 header" : "signature mismatch"}; ` +
-          `secrets configured: ${APP_SECRETS.length}; received=${signature?.slice(7, 19) ?? "-"} computed=[${computed}] bodyLen=${rawBody.length}`,
-      )
-      if (process.env.DISABLE_WEBHOOK_SIGNATURE_CHECK === "true") {
+      console.error("[fb-webhook] 401: invalid signature")
+      if (devWebhookSignatureBypass()) {
         console.warn("[fb-webhook] SIGNATURE CHECK BYPASSED — remove DISABLE_WEBHOOK_SIGNATURE_CHECK after debugging")
       } else {
         return NextResponse.json({ error: "Invalid signature" }, { status: 401 })

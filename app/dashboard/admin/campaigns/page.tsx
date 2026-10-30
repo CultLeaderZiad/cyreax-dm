@@ -93,7 +93,7 @@ export default function CampaignsPage() {
   const isRtl = language === 'ar'
 
   return (
-    <div className={`space-y-6 ${isRtl ? 'text-right' : ''}`} dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className={`space-y-6 ${isRtl ? 'text-end' : ''}`} dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -109,7 +109,7 @@ export default function CampaignsPage() {
           onClick={() => router.push("/dashboard/admin/campaigns/create")}
           className="bg-white hover:bg-neutral-200 text-black font-semibold"
         >
-          <Plus className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
+          <Plus className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'}`} />
           {t.newCampaign}
         </Button>
       </div>
@@ -196,15 +196,15 @@ export default function CampaignsPage() {
                   </Button>
                 </div>
               ) : (
-                <table className="w-full text-sm text-left">
+                <table className="w-full text-sm text-start">
                   <thead className="text-xs text-zinc-400 uppercase bg-zinc-900/50 border-b border-zinc-800">
                     <tr>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.campaignName}</th>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.status}</th>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.audience}</th>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.recipients}</th>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.date}</th>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-left' : 'text-right'}`}>{t.actions}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.campaignName}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.status}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.audience}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.recipients}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.date}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-start' : 'text-end'}`}>{t.actions}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
@@ -223,7 +223,7 @@ export default function CampaignsPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center text-zinc-300">
-                            <Users className="w-3.5 h-3.5 mr-1.5 text-zinc-500" />
+                            <Users className="w-3.5 h-3.5 me-1.5 text-zinc-500" />
                             {formatAudience(campaign.audience_filter)}
                           </div>
                         </td>
@@ -235,10 +235,10 @@ export default function CampaignsPage() {
                             month: 'short', day: 'numeric', year: 'numeric'
                           })}
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-4 text-end">
                           <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-400 hover:text-brand-300 hover:bg-brand-500/10">
                             View
-                            <ArrowRight className="w-4 h-4 ml-1" />
+                            <ArrowRight className="w-4 h-4 ms-1" />
                           </Button>
                         </td>
                       </tr>
@@ -278,14 +278,14 @@ export default function CampaignsPage() {
                   <p className="text-zinc-400 max-w-sm mb-6">You don't have any scheduled campaigns.</p>
                 </div>
               ) : (
-                <table className="w-full text-sm text-left">
+                <table className="w-full text-sm text-start">
                   <thead className="text-xs text-zinc-400 uppercase bg-zinc-900/50 border-b border-zinc-800">
                     <tr>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.campaignName}</th>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.status}</th>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.audience}</th>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>Scheduled For</th>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-left' : 'text-right'}`}>{t.actions}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.campaignName}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.status}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.audience}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>Scheduled For</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-start' : 'text-end'}`}>{t.actions}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
@@ -304,17 +304,17 @@ export default function CampaignsPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center text-zinc-300">
-                            <Users className="w-3.5 h-3.5 mr-1.5 text-zinc-500" />
+                            <Users className="w-3.5 h-3.5 me-1.5 text-zinc-500" />
                             {formatAudience(campaign.audience_filter)}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-blue-400 text-xs font-mono">
                           {campaign.scheduled_at ? new Date(campaign.scheduled_at).toLocaleString() : "N/A"}
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-4 text-end">
                           <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-400 hover:text-brand-300 hover:bg-brand-500/10">
                             View
-                            <ArrowRight className="w-4 h-4 ml-1" />
+                            <ArrowRight className="w-4 h-4 ms-1" />
                           </Button>
                         </td>
                       </tr>
@@ -347,14 +347,14 @@ export default function CampaignsPage() {
                   <p className="text-zinc-400 max-w-sm mb-6">You don't have any drafts.</p>
                 </div>
               ) : (
-                <table className="w-full text-sm text-left">
+                <table className="w-full text-sm text-start">
                   <thead className="text-xs text-zinc-400 uppercase bg-zinc-900/50 border-b border-zinc-800">
                     <tr>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.campaignName}</th>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.status}</th>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.audience}</th>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.date}</th>
-                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-left' : 'text-right'}`}>{t.actions}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.campaignName}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.status}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.audience}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.date}</th>
+                      <th className={`px-6 py-4 font-medium ${isRtl ? 'text-start' : 'text-end'}`}>{t.actions}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
@@ -373,7 +373,7 @@ export default function CampaignsPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center text-zinc-300">
-                            <Users className="w-3.5 h-3.5 mr-1.5 text-zinc-500" />
+                            <Users className="w-3.5 h-3.5 me-1.5 text-zinc-500" />
                             {formatAudience(campaign.audience_filter)}
                           </div>
                         </td>
@@ -382,10 +382,10 @@ export default function CampaignsPage() {
                             month: 'short', day: 'numeric', year: 'numeric'
                           })}
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-4 text-end">
                           <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-400 hover:text-brand-300 hover:bg-brand-500/10">
                             Edit
-                            <ArrowRight className="w-4 h-4 ml-1" />
+                            <ArrowRight className="w-4 h-4 ms-1" />
                           </Button>
                         </td>
                       </tr>

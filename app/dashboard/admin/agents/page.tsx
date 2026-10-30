@@ -130,7 +130,7 @@ export default function DashboardAdminAgentsPage() {
           </p>
         </div>
         <Button onClick={fetchAgents} variant="outline" size="sm" className="border-white/10 text-xs font-semibold">
-          <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
+          <RefreshCw className="w-3.5 h-3.5 me-1.5" /> Refresh
         </Button>
       </div>
 
@@ -150,13 +150,13 @@ export default function DashboardAdminAgentsPage() {
             There are currently no AI agents registered in the database catalog. Run the database migration script <code>32-schema-agents-system.sql</code> to register default agent models.
           </p>
           <Button onClick={fetchAgents} className="bg-white hover:bg-neutral-200 text-black font-semibold text-xs">
-            <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Check Again
+            <RefreshCw className="w-3.5 h-3.5 me-1.5" /> Check Again
           </Button>
         </div>
       ) : (
         <div className="bg-[#0b0b0a] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
+            <table className="w-full text-start text-sm whitespace-nowrap">
               <thead className="bg-white/[0.02] border-b border-white/10">
                 <tr>
                   <th className="px-6 py-4 font-mono-ui text-[10px] uppercase tracking-widest text-neutral-500">Name & Key</th>
@@ -164,7 +164,7 @@ export default function DashboardAdminAgentsPage() {
                   <th className="px-6 py-4 font-mono-ui text-[10px] uppercase tracking-widest text-neutral-500">Provider</th>
                   <th className="px-6 py-4 font-mono-ui text-[10px] uppercase tracking-widest text-neutral-500">BYOK</th>
                   <th className="px-6 py-4 font-mono-ui text-[10px] uppercase tracking-widest text-neutral-500 text-center">Active</th>
-                  <th className="px-6 py-4 font-mono-ui text-[10px] uppercase tracking-widest text-neutral-500 text-right">Actions</th>
+                  <th className="px-6 py-4 font-mono-ui text-[10px] uppercase tracking-widest text-neutral-500 text-end">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
@@ -189,9 +189,9 @@ export default function DashboardAdminAgentsPage() {
                         onCheckedChange={() => handleToggleActive(agent.id, agent.is_active)}
                       />
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-end">
                       <Button variant="ghost" size="sm" onClick={() => openEdit(agent)} className="text-xs hover:bg-white/10">
-                        <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                        <Pencil className="w-3.5 h-3.5 me-1.5" />
                         Edit Details
                       </Button>
                     </td>
@@ -237,7 +237,7 @@ export default function DashboardAdminAgentsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveEdit} disabled={saving} className="bg-white hover:bg-neutral-200 text-black font-semibold">
-              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              {saving ? <Loader2 className="w-4 h-4 me-2 animate-spin" /> : null}
               Save Changes
             </Button>
           </DialogFooter>

@@ -46,7 +46,7 @@ function ToggleRow({
       type="button"
       onClick={onToggle}
       className={cn(
-        "w-full p-3.5 rounded-xl border text-left flex items-center gap-3.5 transition-colors cursor-pointer",
+        "w-full p-3.5 rounded-xl border text-start flex items-center gap-3.5 transition-colors cursor-pointer",
         on
           ? "border-[var(--goldline)] bg-[var(--goldbg)]"
           : "border-[var(--line)] bg-[var(--s1)] hover:bg-[var(--s2)]"
@@ -66,7 +66,7 @@ function ToggleRow({
         <span
           className={cn(
             "absolute top-0.5 w-4 h-4 rounded-full bg-black shadow-sm transition-all",
-            on ? "left-[18px]" : "left-0.5"
+            on ? "start-[18px]" : "start-0.5"
           )}
         />
       </span>

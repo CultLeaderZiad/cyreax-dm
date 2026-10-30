@@ -281,7 +281,7 @@ export function WhiteLabelSettingsSection() {
                   <span>{BRAND.name} · Client Portal</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-left">
+                <div className="grid grid-cols-2 gap-2 text-start">
                   <div className="p-1.5 rounded bg-neutral-50 border border-neutral-100">
                     <span className="text-[8.5px] text-neutral-500 uppercase font-mono block">
                       Conversations

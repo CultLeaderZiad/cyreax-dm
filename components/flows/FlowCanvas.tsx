@@ -226,7 +226,7 @@ export default function FlowCanvas({
             <Background gap={18} size={1.4} color="#d5d8e0" />
             <Controls />
           </ReactFlow>
-          <div className="absolute left-4 bottom-16 bg-white rounded-2xl shadow border border-slate-200 px-4 py-3 text-xs">
+          <div className="absolute start-4 bottom-16 bg-white rounded-2xl shadow border border-slate-200 px-4 py-3 text-xs">
             <div className="text-[10px] uppercase tracking-wider text-slate-400 mb-2">Flow performance</div>
             <div className="flex gap-4">
               <Metric label="Runs" value={performance.runs} />
@@ -249,7 +249,7 @@ export default function FlowCanvas({
             ))}
           </div>
         </div>
-        <aside className="w-[320px] shrink-0 border-l border-slate-200 bg-white overflow-y-auto p-4">
+        <aside className="w-[320px] shrink-0 border-s border-slate-200 bg-white overflow-y-auto p-4">
           {inspector && selectedNode ? (
             <Inspector nodeId={selectedNode.id} type={String(selectedNode.type)} data={inspector} onChange={patchSelected} />
           ) : (

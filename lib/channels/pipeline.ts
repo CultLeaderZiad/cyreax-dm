@@ -314,11 +314,14 @@ async function maybeAi(
       supabase,
       userId: tenant.userId,
       workspaceId: tenant.workspaceId,
+      accountId: accountId || null,
       message: event.text,
       history: history.map((item) => ({ role: historyRole(item) === "assistant" ? "assistant" as const : "user" as const, content: item.content })),
       goal: tenant.aiContext || null,
       channel: event.channel,
       contactExternalId: event.contactExternalId,
+      contactName: event.displayName || event.username || null,
+      conversationId: conversationId || null,
     })
     if (!decision?.reply) return false
     const content = { message: decision.reply }

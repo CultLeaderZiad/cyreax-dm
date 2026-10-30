@@ -183,7 +183,7 @@ function SignupForm() {
               </span>
             </label>
             {agreeError && (
-              <p id="agree-error" role="alert" className="text-[11px] text-red-400 pl-7">
+              <p id="agree-error" role="alert" className="text-[11px] text-red-400 ps-7">
                 You must agree to the Terms and Privacy Policy before creating an account.
               </p>
             )}

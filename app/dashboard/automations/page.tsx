@@ -537,7 +537,7 @@ function AutomationsPageContent() {
                     className="fixed inset-0 z-30"
                     onClick={() => setTypeMenuOpen(false)}
                   />
-                  <div className="absolute right-0 top-full mt-1 w-40 rounded-lg border border-[var(--line)] bg-[var(--s2)] shadow-xl p-1 z-40">
+                  <div className="absolute end-0 top-full mt-1 w-40 rounded-lg border border-[var(--line)] bg-[var(--s2)] shadow-xl p-1 z-40">
                     {[
                       { id: "all", label: "All types" },
                       { id: "comment", label: "Comment" },
@@ -553,7 +553,7 @@ function AutomationsPageContent() {
                           setTypeMenuOpen(false)
                         }}
                         className={cn(
-                          "w-full text-left px-2 py-1.5 rounded-[5px] text-[12px] transition-colors cursor-pointer",
+                          "w-full text-start px-2 py-1.5 rounded-[5px] text-[12px] transition-colors cursor-pointer",
                           selectedType === opt.id
                             ? "bg-[var(--s3)] text-[var(--t1)] font-medium"
                             : "text-[var(--t2)] hover:bg-[var(--s3)] hover:text-[var(--t1)]"

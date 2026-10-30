@@ -69,7 +69,7 @@ export function ReelPostPicker({
         }`}
       >
         <Globe className="w-5 h-5 opacity-80" />
-        <div className="text-left">
+        <div className="text-start">
           <span className="text-xs font-bold block">All {platformInfo.label} Posts</span>
           <span className="text-[9px] text-neutral-500">Global Trigger — matches any content</span>
         </div>
@@ -84,7 +84,7 @@ export function ReelPostPicker({
               <span className="text-xs text-neutral-500 font-mono-ui">Fetching {platformInfo.label} posts...</span>
             </div>
           ) : reels.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto pe-1">
               {reels.map((reel) => {
                 const isSelected = hasSelectedReelOption && selectedReel?.id === reel.id
                 return (
@@ -95,7 +95,7 @@ export function ReelPostPicker({
                       setSelectedReel(reel)
                       setHasSelectedReelOption(true)
                     }}
-                    className={`aspect-square rounded-xl border overflow-hidden relative group text-left transition-all duration-200 ${
+                    className={`aspect-square rounded-xl border overflow-hidden relative group text-start transition-all duration-200 ${
                       isSelected
                         ? "border-[#e5a93c] ring-2 ring-[#e5a93c]/20"
                         : "border-white/10 hover:border-white/25 bg-[#0e0e0e]"
@@ -122,7 +122,7 @@ export function ReelPostPicker({
                     )}
 
                     {/* Type Overlay */}
-                    <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-black/60 text-[8px] font-mono-ui text-white uppercase tracking-wider">
+                    <span className="absolute top-2 start-2 px-1.5 py-0.5 rounded-md bg-black/60 text-[8px] font-mono-ui text-white uppercase tracking-wider">
                       {reel.media_type === "STORY" ? "Story" : reel.media_type === "VIDEO" ? "Reel" : "Post"}
                     </span>
 

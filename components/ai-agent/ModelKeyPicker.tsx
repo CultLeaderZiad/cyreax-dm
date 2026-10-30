@@ -126,12 +126,12 @@ export function ModelKeyPicker({
 
         {/* Facts Table (Replaces invented dot ratings with verified facts) */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-[11.5px] border-collapse">
+          <table className="w-full text-start text-[11.5px] border-collapse">
             <thead>
               <tr className="border-b border-[var(--line)] text-[10.5px] font-mono uppercase text-[var(--t3)]">
                 <th className="pb-2 font-medium">Provider</th>
                 <th className="pb-2 font-medium">Context</th>
-                <th className="pb-2 font-medium text-right">Price / 1M tokens</th>
+                <th className="pb-2 font-medium text-end">Price / 1M tokens</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--line)]">
@@ -147,7 +147,7 @@ export function ModelKeyPicker({
                         : ""
                     )}
                   >
-                    <td className="py-2.5 font-medium text-[var(--t1)] flex items-center gap-1.5 pl-2">
+                    <td className="py-2.5 font-medium text-[var(--t1)] flex items-center gap-1.5 ps-2">
                       <span>{p.name}</span>
                       {p.isDefault && (
                         <span className="font-mono text-[9.5px] px-1 py-0.2 rounded bg-[var(--s3)] text-[var(--t3)] border border-[var(--line2)] leading-none">
@@ -158,7 +158,7 @@ export function ModelKeyPicker({
                     <td className="py-2.5 font-mono text-[var(--t3)] text-[11px]">
                       {p.context}
                     </td>
-                    <td className="py-2.5 font-mono text-[var(--t2)] text-[11px] text-right pr-2">
+                    <td className="py-2.5 font-mono text-[var(--t2)] text-[11px] text-end pe-2">
                       {p.price}
                     </td>
                   </tr>
@@ -338,12 +338,12 @@ export function ModelKeyPicker({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full text-start text-xs border-collapse">
             <thead>
               <tr className="border-b border-[var(--line)] text-[11px] font-mono uppercase text-[var(--t3)]">
                 <th className="pb-2.5 font-medium">Provider & Model</th>
                 <th className="pb-2.5 font-medium">Context Window</th>
-                <th className="pb-2.5 font-medium text-right">Input / Output per 1M</th>
+                <th className="pb-2.5 font-medium text-end">Input / Output per 1M</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--line)]">
@@ -359,7 +359,7 @@ export function ModelKeyPicker({
                         : ""
                     )}
                   >
-                    <td className="py-3 font-medium text-[var(--t1)] flex items-center gap-2 pl-2">
+                    <td className="py-3 font-medium text-[var(--t1)] flex items-center gap-2 ps-2">
                       <span>{p.name}</span>
                       {p.isDefault && (
                         <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[var(--goldbg)] text-[var(--gold2)] border border-[var(--goldline)] leading-none">
@@ -370,7 +370,7 @@ export function ModelKeyPicker({
                     <td className="py-3 font-mono text-[var(--t3)]">
                       {p.context}
                     </td>
-                    <td className="py-3 font-mono text-[var(--t2)] text-right pr-2">
+                    <td className="py-3 font-mono text-[var(--t2)] text-end pe-2">
                       {p.price}
                     </td>
                   </tr>

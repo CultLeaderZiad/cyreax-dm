@@ -211,7 +211,7 @@ export function ResponsePayloadConfig({
                   )}
                   <span>Generate AI alternatives</span>
                 </button>
-                <p className="font-mono text-[10.5px] text-[var(--t4)] text-right">
+                <p className="font-mono text-[10.5px] text-[var(--t4)] text-end">
                   {messageText.length}/1000
                 </p>
               </div>

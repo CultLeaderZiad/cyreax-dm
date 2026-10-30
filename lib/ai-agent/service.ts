@@ -18,6 +18,8 @@ export interface AgentTurnRequest {
   contactExternalId?: string | null
   /** Playground turns are logged but do not write the contact. */
   playground?: boolean
+  contactName?: string | null
+  conversationId?: string | null
 }
 
 function missing(error: { message?: string; code?: string } | null | undefined): boolean {
@@ -238,7 +240,35 @@ async function persistLead(input: AgentTurnRequest, decision: AgentDecision): Pr
   }
   if (decision.fields.email) patch.email = decision.fields.email
   if (decision.fields.phone) patch.phone = decision.fields.phone
-  if (decision.handoff) patch.bot_paused = true
+  if (decision.handoff) {
+    patch.bot_paused = true
+    try {
+      const { notifyHandoff } = await import("@/lib/notifications/handoff")
+      let conversationId = input.conversationId || null
+      if (!conversationId) {
+        const { data: conv } = await input.supabase
+          .from("conversations")
+          .select("id")
+          .eq("user_id", input.userId)
+          .eq("recipient_id", input.contactExternalId)
+          .order("last_message_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (conv?.id) conversationId = String(conv.id)
+      }
+      await notifyHandoff({
+        supabase: input.supabase,
+        workspaceId: input.workspaceId || null,
+        accountId: input.accountId || null,
+        contactName: input.contactName || (custom.name as string) || input.contactExternalId,
+        channel: input.channel,
+        reason: decision.handoffReason || "AI handoff requested",
+        conversationId,
+      })
+    } catch (notifErr) {
+      console.warn("[ai-agent] notifyHandoff failed:", notifErr)
+    }
+  }
   if (existing.data?.id) {
     await input.supabase.from("contacts").update(patch).eq("id", existing.data.id)
   }

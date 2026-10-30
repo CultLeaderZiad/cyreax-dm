@@ -109,14 +109,14 @@ export function ApiKeysSettingsSection() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-[12px] border-collapse" aria-label="API keys table">
+                <table className="w-full text-start text-[12px] border-collapse" aria-label="API keys table">
                   <thead>
                     <tr className="border-b border-[var(--line)] bg-[var(--s2)]/40 font-mono text-[10.5px] uppercase tracking-wider text-[var(--t3)]">
                       <th scope="col" className="py-2.5 px-4 font-medium">Name</th>
                       <th scope="col" className="py-2.5 px-3 font-medium">Key Prefix</th>
                       <th scope="col" className="py-2.5 px-3 font-medium">Created</th>
                       <th scope="col" className="py-2.5 px-3 font-medium">Last used</th>
-                      <th scope="col" className="py-2.5 px-4 font-medium text-right"><span className="sr-only">Actions</span></th>
+                      <th scope="col" className="py-2.5 px-4 font-medium text-end"><span className="sr-only">Actions</span></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--line)]">
@@ -134,7 +134,7 @@ export function ApiKeysSettingsSection() {
                         <td className="py-3 px-3 text-[var(--t3)]">
                           {k.lastUsed}
                         </td>
-                        <td className="py-3 px-4 text-right">
+                        <td className="py-3 px-4 text-end">
                           <HoldToConfirm
                             label="Hold to revoke"
                             confirmingLabel="Revoking..."

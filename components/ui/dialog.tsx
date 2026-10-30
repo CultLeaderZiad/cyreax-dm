@@ -211,7 +211,7 @@ function DialogContent({
             type="button"
             data-slot="dialog-close"
             onClick={() => setOpen(false)}
-            className="absolute top-4 right-4 rounded-md p-1 text-neutral-400 hover:text-white transition-colors hover:bg-white/10 focus:outline-hidden focus:ring-2 focus:ring-[#e5a93c]"
+            className="absolute top-4 end-4 rounded-md p-1 text-neutral-400 hover:text-white transition-colors hover:bg-white/10 focus:outline-hidden focus:ring-2 focus:ring-[#e5a93c]"
           >
             <XIcon className="w-4 h-4" />
             <span className="sr-only">Close</span>

@@ -124,7 +124,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
           We have received your payment request for the {plan.name}.
         </p>
         {submittedRef && (
-          <div className="bg-black/50 p-4 rounded-lg mt-4 border border-white/10 text-sm text-left text-neutral-300 space-y-2">
+          <div className="bg-black/50 p-4 rounded-lg mt-4 border border-white/10 text-sm text-start text-neutral-300 space-y-2">
             <p className="text-xs uppercase tracking-wider text-neutral-500 font-mono-ui">Your transaction reference (keep this for support)</p>
             <div className="flex items-center justify-between gap-3 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
               <code className="font-mono text-[#e5a93c] text-base break-all">{submittedRef}</code>
@@ -133,7 +133,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
           </div>
         )}
         {selected && (
-          <div className="bg-black/50 p-4 rounded-lg mt-4 border border-white/10 text-sm text-left text-neutral-300 space-y-2">
+          <div className="bg-black/50 p-4 rounded-lg mt-4 border border-white/10 text-sm text-start text-neutral-300 space-y-2">
             <p><strong>Instructions:</strong> {selected.instructions}</p>
             <p className="mt-4">Our admin will review your payment shortly — typically within 24–48 hours. Once approved, your account will be activated and you'll receive a confirmation. If the reference cannot be matched (wrong amount, wrong number, or duplicate), we'll contact you on the phone number you provided and refund the transfer to the sending wallet if it can't be resolved.</p>
           </div>
@@ -326,7 +326,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
             <h4 className="font-bold text-white flex items-center gap-2">
               <Clock className="w-4 h-4 text-[#e5a93c]" /> Vodafone Cash terms
             </h4>
-            <ul className="list-disc pl-5 space-y-1.5 text-xs leading-relaxed">
+            <ul className="list-disc ps-5 space-y-1.5 text-xs leading-relaxed">
               <li>Activation is manual: our team verifies your transfer and activates your plan, typically within <strong className="text-white">24–48 hours</strong>.</li>
               <li>Submit the transaction reference exactly as it appears in your Vodafone Cash SMS.</li>
               <li>If the reference cannot be matched (wrong amount, wrong number, invalid or duplicate submission), we will contact you on the phone number above. If it cannot be resolved, the transferred amount is <strong className="text-white">refunded to the sending wallet</strong>.</li>
@@ -360,7 +360,7 @@ export default function CheckoutClient({ plan, methods, user, cycle }: { plan: a
           <p className="text-xs leading-relaxed text-neutral-300">
             Once submitted, we will immediately send an itemized invoice for <strong className="text-white">${amountToCharge}</strong> to <strong className="text-[#e5a93c]">{clientEmail || "your email"}</strong> with payment instructions.
           </p>
-          <ul className="list-disc pl-5 space-y-1 text-xs text-neutral-400">
+          <ul className="list-disc ps-5 space-y-1 text-xs text-neutral-400">
             <li>Review the invoice in your email inbox.</li>
             <li>Follow the transfer instructions and reply with payment proof.</li>
             <li>Our team activates your account immediately upon receipt.</li>

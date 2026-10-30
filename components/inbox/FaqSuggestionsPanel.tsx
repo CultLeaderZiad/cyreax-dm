@@ -27,7 +27,7 @@ export function FaqSuggestionsPanel({ userId }: { userId: string }) {
     }, [userId])
 
     return (
-        <div className="h-full flex flex-col bg-black/40 border-l border-white/5 w-[300px] xl:w-[350px]">
+        <div className="h-full flex flex-col bg-black/40 border-s border-white/5 w-[300px] xl:w-[350px]">
             <div className="p-4 border-b border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-[#e5a93c]" />

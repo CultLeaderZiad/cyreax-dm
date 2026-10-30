@@ -48,13 +48,21 @@ function InboxContent() {
   useEffect(() => {
     if (cParam) {
       setSelectedConversationId(cParam)
+      if (rawConversations.length > 0) {
+        const found = rawConversations.find((c: any) => String(c.id) === String(cParam))
+        if (found) {
+          setSelectedRecipientName(found.recipient_username || "Customer")
+          setSelectedRecipientId(found.recipient_id ? String(found.recipient_id) : String(found.id))
+          setSelectedPlatform(found.platform || "instagram")
+        }
+      }
     } else {
       // If no query parameter and on phone, clear selected so List view is displayed
       if (typeof window !== "undefined" && window.innerWidth < 768) {
         setSelectedConversationId(null)
       }
     }
-  }, [cParam])
+  }, [cParam, rawConversations])
 
   const handleSelect = useCallback(
     (id: string, name: string, recipientId: string, platform: string) => {
@@ -220,7 +228,7 @@ function InboxContent() {
         ) : (
           <SheetContent
             side="right"
-            className="p-0 w-[320px] bg-[var(--s1)] border-l border-[var(--line)] h-full overflow-hidden flex flex-col focus:outline-none"
+            className="p-0 w-[320px] bg-[var(--s1)] border-s border-[var(--line)] h-full overflow-hidden flex flex-col focus:outline-none"
           >
             <SheetHeader className="sr-only">
               <SheetTitle>Conversation context</SheetTitle>

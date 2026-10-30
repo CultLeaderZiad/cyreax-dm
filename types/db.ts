@@ -6,6 +6,7 @@ export interface Conversation {
     last_message_at: string
     last_message_preview?: string | null
     platform?: string | null
+    bot_paused?: boolean
     created_at: string
     updated_at: string
 }

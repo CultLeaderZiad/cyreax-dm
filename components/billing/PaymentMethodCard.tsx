@@ -115,7 +115,7 @@ export function PaymentMethodCard({
           type="button"
           onClick={() => setSelectedMethod("vodafone")}
           className={cn(
-            "rounded-lg border p-2.5 text-left transition-colors cursor-pointer flex flex-col justify-between h-[68px]",
+            "rounded-lg border p-2.5 text-start transition-colors cursor-pointer flex flex-col justify-between h-[68px]",
             selectedMethod === "vodafone"
               ? "border-[var(--goldline)] bg-[var(--goldbg)]"
               : "border-[var(--line)] bg-[var(--s2)] hover:border-[var(--line2)] text-[var(--t3)]"
@@ -141,7 +141,7 @@ export function PaymentMethodCard({
           type="button"
           onClick={() => setSelectedMethod("email")}
           className={cn(
-            "rounded-lg border p-2.5 text-left transition-colors cursor-pointer flex flex-col justify-between h-[68px]",
+            "rounded-lg border p-2.5 text-start transition-colors cursor-pointer flex flex-col justify-between h-[68px]",
             selectedMethod === "email"
               ? "border-[var(--goldline)] bg-[var(--goldbg)]"
               : "border-[var(--line)] bg-[var(--s2)] hover:border-[var(--line2)] text-[var(--t3)]"
@@ -207,14 +207,14 @@ export function PaymentMethodCard({
           <div className="relative my-2.5 flex items-center">
             {/* Left Notch */}
             <span
-              className="absolute -left-[17px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[var(--s1)] border-r border-[var(--line)]"
+              className="absolute -start-[17px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[var(--s1)] border-e border-[var(--line)]"
               aria-hidden="true"
             />
             {/* Dashed Perforation Line */}
             <div className="w-full border-t border-dashed border-[var(--line3)] mx-1" />
             {/* Right Notch */}
             <span
-              className="absolute -right-[17px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[var(--s1)] border-l border-[var(--line)]"
+              className="absolute -end-[17px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[var(--s1)] border-s border-[var(--line)]"
               aria-hidden="true"
             />
           </div>

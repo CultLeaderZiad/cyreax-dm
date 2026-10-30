@@ -7,6 +7,8 @@ export type { SlideMenuProps, SlideMenuItem } from "./SlideMenu"
 export { AccountMenu } from "./AccountMenu"
 export type { AccountMenuProps } from "./AccountMenu"
 
+export { NotificationDropdown } from "./NotificationDropdown"
+
 export { ConversationContextMenu } from "./ConversationContextMenu"
 export type { ConversationContextMenuProps } from "./ConversationContextMenu"
 

@@ -210,7 +210,7 @@ export default function CampaignDetailsPage() {
   const isRtl = language === 'ar'
 
   return (
-    <div className={`max-w-5xl mx-auto space-y-6 ${isRtl ? 'text-right' : ''}`} dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className={`max-w-5xl mx-auto space-y-6 ${isRtl ? 'text-end' : ''}`} dir={isRtl ? 'rtl' : 'ltr'}>
       <div className={`flex items-center justify-between ${isRtl ? 'flex-row-reverse' : ''}`}>
         <div className="flex items-center gap-4">
           <Button 
@@ -260,7 +260,7 @@ export default function CampaignDetailsPage() {
               disabled={sendingTest || sendingReal}
               className="border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-white"
             >
-              {sendingTest ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'} animate-spin`} /> : <Mail className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />}
+              {sendingTest ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'} animate-spin`} /> : <Mail className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'}`} />}
               {t.sendTestEmail}
             </Button>
             <Button 
@@ -268,7 +268,7 @@ export default function CampaignDetailsPage() {
               disabled={sendingTest || sendingReal || selectedCustomerIds.size === 0}
               className="bg-brand-500 hover:bg-brand-600 text-black font-semibold"
             >
-              {sendingReal ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'} animate-spin`} /> : <Send className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />}
+              {sendingReal ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'} animate-spin`} /> : <Send className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'}`} />}
               {t.sendToCustomers.replace('{{count}}', selectedCustomerIds.size.toString())}
             </Button>
             <div className="flex items-center gap-2 border border-zinc-800 bg-zinc-900/50 p-1 rounded-lg">
@@ -309,7 +309,7 @@ export default function CampaignDetailsPage() {
               </div>
             </CardHeader>
             <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-              <table className="w-full text-sm text-left">
+              <table className="w-full text-sm text-start">
                 <thead className="text-xs text-zinc-400 uppercase bg-zinc-900/80 sticky top-0 border-b border-zinc-800">
                   <tr>
                     <th className="px-4 py-3 w-[50px] text-center">
@@ -319,9 +319,9 @@ export default function CampaignDetailsPage() {
                         aria-label="Select all"
                       />
                     </th>
-                    <th className={`px-4 py-3 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>Name</th>
-                    <th className={`px-4 py-3 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.email}</th>
-                    <th className={`px-4 py-3 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>{t.plan}</th>
+                    <th className={`px-4 py-3 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>Name</th>
+                    <th className={`px-4 py-3 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.email}</th>
+                    <th className={`px-4 py-3 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.plan}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800">

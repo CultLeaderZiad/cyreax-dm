@@ -48,7 +48,7 @@ export default function DataDeletionClient() {
         </p>
         <section className="space-y-2">
           <h2 className="text-2xl font-bold text-white">Remove {BRAND.name} from Meta</h2>
-          <ol className="list-decimal pl-6 space-y-2">
+          <ol className="list-decimal ps-6 space-y-2">
             <li>Open Facebook Settings, then Apps and websites.</li>
             <li>Select {BRAND.name} and choose Remove.</li>
             <li>Meta sends a signed request to <code className="text-white">/api/meta/data-deletion</code>.</li>

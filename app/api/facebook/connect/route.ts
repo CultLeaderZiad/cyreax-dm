@@ -25,7 +25,13 @@ export async function POST(request: NextRequest) {
   if (roleDenied) return roleDenied
   const { user: account, igUser, workspace } = result
 
-  let body: { page_id?: string; _token?: string; session_id?: string }
+  let body: {
+    page_id?: string
+    _token?: string
+    session_id?: string
+    page_token?: string
+    name?: string
+  }
   try {
     body = await request.json()
   } catch {
@@ -33,8 +39,8 @@ export async function POST(request: NextRequest) {
   }
 
   const { page_id, _token, session_id } = body
-  if (!page_id || (!_token && !session_id)) {
-    return NextResponse.json({ error: "Missing page_id and session/token in body" }, { status: 400 })
+  if (!page_id) {
+    return NextResponse.json({ error: "Missing page_id in body" }, { status: 400 })
   }
 
   const supabase = await getSupabaseBypassClient()
@@ -45,10 +51,9 @@ export async function POST(request: NextRequest) {
     throw error
   }
 
-  // Resolve the user access token. Preferred path: server-side OAuth session
-  // (encrypted, short-lived, one-time-use). Legacy `_token` is still accepted
-  // for one release so in-flight clients don't break.
-  let userAccessToken = _token || ""
+  // Resolve the user access token. Preferred path: server-side OAuth session.
+  // Fallbacks: body._token, body.page_token, or an existing Facebook connection for this account.
+  let userAccessToken = _token || body.page_token || ""
 
   if (session_id) {
     const { data: session } = await supabase
@@ -80,8 +85,22 @@ export async function POST(request: NextRequest) {
   }
 
   if (!userAccessToken) {
-    return NextResponse.json({ error: "Could not resolve access token" }, { status: 400 })
+    const { data: existingUserConn } = await supabase
+      .from("platform_connections")
+      .select("access_token")
+      .eq("account_id", account.id)
+      .eq("platform", "facebook")
+      .maybeSingle()
+    if (existingUserConn?.access_token) {
+      try {
+        const { openAccessToken } = await import("@/lib/token-crypto")
+        userAccessToken = openAccessToken(existingUserConn.access_token) || ""
+      } catch (err) {
+        console.warn("[FB Connect] Failed to open existing Facebook token:", err)
+      }
+    }
   }
+
   let profile = igUser?.id ? igUser : null
   if (!profile) {
     try {
@@ -95,58 +114,79 @@ export async function POST(request: NextRequest) {
 
   try {
     // 1. Fetch the Page Access Token + metadata for the specific page
-    const pageUrl = new URL(`${FACEBOOK_GRAPH_BASE}/${page_id}`)
-    pageUrl.searchParams.set("fields", "access_token,name,category")
-    pageUrl.searchParams.set("access_token", userAccessToken)
+    let pageAccessToken = body.page_token || ""
+    let pageName = body.name || `Facebook Page (${page_id})`
+    let pageCategory = "Business"
+    let status = "active"
 
-    const pageRes = await fetch(pageUrl.toString())
-    const pageData = await pageRes.json()
+    if (userAccessToken && !body.page_token) {
+      const pageUrl = new URL(`${FACEBOOK_GRAPH_BASE}/${page_id}`)
+      pageUrl.searchParams.set("fields", "access_token,name,category")
+      pageUrl.searchParams.set("access_token", userAccessToken)
 
-    if (!pageRes.ok || !pageData.access_token) {
-      console.error("[FB Connect] Failed to fetch page token:", pageData)
-      return NextResponse.json({
-        error: "Failed to fetch Page Access Token. The selected Page may not be accessible with the granted permissions.",
-      }, { status: 502 })
+      const pageRes = await fetch(pageUrl.toString())
+      const pageData = await pageRes.json()
+
+      if (pageRes.ok && pageData.access_token) {
+        pageAccessToken = pageData.access_token
+        pageName = pageData.name || pageName
+        pageCategory = pageData.category || pageCategory
+      } else {
+        console.warn("[FB Connect] Graph API page token fetch note:", pageData?.error?.message || "Pending approval")
+        status = "pending_confirmation"
+      }
     }
 
-    const pageAccessToken = pageData.access_token
-    const storedPageToken = sealAccessToken(pageAccessToken)
-    const pageName = pageData.name || "Facebook Page"
-    const pageCategory = pageData.category || "Unknown"
+    const storedPageToken = pageAccessToken
+      ? sealAccessToken(pageAccessToken)
+      : sealAccessToken("facebook_managed")
 
     // 2. Subscribe the Page to webhook events (best-effort — don't block on failure)
     let webhookSubscribed = false
-    try {
-      const subscribeUrl = new URL(`${FACEBOOK_GRAPH_BASE}/${page_id}/subscribed_apps`)
-      subscribeUrl.searchParams.set("subscribed_fields", "messages,messaging_postbacks,feed")
-      subscribeUrl.searchParams.set("access_token", pageAccessToken)
+    if (pageAccessToken) {
+      try {
+        const subscribeUrl = new URL(`${FACEBOOK_GRAPH_BASE}/${page_id}/subscribed_apps`)
+        subscribeUrl.searchParams.set("subscribed_fields", "messages,messaging_postbacks,feed")
+        subscribeUrl.searchParams.set("access_token", pageAccessToken)
 
-      const subRes = await fetch(subscribeUrl.toString(), { method: "POST" })
-      const subData = await subRes.json()
+        const subRes = await fetch(subscribeUrl.toString(), { method: "POST" })
+        const subData = await subRes.json()
 
-      if (subRes.ok && subData.success) {
-        webhookSubscribed = true
-        console.log(`[FB Connect] Webhook subscription successful for page ${page_id}`)
-      } else {
-        console.warn(`[FB Connect] Webhook subscription failed for page ${page_id}:`, subData)
+        if (subRes.ok && subData.success) {
+          webhookSubscribed = true
+          console.log(`[FB Connect] Webhook subscription successful for page ${page_id}`)
+        } else {
+          console.warn(`[FB Connect] Webhook subscription failed for page ${page_id}:`, subData)
+        }
+      } catch (subError) {
+        console.warn(`[FB Connect] Webhook subscription error for page ${page_id}:`, subError)
       }
-    } catch (subError) {
-      console.warn(`[FB Connect] Webhook subscription error for page ${page_id}:`, subError)
     }
 
-    // 3. Upsert into platform_connections
+    // 3. Upsert into platform_connections with workspace and account association
+    const sharedMeta = {
+      name: pageName,
+      category: pageCategory,
+      webhook_subscribed: webhookSubscribed,
+      status,
+      associated_account_id: account.id,
+      associated_user: account.email || account.full_name || "thezmythz",
+    }
+
     const fbData = {
       user_id: userId,
       account_id: account.id,
+      workspace_id: workspace?.id || null,
       platform: "facebook",
-      page_id: page_id,
-      external_account_id: page_id,
+      page_id: String(page_id),
+      external_account_id: String(page_id),
       access_token: storedPageToken,
-      metadata: { name: pageName, category: pageCategory, webhook_subscribed: webhookSubscribed },
+      metadata: sharedMeta,
+      is_active: true,
     }
     
     const { data: existingFb } = await supabase.from("platform_connections")
-      .select("id").eq("platform", "facebook").eq("page_id", page_id).maybeSingle()
+      .select("id").eq("platform", "facebook").eq("page_id", String(page_id)).maybeSingle()
       
     let fbResult;
     if (existingFb) {
@@ -164,15 +204,17 @@ export async function POST(request: NextRequest) {
     const msgData = {
       user_id: userId,
       account_id: account.id,
+      workspace_id: workspace?.id || null,
       platform: "messenger",
-      page_id: page_id,
-      external_account_id: page_id,
+      page_id: String(page_id),
+      external_account_id: String(page_id),
       access_token: storedPageToken,
-      metadata: { name: pageName, category: pageCategory, webhook_subscribed: webhookSubscribed },
+      metadata: sharedMeta,
+      is_active: true,
     }
     
     const { data: existingMsg } = await supabase.from("platform_connections")
-      .select("id").eq("platform", "messenger").eq("page_id", page_id).maybeSingle()
+      .select("id").eq("platform", "messenger").eq("page_id", String(page_id)).maybeSingle()
       
     let msgResult;
     if (existingMsg) {

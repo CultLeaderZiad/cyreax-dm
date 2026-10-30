@@ -67,7 +67,7 @@ export function GlobalBanner() {
           {banner.link && (
             <Link 
               href={banner.link} 
-              className="group inline-flex items-center gap-1 ml-2 px-2.5 py-0.5 rounded-full bg-[#e5a93c]/15 text-[#f3ba4f] hover:bg-[#e5a93c]/25 border border-[#e5a93c]/30 text-xs font-medium transition-colors"
+              className="group inline-flex items-center gap-1 ms-2 px-2.5 py-0.5 rounded-full bg-[#e5a93c]/15 text-[#f3ba4f] hover:bg-[#e5a93c]/25 border border-[#e5a93c]/30 text-xs font-medium transition-colors"
             >
               <span>Learn more</span>
               <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />

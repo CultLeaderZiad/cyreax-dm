@@ -26,7 +26,7 @@ export default function AdminLogoutButton() {
     <button
       onClick={handleLogout}
       title="Log out"
-      className="p-1.5 ml-2 rounded-md text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+      className="p-1.5 ms-2 rounded-md text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
     >
       <LogOut className="w-4 h-4" />
     </button>

@@ -178,13 +178,13 @@ export default function FlowsPage() {
           </div>
 
           <div className="relative w-full sm:w-64">
-            <Search className="w-3.5 h-3.5 text-[var(--t3)] absolute left-3 top-2.5" />
+            <Search className="w-3.5 h-3.5 text-[var(--t3)] absolute start-3 top-2.5" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search flows..."
-              className="w-full h-8 pl-8 pr-3 bg-[var(--s1)] border border-[var(--line)] rounded-lg text-xs text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none focus:border-[var(--gold)]"
+              className="w-full h-8 ps-8 pe-3 bg-[var(--s1)] border border-[var(--line)] rounded-lg text-xs text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none focus:border-[var(--gold)]"
             />
           </div>
         </div>

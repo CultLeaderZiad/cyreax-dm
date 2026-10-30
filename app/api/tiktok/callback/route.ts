@@ -75,7 +75,8 @@ export async function GET(request: NextRequest) {
   const region = normalizeRegion(business.region || business.country || business.country_code)
 
   const origin = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "")
-  let webhookSubscribed = false
+  let dmWebhookSubscribed = false
+  let commentWebhookSubscribed = false
   if (origin && tiktokAppId() && tiktokAppSecret()) {
     const subscribed = await tiktokPost(token.accessToken, "/business/webhook/update/", {
       app_id: tiktokAppId(),
@@ -83,15 +84,16 @@ export async function GET(request: NextRequest) {
       event_type: "DIRECT_MESSAGE",
       callback_url: `${origin}/api/tiktok/webhook`,
     })
-    webhookSubscribed = subscribed?.code === 0
+    dmWebhookSubscribed = subscribed?.code === 0
     const commentHook = await tiktokPost(token.accessToken, "/business/webhook/update/", {
       app_id: tiktokAppId(),
       secret: tiktokAppSecret(),
       event_type: "COMMENT",
       callback_url: `${origin}/api/tiktok/webhook`,
     })
-    if (commentHook?.code === 0) webhookSubscribed = true
+    commentWebhookSubscribed = commentHook?.code === 0
   }
+  const webhookSubscribed = dmWebhookSubscribed
 
   let commentToDm = false
   if (region && commentToMessageAllowed(region)) {
@@ -132,6 +134,8 @@ export async function GET(request: NextRequest) {
     name: displayName || username || token.openId,
     scope: token.scope,
     webhook_subscribed: webhookSubscribed,
+    dm_webhook_subscribed: dmWebhookSubscribed,
+    comment_webhook_subscribed: commentWebhookSubscribed,
     comment_to_dm: commentToDm,
   }
   if (region) metadata.region = region

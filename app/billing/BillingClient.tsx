@@ -247,7 +247,7 @@ export default function BillingPage() {
               <div className="border border-white/[0.08] rounded-2xl p-8 bg-white/[0.02] mb-8 relative">
                 <button 
                   onClick={() => setShowVCForm(null)}
-                  className="absolute top-4 right-4 p-2 text-neutral-400 hover:text-white"
+                  className="absolute top-4 end-4 p-2 text-neutral-400 hover:text-white"
                 >
                   <XCircle className="w-5 h-5" />
                 </button>
@@ -296,7 +296,7 @@ export default function BillingPage() {
               <div className="border border-white/[0.08] rounded-2xl p-8 bg-white/[0.02] mb-8 relative">
                 <button 
                   onClick={() => setShowEmailForm(null)}
-                  className="absolute top-4 right-4 p-2 text-neutral-400 hover:text-white"
+                  className="absolute top-4 end-4 p-2 text-neutral-400 hover:text-white"
                 >
                   <XCircle className="w-5 h-5" />
                 </button>

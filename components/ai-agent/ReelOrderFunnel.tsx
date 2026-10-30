@@ -76,7 +76,7 @@ export function ReelOrderFunnel({
               <span className="text-[var(--t2)] font-medium">{step.label}</span>
               <div className="flex items-center gap-3 font-mono tabular-nums">
                 <span className="text-[var(--t1)] font-semibold">{step.count}</span>
-                <span className="text-[var(--t3)] w-8 text-right">{step.percentage}</span>
+                <span className="text-[var(--t3)] w-8 text-end">{step.percentage}</span>
               </div>
             </div>
 

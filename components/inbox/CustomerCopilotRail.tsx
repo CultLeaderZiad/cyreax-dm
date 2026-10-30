@@ -414,7 +414,7 @@ export function CustomerCopilotRail({
                     }
                     toast.info("Payment link inserted into composer")
                   }}
-                  className="w-full h-[32px] rounded-[6px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[11.5px] font-medium text-[var(--t1)] flex items-center gap-2 px-2.5 transition-colors cursor-pointer text-left"
+                  className="w-full h-[32px] rounded-[6px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[11.5px] font-medium text-[var(--t1)] flex items-center gap-2 px-2.5 transition-colors cursor-pointer text-start"
                 >
                   <ShoppingCart className="w-3.5 h-3.5 text-[var(--gold)] shrink-0" />
                   <span className="truncate">Insert Payment Link</span>
@@ -428,7 +428,7 @@ export function CustomerCopilotRail({
                     }
                     toast.info("Address request inserted")
                   }}
-                  className="w-full h-[32px] rounded-[6px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[11.5px] font-medium text-[var(--t1)] flex items-center gap-2 px-2.5 transition-colors cursor-pointer text-left"
+                  className="w-full h-[32px] rounded-[6px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[11.5px] font-medium text-[var(--t1)] flex items-center gap-2 px-2.5 transition-colors cursor-pointer text-start"
                 >
                   <MessageSquare className="w-3.5 h-3.5 text-[var(--t3)] shrink-0" />
                   <span className="truncate">Request Shipping Details</span>
@@ -442,7 +442,7 @@ export function CustomerCopilotRail({
                     }
                     toast.info("Booking link inserted")
                   }}
-                  className="w-full h-[32px] rounded-[6px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[11.5px] font-medium text-[var(--t1)] flex items-center gap-2 px-2.5 transition-colors cursor-pointer text-left"
+                  className="w-full h-[32px] rounded-[6px] border border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[11.5px] font-medium text-[var(--t1)] flex items-center gap-2 px-2.5 transition-colors cursor-pointer text-start"
                 >
                   <Calendar className="w-3.5 h-3.5 text-[var(--t3)] shrink-0" />
                   <span className="truncate">Send Booking Calendar</span>
@@ -561,7 +561,7 @@ export function CustomerCopilotRail({
 
                 <div className="flex items-center justify-between">
                   <span className="text-[var(--t3)]">Source</span>
-                  <span className="text-[var(--t1)] font-medium text-right truncate max-w-[170px]">
+                  <span className="text-[var(--t1)] font-medium text-end truncate max-w-[170px]">
                     {sourceText}
                   </span>
                 </div>
@@ -569,7 +569,7 @@ export function CustomerCopilotRail({
                 {emailText && (
                   <div className="flex items-center justify-between">
                     <span className="text-[var(--t3)]">Email</span>
-                    <span className="text-[var(--t1)] font-mono text-[11px] text-right truncate max-w-[170px]">
+                    <span className="text-[var(--t1)] font-mono text-[11px] text-end truncate max-w-[170px]">
                       {emailText}
                     </span>
                   </div>
@@ -578,7 +578,7 @@ export function CustomerCopilotRail({
                 {phoneText && (
                   <div className="flex items-center justify-between">
                     <span className="text-[var(--t3)]">Phone</span>
-                    <span className="text-[var(--t1)] font-mono text-[11px] text-right truncate max-w-[170px]">
+                    <span className="text-[var(--t1)] font-mono text-[11px] text-end truncate max-w-[170px]">
                       {phoneText}
                     </span>
                   </div>
@@ -586,7 +586,7 @@ export function CustomerCopilotRail({
 
                 <div className="flex items-center justify-between">
                   <span className="text-[var(--t3)]">External ID</span>
-                  <span className="font-mono text-[10.5px] text-[var(--t3)] text-right truncate max-w-[170px]">
+                  <span className="font-mono text-[10.5px] text-[var(--t3)] text-end truncate max-w-[170px]">
                     {recipientId || "—"}
                   </span>
                 </div>

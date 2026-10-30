@@ -147,7 +147,7 @@ export default function AiAgentPage() {
       <section className="border border-white/10 rounded-2xl overflow-hidden">
         <h2 className="text-sm font-medium text-white px-4 py-3">Recent answers</h2>
         {logs.isLoading ? <Loader2 className="w-4 h-4 m-4 animate-spin text-white/30" /> : (
-          <table className="w-full text-sm text-left">
+          <table className="w-full text-sm text-start">
             <tbody>
               {(logs.data?.logs || []).map((log: { id: string; question: string; answer: string; dialect: string; confidence: number; handoff: boolean }) => (
                 <tr key={log.id} className="border-t border-white/5 text-neutral-300">

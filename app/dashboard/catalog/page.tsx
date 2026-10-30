@@ -71,7 +71,7 @@ export default function CatalogPage() {
         </div>
       </div>
       <div className="overflow-x-auto border border-white/10 rounded-2xl">
-        <table className="w-full text-sm text-left">
+        <table className="w-full text-sm text-start">
           <thead className="text-neutral-500 text-xs uppercase"><tr><th className="px-4 py-3">Product</th><th className="px-4 py-3">Price</th><th className="px-4 py-3">Source</th></tr></thead>
           <tbody>
             {(products.data?.products || []).map((product: { id: string; name: string; price_cents: number; currency: string; source: string }) => (
@@ -86,7 +86,7 @@ export default function CatalogPage() {
       </div>
       <div className="overflow-x-auto border border-white/10 rounded-2xl">
         <h2 className="text-sm text-white px-4 py-3">Orders</h2>
-        <table className="w-full text-sm text-left">
+        <table className="w-full text-sm text-start">
           <tbody>
             {(orders.data?.orders || []).map((order: { id: string; status: string; total_cents: number; currency: string; payment_link?: string }) => (
               <tr key={order.id} className="border-t border-white/5 text-neutral-200">

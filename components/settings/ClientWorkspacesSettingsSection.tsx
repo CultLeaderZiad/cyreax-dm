@@ -70,13 +70,13 @@ export function ClientWorkspacesSettingsSection() {
 
           <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-[12px] border-collapse" aria-label="Workspaces table">
+              <table className="w-full text-start text-[12px] border-collapse" aria-label="Workspaces table">
                 <thead>
                   <tr className="border-b border-[var(--line)] bg-[var(--s2)]/40 font-mono text-[10.5px] uppercase tracking-wider text-[var(--t3)]">
                     <th scope="col" className="py-2.5 px-4 font-medium">Workspace</th>
                     <th scope="col" className="py-2.5 px-3 font-medium">Channels</th>
                     <th scope="col" className="py-2.5 px-3 font-medium">Status</th>
-                    <th scope="col" className="py-2.5 px-4 font-medium text-right">Switch</th>
+                    <th scope="col" className="py-2.5 px-4 font-medium text-end">Switch</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--line)]">
@@ -98,7 +98,7 @@ export function ClientWorkspacesSettingsSection() {
                           Active
                         </Pill>
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-3 px-4 text-end">
                         <Button variant="ghost" size="sm" className="h-[26px] text-[11.5px] text-[var(--t3)] hover:text-[var(--t1)]">
                           Open
                         </Button>

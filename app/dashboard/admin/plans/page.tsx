@@ -265,7 +265,7 @@ export default function DashboardAdminPlansPage() {
           </p>
         </div>
         <Button onClick={openCreate} className="bg-[#e5a93c] text-black hover:bg-[#d4952b] font-semibold">
-          <Plus className="w-4 h-4 mr-1.5" /> Add Plan
+          <Plus className="w-4 h-4 me-1.5" /> Add Plan
         </Button>
       </div>
 
@@ -289,7 +289,7 @@ export default function DashboardAdminPlansPage() {
             Create your first subscription tier or enterprise plan to display on the public pricing page.
           </p>
           <Button onClick={openCreate} className="bg-[#e5a93c] hover:bg-[#d4952b] text-black font-semibold text-xs font-mono-ui uppercase tracking-wider cursor-pointer">
-            <Plus className="w-4 h-4 mr-1.5" /> Add Plan
+            <Plus className="w-4 h-4 me-1.5" /> Add Plan
           </Button>
         </div>
       ) : (
@@ -368,10 +368,10 @@ export default function DashboardAdminPlansPage() {
             </p>
           </div>
           <div className="bg-[#0b0b0a] border border-white/10 rounded-2xl overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
+            <table className="w-full text-start text-sm whitespace-nowrap">
               <thead className="bg-white/[0.02] border-b border-white/10">
                 <tr>
-                  <th className="px-6 py-4 font-mono-ui text-[10px] uppercase tracking-widest text-neutral-500 sticky left-0 bg-[#0b0b0a] z-10 border-r border-white/10">Agent</th>
+                  <th className="px-6 py-4 font-mono-ui text-[10px] uppercase tracking-widest text-neutral-500 sticky start-0 bg-[#0b0b0a] z-10 border-e border-white/10">Agent</th>
                   {plans.map(plan => (
                     <th key={plan.id} className="px-6 py-4 font-mono-ui text-[10px] uppercase tracking-widest text-neutral-500 text-center">
                       {plan.name}
@@ -382,7 +382,7 @@ export default function DashboardAdminPlansPage() {
               <tbody className="divide-y divide-white/10">
                 {agents.map(agent => (
                   <tr key={agent.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-6 py-4 font-bold text-white sticky left-0 bg-[#0b0b0a] z-10 border-r border-white/10">
+                    <td className="px-6 py-4 font-bold text-white sticky start-0 bg-[#0b0b0a] z-10 border-e border-white/10">
                       {agent.name}
                     </td>
                     {plans.map(plan => {

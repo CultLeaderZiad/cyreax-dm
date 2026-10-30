@@ -73,8 +73,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={fontVariables}>
-      <body className="font-sans antialiased bg-[#09090B] text-[#EDEDEF]" suppressHydrationWarning>
+    <html lang="en" className={fontVariables} suppressHydrationWarning>
+      <body className="font-sans antialiased bg-[var(--bg)] text-[var(--t1)]" suppressHydrationWarning>
         <ErrorBoundary>
           <SkipLink />
           <LanguageProvider>

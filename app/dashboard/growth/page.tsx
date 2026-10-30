@@ -89,7 +89,7 @@ export default function GrowthPage() {
         <input value={mediaId} onChange={(event) => setMediaId(event.target.value)} placeholder="Reel id" className="h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm text-white w-full max-w-md" />
         <div className="grid md:grid-cols-3 gap-3">
           {COMMENT_TO_DM_TEMPLATES.map((template) => (
-            <button key={template.id} onClick={() => setupTemplate(template.id)} className="text-left rounded-xl border border-white/10 p-4 hover:bg-white/[0.04]">
+            <button key={template.id} onClick={() => setupTemplate(template.id)} className="text-start rounded-xl border border-white/10 p-4 hover:bg-white/[0.04]">
               <div className="text-white text-sm font-medium">{template.name}</div>
               <div className="text-xs text-neutral-500 mt-1">Keyword {template.keyword}</div>
             </button>

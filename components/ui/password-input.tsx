@@ -8,7 +8,7 @@ import type { InputHTMLAttributes } from "react"
  *
  * The input uses a dark-theme style by default. Pass a `className` to override
  * the full input styling (e.g. for light-theme forms) — be sure to include
- * `pr-10` so the toggle never overlaps the text.
+ * `pe-10` so the toggle never overlaps the text.
  */
 type PasswordInputProps = InputHTMLAttributes<HTMLInputElement>
 

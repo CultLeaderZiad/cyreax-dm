@@ -161,7 +161,7 @@ function ToggleRow({
     <button
       type="button"
       onClick={onToggle}
-      className={`w-full p-4 rounded-2xl border text-left flex items-center gap-3.5 transition-all duration-200 bg-white/[0.01] ${
+      className={`w-full p-4 rounded-2xl border text-start flex items-center gap-3.5 transition-all duration-200 bg-white/[0.01] ${
         on ? "border-[#e5a93c]/40 bg-[#e5a93c]/[0.03]" : "border-white/10 hover:border-white/20"
       }`}
     >
@@ -171,7 +171,7 @@ function ToggleRow({
         <span className="block text-xs text-neutral-500 mt-0.5 leading-relaxed">{sub}</span>
       </span>
       <span className={`w-10 h-5.5 rounded-full relative transition-colors shrink-0 ${on ? "bg-[#e5a93c]" : "bg-neutral-800"}`}>
-        <span className={`absolute top-0.5 w-4.5 h-4.5 rounded-full bg-black shadow-md transition-all ${on ? "left-[20px]" : "left-0.5"}`} />
+        <span className={`absolute top-0.5 w-4.5 h-4.5 rounded-full bg-black shadow-md transition-all ${on ? "start-[20px]" : "start-0.5"}`} />
       </span>
     </button>
   )
@@ -761,7 +761,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                         key={key}
                         type="button"
                         onClick={() => setStoryTriggerType(key)}
-                        className={`p-4 rounded-xl border text-left flex flex-col gap-2 transition-all duration-200 ${
+                        className={`p-4 rounded-xl border text-start flex flex-col gap-2 transition-all duration-200 ${
                           storyTriggerType === key
                             ? "border-[#e5a93c] bg-[#e5a93c]/[0.06] text-[#e5a93c]"
                             : "border-white/10 text-neutral-400 hover:border-white/20 hover:text-white bg-white/[0.01]"
@@ -962,7 +962,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 type="button"
                 onClick={() => { if (stepValid[step]) setStep(step + 1) }}
                 disabled={!stepValid[step]}
-                className="flex items-center gap-1.5 h-9 px-5 rounded-[7px] bg-[var(--gold)] text-black text-xs font-semibold hover:brightness-105 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ml-auto cursor-pointer"
+                className="flex items-center gap-1.5 h-9 px-5 rounded-[7px] bg-[var(--gold)] text-black text-xs font-semibold hover:brightness-105 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ms-auto cursor-pointer"
               >
                 <span>{step === 0 ? "Continue to message" : "Review & activate"}</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -972,7 +972,7 @@ export function CreateRuleForm({ userId, triggerSource, onSuccess, editRule, ini
                 type="button"
                 onClick={handleSubmit}
                 disabled={!canSave || saving}
-                className="flex items-center justify-center gap-1.5 h-9 px-5 rounded-[7px] bg-[var(--gold)] text-black text-xs font-semibold hover:brightness-105 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ml-auto cursor-pointer"
+                className="flex items-center justify-center gap-1.5 h-9 px-5 rounded-[7px] bg-[var(--gold)] text-black text-xs font-semibold hover:brightness-105 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ms-auto cursor-pointer"
               >
                 {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
                 <span>{saving ? "Saving changes..." : isEditing ? "Save automation" : "Activate automation"}</span>

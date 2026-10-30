@@ -158,7 +158,7 @@ export function PlansComparisonRow({
                 }
               }}
               className={cn(
-                "rounded-xl border p-4.5 flex flex-col justify-between space-y-4 transition-all text-left",
+                "rounded-xl border p-4.5 flex flex-col justify-between space-y-4 transition-all text-start",
                 isCurrent
                   ? "border-[var(--goldline)] bg-[var(--s2)] shadow-xs"
                   : "border-[var(--line)] bg-[var(--s1)] hover:border-[var(--line2)] hover:bg-[var(--s2)]/40 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--gold)]"
@@ -180,7 +180,7 @@ export function PlansComparisonRow({
                   <span className="font-mono text-[20px] font-semibold text-[var(--t1)] tabular-nums">
                     <bdi>{p.price}</bdi>
                   </span>
-                  <span className="text-[11px] text-[var(--t3)] font-mono ml-1">
+                  <span className="text-[11px] text-[var(--t3)] font-mono ms-1">
                     /mo
                   </span>
                 </div>

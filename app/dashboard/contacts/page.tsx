@@ -78,12 +78,12 @@ export default function ContactsPage() {
 
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search name, tag, email, phone"
-            className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-3 py-2 text-sm text-white"
+            className="w-full bg-black/40 border border-white/10 rounded-xl ps-10 pe-3 py-2 text-sm text-white"
           />
         </div>
         <select
@@ -108,7 +108,7 @@ export default function ContactsPage() {
         <EmptyState icon={Users} title="No contacts yet" description="People who message or comment on a connected channel show up here." />
       ) : (
         <div className="overflow-x-auto border border-white/10 rounded-2xl">
-          <table className="w-full text-sm text-left">
+          <table className="w-full text-sm text-start">
             <thead className="text-neutral-500 text-xs uppercase">
               <tr>
                 <th className="px-4 py-3">Contact</th>

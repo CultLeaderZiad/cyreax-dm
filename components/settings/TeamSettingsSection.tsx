@@ -291,14 +291,14 @@ export function TeamSettingsSection() {
           {/* Table Column */}
           <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-[12px] border-collapse" aria-label="Agency team members">
+              <table className="w-full text-start text-[12px] border-collapse" aria-label="Agency team members">
                 <thead>
                   <tr className="border-b border-[var(--line)] bg-[var(--s2)]/40 font-mono text-[10.5px] uppercase tracking-wider text-[var(--t3)]">
                     <th scope="col" className="py-2.5 px-4 font-medium">Member</th>
                     <th scope="col" className="py-2.5 px-3 font-medium">Role</th>
                     <th scope="col" className="py-2.5 px-3 font-medium">Clients</th>
                     <th scope="col" className="py-2.5 px-3 font-medium">Last active</th>
-                    <th scope="col" className="py-2.5 px-3 font-medium text-right"><span className="sr-only">Actions</span></th>
+                    <th scope="col" className="py-2.5 px-3 font-medium text-end"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--line)]">
@@ -408,9 +408,9 @@ export function TeamSettingsSection() {
                       </td>
 
                       {/* Action overflow */}
-                      <td className="py-3 px-3 text-right">
+                      <td className="py-3 px-3 text-end">
                         {m.role !== "owner" && (
-                          <div className="relative inline-block text-left">
+                          <div className="relative inline-block text-start">
                             <button
                               type="button"
                               onClick={() =>
@@ -423,14 +423,14 @@ export function TeamSettingsSection() {
                             </button>
 
                             {openMenuId === m.id && (
-                              <div className="absolute right-0 mt-1 w-36 rounded-[6px] bg-[var(--s2)] border border-[var(--line2)] shadow-md py-1 z-20">
+                              <div className="absolute end-0 mt-1 w-36 rounded-[6px] bg-[var(--s2)] border border-[var(--line2)] shadow-md py-1 z-20">
                                 <button
                                   type="button"
                                   onClick={() => {
                                     setOpenMenuId(null)
                                     setMemberToRemove(m)
                                   }}
-                                  className="w-full text-left px-3 py-1.5 text-[11.5px] text-[var(--red)] hover:bg-[var(--s3)] transition-colors cursor-pointer"
+                                  className="w-full text-start px-3 py-1.5 text-[11.5px] text-[var(--red)] hover:bg-[var(--s3)] transition-colors cursor-pointer"
                                 >
                                   Remove member
                                 </button>
@@ -662,7 +662,7 @@ export function TeamSettingsSection() {
                 </div>
 
                 {/* 2x2 stats */}
-                <div className="grid grid-cols-2 gap-2 text-left">
+                <div className="grid grid-cols-2 gap-2 text-start">
                   <div className="p-1.5 rounded bg-neutral-50 border border-neutral-100">
                     <span className="text-[8.5px] text-neutral-500 uppercase font-mono block">
                       Conversations

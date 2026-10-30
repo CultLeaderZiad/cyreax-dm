@@ -15,6 +15,7 @@ import {
   sealAccessToken,
   tokenNeedsReseal,
 } from "@/lib/token-crypto"
+import { refreshTikTokTokens } from "@/lib/tiktok/oauth"
 
 /**
  * GET /api/cron/refresh-instagram-tokens
@@ -192,5 +193,13 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, ...summary })
+  let tiktok: unknown = null
+  try {
+    tiktok = await refreshTikTokTokens(supabase)
+  } catch (error) {
+    console.error("[cron/refresh-instagram-tokens] tiktok refresh error:", error)
+    tiktok = { ok: false, error: "tiktok_refresh_failed" }
+  }
+
+  return NextResponse.json({ ok: true, ...summary, tiktok })
 }

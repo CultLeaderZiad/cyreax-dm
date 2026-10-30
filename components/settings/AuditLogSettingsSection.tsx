@@ -37,14 +37,14 @@ export function AuditLogSettingsSection() {
 
           <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] overflow-hidden shadow-xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-[12px] border-collapse" aria-label="Audit log table">
+              <table className="w-full text-start text-[12px] border-collapse" aria-label="Audit log table">
                 <thead>
                   <tr className="border-b border-[var(--line)] bg-[var(--s2)]/40 font-mono text-[10.5px] uppercase tracking-wider text-[var(--t3)]">
                     <th scope="col" className="py-2.5 px-4 font-medium">Event</th>
                     <th scope="col" className="py-2.5 px-3 font-medium">Actor</th>
                     <th scope="col" className="py-2.5 px-3 font-medium">Details</th>
                     <th scope="col" className="py-2.5 px-3 font-medium">Location</th>
-                    <th scope="col" className="py-2.5 px-4 font-medium text-right">Time</th>
+                    <th scope="col" className="py-2.5 px-4 font-medium text-end">Time</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--line)]">
@@ -62,7 +62,7 @@ export function AuditLogSettingsSection() {
                       <td className="py-3 px-3 text-[11px] text-[var(--t3)] font-mono">
                         {ev.ip}
                       </td>
-                      <td className="py-3 px-4 text-right text-[11px] text-[var(--t3)]">
+                      <td className="py-3 px-4 text-end text-[11px] text-[var(--t3)]">
                         {ev.time}
                       </td>
                     </tr>

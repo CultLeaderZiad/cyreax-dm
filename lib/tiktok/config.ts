@@ -28,6 +28,7 @@ export const TIKTOK_OAUTH_SCOPES = [
   "message.list.send",
   "message.list.manage",
   "comment.list",
+  "comment.list.manage",
 ] as const
 
 export function tiktokMessagingEnabled(): boolean {

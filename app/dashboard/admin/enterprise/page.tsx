@@ -160,14 +160,14 @@ export default function AdminEnterprisePage() {
                     className="flex-1 bg-green-500 hover:bg-green-600 text-black"
                     variant="outline"
                   >
-                    <CheckCircle className="w-4 h-4 mr-2" /> Approve
+                    <CheckCircle className="w-4 h-4 me-2" /> Approve
                   </Button>
                   <Button
                     onClick={() => openActionDialog(inq, "rejected")}
                     className="flex-1 bg-red-500/10 text-red-400 hover:bg-red-500/20 border-red-500/20"
                     variant="outline"
                   >
-                    <XCircle className="w-4 h-4 mr-2" /> Reject
+                    <XCircle className="w-4 h-4 me-2" /> Reject
                   </Button>
                 </div>
               )}

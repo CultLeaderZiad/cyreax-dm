@@ -90,7 +90,7 @@ export function AutomationList({ automations, onDelete, onEdit, onToggle, onChan
       <div className="space-y-3">
         {globalRules.length > 0 && (
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-blue-400 ml-1">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-blue-400 ms-1">
               <Globe className="w-3 h-3" /> Global
             </div>
             {globalRules.map((rule, idx) => (
@@ -101,7 +101,7 @@ export function AutomationList({ automations, onDelete, onEdit, onToggle, onChan
 
         {postSpecificRules.length > 0 && (
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-pink-400 ml-1">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-pink-400 ms-1">
               {platform === "instagram" ? <Instagram className="w-3 h-3" /> : <Globe className="w-3 h-3" />} Post Specific
             </div>
             {postSpecificRules.map((rule, idx) => (
@@ -199,7 +199,7 @@ const RuleCard = memo(function RuleCard({ rule, onDelete, onEdit, onToggle, onDu
                       <Switch
                         checked={!isPaused}
                         onCheckedChange={(v) => onToggle(rule, v)}
-                        className="ml-1 scale-90"
+                        className="ms-1 scale-90"
                       />
                     </>
                   )}
@@ -235,22 +235,22 @@ const RuleCard = memo(function RuleCard({ rule, onDelete, onEdit, onToggle, onDu
 
             {replyMode === "dm_only" && (
               <Badge variant="secondary" className="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] px-1.5 py-0">
-                <EyeOff className="w-2.5 h-2.5 mr-0.5" /> DM only
+                <EyeOff className="w-2.5 h-2.5 me-0.5" /> DM only
               </Badge>
             )}
             {replyMode === "public_only" && (
               <Badge variant="secondary" className="bg-pink-500/10 text-pink-400 border border-pink-500/20 text-[10px] px-1.5 py-0">
-                <Megaphone className="w-2.5 h-2.5 mr-0.5" /> Public only
+                <Megaphone className="w-2.5 h-2.5 me-0.5" /> Public only
               </Badge>
             )}
             {content.delay_seconds > 0 && (
               <Badge variant="secondary" className="bg-white/5 text-neutral-400 border border-white/10 text-[10px] px-1.5 py-0">
-                <Timer className="w-2.5 h-2.5 mr-0.5" /> {content.delay_seconds}s
+                <Timer className="w-2.5 h-2.5 me-0.5" /> {content.delay_seconds}s
               </Badge>
             )}
             {content.check_follow && (
               <Badge variant="secondary" className="bg-[#e5a93c]/10 text-[#e5a93c] border border-[#e5a93c]/20 text-[10px] px-1.5 py-0">
-                <Lock className="w-2.5 h-2.5 mr-0.5" /> Follow
+                <Lock className="w-2.5 h-2.5 me-0.5" /> Follow
               </Badge>
             )}
             {isPaused && (

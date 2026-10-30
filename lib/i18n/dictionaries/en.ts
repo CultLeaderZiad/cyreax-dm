@@ -369,4 +369,31 @@ export const en = {
   createWorkspace: "Create",
   usage: "Usage",
   dataDeletion: "Data deletion",
+
+  // Revenue Funnel
+  revenueFunnelTitle: "Reel to Paid Order Funnel",
+  revenueFunnelDesc: "Attribution from social comments to final checkout",
+  overallConversion: "Overall conversion",
+  commentsStage: "Comments on automations",
+  conversationsStage: "DM conversations opened",
+  leadsStage: "Leads captured (email/phone/order)",
+  paidOrdersStage: "Completed paid orders",
+  totalRevenue: "Total revenue",
+  vsPreviousPeriod: "vs previous {days} days",
+  noOrdersYet: "No orders yet — connect a catalog",
+  noOrdersYetDesc: "Connect your catalog or accept payments through chat to track paid orders and revenue.",
+  connectCatalog: "Open catalog settings",
+  revenueLoadError: "Failed to load revenue data",
+  trafficByChannel: "Traffic by channel",
+  noTrafficYet: "No channel traffic recorded in this period",
+
+  // Notifications & Handoff
+  notifications: "Notifications",
+  notificationsDesc: "Manage how and when the platform alerts you about messages, leads, and usage.",
+  unreadNotifications: "Unread notifications",
+  markAllAsRead: "Mark all as read",
+  noNotifications: "No notifications yet",
+  needsHuman: "Needs human",
+  handoffAlerts: "AI handoff alert",
+  handoffAlertsDesc: "Alert your team when the AI agent pauses automated replies and requests human assistance.",
 };

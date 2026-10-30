@@ -151,13 +151,13 @@ export function LandingPage() {
           </div>
 
           {/* Interactive Automation Preview Card (Explicitly labeled as Example) */}
-          <div id="how" className="mt-14 max-w-4xl mx-auto rounded-2xl border border-white/10 bg-gradient-to-b from-[#0e0e14]/90 to-[#06060a]/90 p-4 sm:p-6 shadow-2xl backdrop-blur-xl text-left relative overflow-hidden scroll-mt-24">
+          <div id="how" className="mt-14 max-w-4xl mx-auto rounded-2xl border border-white/10 bg-gradient-to-b from-[#0e0e14]/90 to-[#06060a]/90 p-4 sm:p-6 shadow-2xl backdrop-blur-xl text-start relative overflow-hidden scroll-mt-24">
             <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] mb-4">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-red-500/80" />
                 <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
                 <span className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                <span className="font-mono-ui text-xs text-neutral-500 ml-2">live-funnel-simulator.ts</span>
+                <span className="font-mono-ui text-xs text-neutral-500 ms-2">live-funnel-simulator.ts</span>
                 <span className="text-[10px] uppercase font-mono-ui px-2 py-0.5 rounded bg-white/10 text-neutral-300 border border-white/10">
                   Example
                 </span>
@@ -247,12 +247,12 @@ export function LandingPage() {
       {/* ═══════════════════════════════════════════ MARQUEE ═══════════════════════════════════════════ */}
       <div className="border-y border-white/[0.06] py-5 overflow-hidden bg-white/[0.01]">
         <div className="marquee-track flex whitespace-nowrap font-mono-ui text-xs md:text-sm tracking-wide text-neutral-400">
-          <span className="pr-6">
+          <span className="pe-6">
             {isAr
               ? "مسارات التعليق إلى الخاص ✦ استهداف روابط المنشورات ✦ مشغلات الكلمات المفتاحية ✦ تفاعلات القصص ✦ ردود الذكاء الاصطناعي ✦ صندوق وارد موحد ✦ رسائل الترحيب ✦ قفل المتابعة ✦ تحليل المشاعر ✦ "
               : "COMMENT → DM FUNNELS ✦ POST LINK TARGETING ✦ KEYWORD TRIGGERS ✦ STORY REACTIONS ✦ AI AUTO-REPLY ✦ LIVE INBOX ✦ ICE BREAKERS ✦ FOLLOW GATE ✦ POST SENTIMENT ANALYSIS ✦ "}
           </span>
-          <span className="pr-6">
+          <span className="pe-6">
             {isAr
               ? "مسارات التعليق إلى الخاص ✦ استهداف روابط المنشورات ✦ مشغلات الكلمات المفتاحية ✦ تفاعلات القصص ✦ ردود الذكاء الاصطناعي ✦ صندوق وارد موحد ✦ رسائل الترحيب ✦ قفل المتابعة ✦ تحليل المشاعر ✦ "
               : "COMMENT → DM FUNNELS ✦ POST LINK TARGETING ✦ KEYWORD TRIGGERS ✦ STORY REACTIONS ✦ AI AUTO-REPLY ✦ LIVE INBOX ✦ ICE BREAKERS ✦ FOLLOW GATE ✦ POST SENTIMENT ANALYSIS ✦ "}
@@ -317,7 +317,7 @@ export function LandingPage() {
             title={isAr ? "بنية سحابية آمنة" : "Secure Cloud Infrastructure"}
             desc={isAr ? "مبني على Next.js وقواعد بيانات Supabase المعزولة لضمان أمان وسرية بيانات وحسابات المشتركين." : "Next.js + isolated Supabase tenant architecture to safeguard your credentials and conversations."}
           />
-          <div className="bg-[#0c0c12] p-8 flex flex-col items-center justify-center text-center space-y-2 border-b border-r border-white/[0.05]">
+          <div className="bg-[#0c0c12] p-8 flex flex-col items-center justify-center text-center space-y-2 border-b border-e border-white/[0.05]">
             <span className="text-xs font-mono-ui text-[#e5a93c] font-bold uppercase tracking-wider">
               ✦ {isAr ? `منصة ${BRAND.name}` : `${BRAND.name} Platform`}
             </span>
@@ -353,7 +353,7 @@ export function LandingPage() {
           <div className="prose prose-invert prose-yellow max-w-none font-mono text-sm leading-relaxed text-neutral-300">
             {isLoadingUpdates ? (
               <div className="flex items-center justify-center py-10 text-neutral-500">
-                <Loader2 className="w-5 h-5 animate-spin mr-2" /> {isAr ? "جاري تحميل التحديثات..." : "Loading updates..."}
+                <Loader2 className="w-5 h-5 animate-spin me-2" /> {isAr ? "جاري تحميل التحديثات..." : "Loading updates..."}
               </div>
             ) : updatesContent ? (
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -428,7 +428,7 @@ export function LandingPage() {
 /* ═══════════════════════════════════════════ FEATURE CARD ═══════════════════════════════════════════ */
 function Feature({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="feature-card bg-[#03010A] p-7 sm:p-8 group hover:bg-[#0c0c14] transition-colors duration-200 border-b border-r border-white/[0.05] relative">
+    <div className="feature-card bg-[#03010A] p-7 sm:p-8 group hover:bg-[#0c0c14] transition-colors duration-200 border-b border-e border-white/[0.05] relative">
       <div className="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center text-neutral-400 group-hover:text-black group-hover:bg-[#e5a93c] group-hover:border-[#e5a93c] transition-all duration-200 mb-5">
         {icon}
       </div>

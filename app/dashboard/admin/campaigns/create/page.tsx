@@ -73,7 +73,7 @@ export default function CreateCampaignPage() {
   const isRtl = language === 'ar'
 
   return (
-    <div className={`max-w-4xl mx-auto space-y-6 ${isRtl ? 'text-right' : ''}`} dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className={`max-w-4xl mx-auto space-y-6 ${isRtl ? 'text-end' : ''}`} dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="flex items-center gap-4">
         <Button 
           variant="ghost" 
@@ -242,7 +242,7 @@ export default function CreateCampaignPage() {
               variant="outline"
               className="bg-transparent border-zinc-700 text-white hover:bg-zinc-800"
             >
-              {loading ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'} animate-spin`} /> : <Save className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />}
+              {loading ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'} animate-spin`} /> : <Save className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'}`} />}
               Save to drafts page
             </Button>
             <Button 
@@ -250,7 +250,7 @@ export default function CreateCampaignPage() {
               disabled={loading}
               className="bg-white text-black hover:bg-zinc-200"
             >
-              {loading ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ml-2' : 'mr-2'} animate-spin`} /> : null}
+              {loading ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'} animate-spin`} /> : null}
               Continue
             </Button>
           </div>

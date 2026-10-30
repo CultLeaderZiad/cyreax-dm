@@ -6,6 +6,7 @@ import { acceptInboundWebhook } from "@/lib/inbound-queue"
 import { processTikTokWebhookBody } from "@/lib/channels/ingress"
 import { tiktokAppSecret, tiktokMessagingEnabled } from "@/lib/tiktok/config"
 import { verifyTikTokSignature } from "@/lib/tiktok/signature"
+import { devWebhookSignatureBypass } from "@/lib/webhooks/signature-guard"
 
 /**
  * POST /api/tiktok/webhook
@@ -16,7 +17,7 @@ import { verifyTikTokSignature } from "@/lib/tiktok/signature"
 export async function POST(request: NextRequest) {
   const rawBody = await request.text()
   const signature = request.headers.get("tiktok-signature")
-  if (process.env.DISABLE_WEBHOOK_SIGNATURE_CHECK !== "true") {
+  if (!devWebhookSignatureBypass()) {
     if (!verifyTikTokSignature(rawBody, signature, tiktokAppSecret())) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
     }

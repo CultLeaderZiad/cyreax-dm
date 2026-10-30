@@ -369,4 +369,31 @@ export const ar = {
   createWorkspace: "إنشاء",
   usage: "الاستخدام",
   dataDeletion: "حذف البيانات",
+
+  // Revenue Funnel
+  revenueFunnelTitle: "قمع التحويل من الريلز إلى الطلبات المدفوعة",
+  revenueFunnelDesc: "تتبع التحويل من التعليقات إلى إتمام الدفع",
+  overallConversion: "نسبة التحويل الإجمالية",
+  commentsStage: "تعليقات على الأتمتة",
+  conversationsStage: "محادثات خاصة بدأت",
+  leadsStage: "عملاء محتملون (إيميل / هاتف / طلب)",
+  paidOrdersStage: "طلبات مدفوعة مكتملة",
+  totalRevenue: "إجمالي الإيرادات",
+  vsPreviousPeriod: "مقارنة بـ {days} يوماً السابقة",
+  noOrdersYet: "لا توجد طلبات بعد — اربط كتالوج المنتجات",
+  noOrdersYetDesc: "اربط كتالوج المنتجات أو استقبل المدفوعات في المحادثات لتتبع الطلبات والإيرادات.",
+  connectCatalog: "فتح إعدادات الكتالوج",
+  revenueLoadError: "تعذر تحميل بيانات الإيرادات",
+  trafficByChannel: "الزيارات حسب القناة",
+  noTrafficYet: "لا توجد زيارات مسجلة في هذه الفترة",
+
+  // Notifications & Handoff
+  notifications: "الإشعارات",
+  notificationsDesc: "إدارة تنبيهات المنصة للرسائل والعملاء المحتملين والاستخدام.",
+  unreadNotifications: "إشعارات غير مقروءة",
+  markAllAsRead: "تحديد الكل كمقروء",
+  noNotifications: "لا توجد إشعارات حتى الآن",
+  needsHuman: "تدخل بشري",
+  handoffAlerts: "تنبيه التسليم البشري",
+  handoffAlertsDesc: "تنبيه فريقك عند توقف الذكاء الاصطناعي عن الردود التلقائية وطلب مساعدة بشرية.",
 };

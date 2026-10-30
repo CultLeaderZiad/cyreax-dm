@@ -376,7 +376,7 @@ export default function BroadcastsPage() {
                         ) : (
                           <p className="text-[var(--t4)] italic">Your message text will appear here...</p>
                         )}
-                        <span className="text-[10px] text-[var(--t4)] block text-right mt-1">Just now</span>
+                        <span className="text-[10px] text-[var(--t4)] block text-end mt-1">Just now</span>
                       </div>
                     </div>
                   </div>

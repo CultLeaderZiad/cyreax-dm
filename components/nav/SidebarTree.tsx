@@ -8,6 +8,7 @@ import { NAV, type NavItem, filterNavByRole } from "@/lib/nav/config"
 import { BrandLogo } from "@/components/ui/BrandLogo"
 import { WorkspaceSwitcher } from "@/components/layout/WorkspaceSwitcher"
 import { AccountMenu } from "./AccountMenu"
+import { NotificationDropdown } from "./NotificationDropdown"
 import { useWorkspaceUsage } from "@/hooks/use-workspace-usage"
 import { ChevronRight, ChevronDown, MoreHorizontal } from "lucide-react"
 
@@ -382,22 +383,27 @@ export function SidebarTree({
             </div>
           </div>
 
-          {/* Account Popover Menu */}
-          <AccountMenu
-            username={username}
-            email={email}
-            plan={planLabel}
-            workspaceName={workspaceTitle}
-            onLogout={onLogout}
-          >
-            <button
-              type="button"
-              aria-label="Account options"
-              className="size-7 rounded-[6px] text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--s2)] flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--gold2)]"
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Notification Menu with unread badge */}
+            <NotificationDropdown />
+
+            {/* Account Popover Menu */}
+            <AccountMenu
+              username={username}
+              email={email}
+              plan={planLabel}
+              workspaceName={workspaceTitle}
+              onLogout={onLogout}
             >
-              <MoreHorizontal className="size-4" />
-            </button>
-          </AccountMenu>
+              <button
+                type="button"
+                aria-label="Account options"
+                className="size-7 rounded-[6px] text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--s2)] flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--gold2)]"
+              >
+                <MoreHorizontal className="size-4" />
+              </button>
+            </AccountMenu>
+          </div>
         </div>
       </div>
     </aside>
