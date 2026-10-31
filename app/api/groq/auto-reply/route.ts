@@ -95,6 +95,7 @@ export async function PUT(request: Request) {
             .from("users")
             .update(updateData)
             .eq("id", userRowId)
+            .eq("account_id", account.id)
 
         if (error) {
             return NextResponse.json({ error: error.message }, { status: 500 })

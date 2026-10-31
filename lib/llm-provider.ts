@@ -17,7 +17,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 //   gemini    gemini-2.0-flash          -> shut down 2026-06-01
 //   anthropic claude-3-5-haiku-latest    -> retired 2026-02-19
 // Groq retires IDs with little notice, so GROQ_MODEL allows swapping without
-const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile"
+const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.1-8b-instant"
 const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest"
 const DEFAULT_ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5"
 const DEFAULT_OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "meta-llama/llama-3.3-70b-instruct"

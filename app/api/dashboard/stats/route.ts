@@ -12,6 +12,46 @@ export async function GET(request: NextRequest) {
 
         const supabase = await getSupabaseBypassClient()
 
+        const platformParam = request.nextUrl.searchParams.get("platform")
+        const platforms = platformParam
+            ? platformParam === "facebook" || platformParam === "messenger"
+                ? ["facebook", "messenger"]
+                : [platformParam]
+            : null
+
+        let automationsQuery = supabase
+            .from("automations")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", igUserId)
+        if (platforms) automationsQuery = automationsQuery.in("platform", platforms)
+
+        let activeTriggersQuery = supabase
+            .from("automations")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", igUserId)
+            .eq("is_active", true)
+        if (platforms) activeTriggersQuery = activeTriggersQuery.in("platform", platforms)
+
+        let audienceQuery = supabase
+            .from("conversations")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", igUserId)
+        if (platforms) audienceQuery = audienceQuery.in("platform", platforms)
+
+        let messagesQuery = supabase
+            .from("messages")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", igUserId)
+            .eq("direction", "out")
+        if (platforms) messagesQuery = messagesQuery.in("platform", platforms)
+
+        let recentMessagesQuery = supabase
+            .from("messages")
+            .select("id, content, created_at, sender_username, conversation_id, platform, recipient:conversations(recipient_username, platform)")
+            .eq("user_id", igUserId)
+            .eq("direction", "out")
+        if (platforms) recentMessagesQuery = recentMessagesQuery.in("platform", platforms)
+
         // Run all queries in parallel instead of sequentially
         const [
             automationsResult,
@@ -23,39 +63,19 @@ export async function GET(request: NextRequest) {
             subscriptionResult,
         ] = await Promise.all([
             // 1. Total Automations
-            supabase
-                .from("automations")
-                .select("*", { count: "exact", head: true })
-                .eq("user_id", igUserId),
+            automationsQuery,
 
             // 2. Active Triggers
-            supabase
-                .from("automations")
-                .select("*", { count: "exact", head: true })
-                .eq("user_id", igUserId)
-                .eq("is_active", true),
+            activeTriggersQuery,
 
             // 3. Audience Reached (Total Conversations)
-            supabase
-                .from("conversations")
-                .select("*", { count: "exact", head: true })
-                .eq("user_id", igUserId),
+            audienceQuery,
 
             // 4. Messages Sent (outbound). direction is the source of truth.
-            supabase
-                .from("messages")
-                .select("*", { count: "exact", head: true })
-                .eq("user_id", igUserId)
-                .eq("direction", "out"),
+            messagesQuery,
 
-            // 5. Recent Activity (Last 5 outbound messages)
-            supabase
-                .from("messages")
-                .select("id, content, created_at, sender_username, conversation_id, platform, recipient:conversations(recipient_username, platform)")
-                .eq("user_id", igUserId)
-                .eq("direction", "out")
-                .order("created_at", { ascending: false })
-                .limit(5),
+            // 5. Recent Activity (Last outbound messages)
+            recentMessagesQuery.order("created_at", { ascending: false }).limit(8),
 
             // 6. Pending payment submissions (merged from client-side paymentStatus)
             supabase
@@ -76,19 +96,24 @@ export async function GET(request: NextRequest) {
         let messagesSent = messagesResult.count || 0
         let recentActivity = recentMessagesResult.data || []
         if (messagesResult.error && /direction/i.test(messagesResult.error.message || "")) {
-            const legacy = await supabase
+            let legacyQuery = supabase
                 .from("messages")
                 .select("*", { count: "exact", head: true })
                 .eq("user_id", igUserId)
                 .eq("is_from_instagram", false)
+            if (platforms) legacyQuery = legacyQuery.in("platform", platforms)
+            const legacy = await legacyQuery
             messagesSent = legacy.count || 0
-            const legacyRecent = await supabase
+
+            let legacyRecentQuery = supabase
                 .from("messages")
                 .select("id, content, created_at, sender_username, conversation_id, platform, recipient:conversations(recipient_username, platform)")
                 .eq("user_id", igUserId)
                 .eq("is_from_instagram", false)
+            if (platforms) legacyRecentQuery = legacyRecentQuery.in("platform", platforms)
+            const legacyRecent = await legacyRecentQuery
                 .order("created_at", { ascending: false })
-                .limit(5)
+                .limit(8)
             recentActivity = legacyRecent.data || []
         }
 

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { BRAND } from "@/lib/brand"
 import {
@@ -21,6 +22,7 @@ import { toast } from "sonner"
 import Link from "next/link"
 
 function ChannelsPageContent() {
+  const searchParams = useSearchParams()
   const { data: connectionsData, mutate: mutateConnections, isLoading } = useSWR(
     "/api/user/connections",
     fetcher
@@ -29,18 +31,60 @@ function ChannelsPageContent() {
   const [checkingHealth, setCheckingHealth] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
 
+  useEffect(() => {
+    const success = searchParams.get("success")
+    const error = searchParams.get("error")
+    const warning = searchParams.get("warning")
+
+    if (success) {
+      toast.success("Platform connected successfully!")
+      mutateConnections()
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+    } else if (warning === "limit_channels") {
+      toast.warning("Some channels were skipped because your plan limit was reached. Upgrade to connect more.")
+      mutateConnections()
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+    } else if (error === "limit_channels") {
+      toast.error("Channels limit reached for your plan. Please upgrade to connect more channels.")
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+    } else if (error === "token_failed") {
+      toast.error("Failed to authenticate with platform. Please try connecting again.")
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+    } else if (error === "no_facebook_profile") {
+      toast.error("No Facebook profile or pages found. Please ensure permissions were granted.")
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+    } else if (error) {
+      toast.error(`Connection failed: ${error.replace(/_/g, " ")}`)
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+    }
+  }, [searchParams, mutateConnections])
+
   const handleCheckHealth = async () => {
     setCheckingHealth(true)
     await mutateConnections()
     setTimeout(() => {
       setCheckingHealth(false)
-      toast.success("All 4 connected channels checked: tokens valid, webhooks active")
+      toast.success(
+        `All ${connections.length} connected channel${connections.length === 1 ? "" : "s"} checked: tokens valid, webhooks active`
+      )
     }, 800)
   }
 
   const handleCopyClientLink = () => {
     const origin = typeof window !== "undefined" ? window.location.origin : BRAND.appUrl
-    navigator.clipboard.writeText(`${origin}/portal/connect?token=cl_89f02a8b`)
+    navigator.clipboard.writeText(`${origin}/portal/connect`)
     setCopiedLink(true)
     toast.success("Client onboarding connect link copied (valid for 72h)")
     setTimeout(() => setCopiedLink(false), 2000)
@@ -137,7 +181,7 @@ function ChannelsPageContent() {
                 Webhook health
               </h4>
               <p className="text-[11.5px] text-[var(--t3)]">
-                Signatures verified on all channels · 18,402 events today · last failure 3 days ago (Instagram, retried)
+                Signatures verified on all channels · Active token verification and realtime webhook delivery
               </p>
             </div>
           </div>

@@ -132,7 +132,7 @@ export function describeEvent(event: any, lang: "en" | "ar" = "en"): string {
 
   if (type === "ai_handoff" || type === "handoff") {
     const reason = event.reason || payload.reason || "shipping question not in knowledge base"
-    const name = event.assignedTo || event.actor || payload.assignedTo || "Ziad"
+    const name = event.assignedTo || event.actor || payload.assignedTo || (isAr ? "فريق العمل" : "Team")
     return isAr
       ? `تم إيقاف الذكاء الاصطناعي مؤقتاً: ${reason} · تم الإسناد إلى ${name}`
       : `AI paused: ${reason} · assigned to ${name}`

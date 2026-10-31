@@ -1,6 +1,8 @@
 "use client"
 
 import React, { useState } from "react"
+import useSWR from "swr"
+import { fetcher } from "@/lib/fetcher"
 import {
   ExternalLink,
   Plus,
@@ -111,7 +113,11 @@ export function ChannelCards({
   const [widgetColor, setWidgetColor] = useState("#C9974C")
   const [widgetGreeting, setWidgetGreeting] = useState("Hello! How can we help you today?")
 
-  const scriptCode = `<script src="${BRAND.appUrl}/widget.js" data-id="cyreax_client"></script>`
+  const { data: widgetData } = useSWR("/api/webchat/widget", fetcher)
+  const activeWidget = widgetData?.widgets?.[0]
+  const scriptCode =
+    activeWidget?.snippet ||
+    `<script src="${BRAND.appUrl}/widget.js" data-cyreax-key="${activeWidget?.public_key || 'live'}" async></script>`
 
   // Disconnect handler
   const handleDisconnect = async (id: string, name: string) => {
@@ -125,7 +131,8 @@ export function ChannelCards({
         toast.success(`Disconnected ${name}`)
         onRefresh?.()
       } else {
-        toast.error("Failed to disconnect")
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.error || "Failed to disconnect")
       }
     } catch {
       toast.error("Network error disconnecting")
@@ -134,8 +141,54 @@ export function ChannelCards({
 
   // Connect WhatsApp handler
   const handleSaveWhatsApp = async () => {
-    if (whatsappSetupMethod === "token" && (!whatsappPhoneNumberId || !whatsappToken)) {
-      toast.error("Please provide both Phone Number ID and Access Token")
+    if (whatsappSetupMethod === "embedded") {
+      // Prompt user to use the working System-user token if Meta JS SDK is not configured
+      if (typeof window !== "undefined" && (window as any).FB) {
+        setWhatsappConnecting(true)
+        ;(window as any).FB.login(
+          async (fbRes: any) => {
+            const code = fbRes?.authResponse?.code
+            if (code) {
+              try {
+                const res = await fetch("/api/whatsapp/connect", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ code }),
+                })
+                const data = await res.json()
+                if (res.ok) {
+                  toast.success("WhatsApp Business connected successfully!")
+                  setWhatsappModalOpen(false)
+                  onRefresh?.()
+                } else {
+                  toast.error(data.error || "Failed to connect WhatsApp")
+                }
+              } catch {
+                toast.error("Network error connecting WhatsApp")
+              } finally {
+                setWhatsappConnecting(false)
+              }
+            } else {
+              setWhatsappConnecting(false)
+              toast.error("Meta embedded signup was cancelled.")
+            }
+          },
+          {
+            config_id: process.env.NEXT_PUBLIC_META_WHATSAPP_CONFIG_ID || "",
+            response_type: "code",
+            override_default_response_type: true,
+          }
+        )
+        return
+      } else {
+        toast.info("Meta Embedded Signup requires Meta app review. Please use the System-user token option.")
+        setWhatsappSetupMethod("token")
+        return
+      }
+    }
+
+    if (!whatsappPhoneNumberId.trim() || !whatsappToken.trim()) {
+      toast.error("Please provide both Phone Number ID and System-User Access Token")
       return
     }
 
@@ -144,15 +197,11 @@ export function ChannelCards({
       const res = await fetch("/api/whatsapp/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          whatsappSetupMethod === "token"
-            ? {
-                phone_number_id: whatsappPhoneNumberId.trim(),
-                access_token: whatsappToken.trim(),
-                waba_id: whatsappWabaId.trim() || undefined,
-              }
-            : { code: "meta_embedded_code_mock" }
-        ),
+        body: JSON.stringify({
+          phone_number_id: whatsappPhoneNumberId.trim(),
+          access_token: whatsappToken.trim(),
+          waba_id: whatsappWabaId.trim() || undefined,
+        }),
       })
       const data = await res.json()
       if (res.ok) {
@@ -743,9 +792,15 @@ export function ChannelCards({
                   <p className="text-[11.5px] text-[var(--t3)]">Embeddable web chat widget</p>
                 </div>
               </div>
-              <Pill variant="green" dot>
-                Live
-              </Pill>
+              {activeWidget && activeWidget.enabled ? (
+                <Pill variant="green" dot>
+                  Live
+                </Pill>
+              ) : (
+                <Pill variant="neutral" dot={false}>
+                  Ready to embed
+                </Pill>
+              )}
             </div>
 
             {/* Script Snippet Block with CopyButton */}
@@ -1040,7 +1095,7 @@ export function ChannelCards({
               <div>✓ Automatically loads all Pages managed by your Facebook user profile</div>
               <div>✓ Enables instant Messenger and comment automation</div>
               <div className="text-[10px] text-[var(--gold)] pt-0.5">
-                💡 <em>Make sure you are switched to your main personal account (Ziad Sabry) when authorizing on Facebook.</em>
+                💡 <em>Make sure you are switched to the personal Facebook account that manages your Facebook Business Pages when authorizing.</em>
               </div>
             </div>
           </div>

@@ -8,7 +8,7 @@
     "dev": "next dev --webpack",
     "lint": "eslint .",
     "start": "next start",
-    "test": "node --experimental-strip-types --import ./tests/register.mjs --test tests/revenue-funnel.test.mts tests/phase1.test.mts tests/phase2.test.mts tests/phase3.test.mts tests/phase4.test.mts tests/phase5.test.mts tests/phase6.test.mts tests/phase7.test.mts tests/phase8.test.mts tests/tiktok-mena.test.mts tests/inbox-helpers.test.mts tests/handoff-notification.test.mts",
+    "test": "node --experimental-strip-types --import ./tests/register.mjs --test tests/revenue-funnel.test.mts tests/phase1.test.mts tests/phase2.test.mts tests/phase3.test.mts tests/phase4.test.mts tests/phase5.test.mts tests/phase6.test.mts tests/phase7.test.mts tests/phase8.test.mts tests/tiktok-mena.test.mts tests/inbox-helpers.test.mts tests/handoff-notification.test.mts tests/security-guards.test.mts",
     "seed": "node --experimental-strip-types scripts/seed-demo.mts"
   },
   "dependencies": {
@@ -24,7 +24,7 @@
     "@radix-ui/react-tabs": "1.1.2",
     "@radix-ui/react-tooltip": "1.1.6",
     "@supabase/ssr": "0.8.0",
-    "@supabase/supabase-js": "latest",
+    "@supabase/supabase-js": "2.117.3",
     "@vercel/analytics": "1.3.1",
     "@xyflow/react": "12.8.6",
     "class-variance-authority": "^0.7.1",

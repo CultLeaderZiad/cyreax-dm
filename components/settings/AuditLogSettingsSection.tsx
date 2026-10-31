@@ -5,11 +5,11 @@ import { ShieldCheck, User } from "lucide-react"
 import { Pill } from "@/components/ui/Pill"
 
 const auditEvents = [
-  { id: "1", action: "member.invited", actor: "Ziad Sabry", target: "sara@mirage.agency", ip: "197.34.82.11 · Cairo", time: "2 days ago" },
-  { id: "2", action: "role.updated", actor: "Ziad Sabry", target: "Nour Adel -> client-viewer", ip: "197.34.82.11 · Cairo", time: "Yesterday" },
-  { id: "3", action: "whitelabel.updated", actor: "Ziad Sabry", target: "portal.mirage.agency", ip: "197.34.82.11 · Cairo", time: "3 days ago" },
-  { id: "4", action: "api_key.created", actor: "Ziad Sabry", target: "Zapier & Make Automations", ip: "197.34.82.11 · Cairo", time: "4 weeks ago" },
-  { id: "5", action: "workspace.created", actor: "Ziad Sabry", target: "Sakan Real Estate", ip: "197.34.82.11 · Cairo", time: "1 month ago" },
+  { id: "1", action: "member.invited", actor: "Workspace Admin", target: "sara@mirage.agency", ip: "197.34.82.11 · Cairo", time: "2 days ago" },
+  { id: "2", action: "role.updated", actor: "Workspace Admin", target: "Nour Adel -> client-viewer", ip: "197.34.82.11 · Cairo", time: "Yesterday" },
+  { id: "3", action: "whitelabel.updated", actor: "Workspace Admin", target: "portal.mirage.agency", ip: "197.34.82.11 · Cairo", time: "3 days ago" },
+  { id: "4", action: "api_key.created", actor: "Workspace Admin", target: "Zapier & Make Automations", ip: "197.34.82.11 · Cairo", time: "4 weeks ago" },
+  { id: "5", action: "workspace.created", actor: "Workspace Admin", target: "Sakan Real Estate", ip: "197.34.82.11 · Cairo", time: "1 month ago" },
 ]
 
 export function AuditLogSettingsSection() {

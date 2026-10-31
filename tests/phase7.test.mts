@@ -127,6 +127,22 @@ describe("limit enforcement and metering", () => {
       { platform: "messenger", pageId: "page-1" },
     )
     assert.equal(again.adding, 0)
+
+    const withUserProfile = channelSlots({
+      connections: [
+        { platform: "facebook", pageId: "page-1" },
+        { platform: "messenger", pageId: "page-1" },
+        { platform: "facebook", pageId: "fb-user-1", metadata: { is_user_profile: true } },
+        { platform: "whatsapp", pageId: "wa-1" },
+      ],
+    })
+    assert.equal(withUserProfile, 2)
+
+    const userProfileAdd = slotsAfterConnect(
+      { connections: [{ platform: "facebook", pageId: "page-1" }] },
+      { platform: "facebook", pageId: "fb-user-1", metadata: { is_user_profile: true } },
+    )
+    assert.equal(userProfileAdd.adding, 0)
   })
 
   it("rejects a new contact past the free limit and meters an AI reply", async () => {

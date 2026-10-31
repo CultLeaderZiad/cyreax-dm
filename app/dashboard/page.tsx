@@ -259,7 +259,7 @@ export default function DashboardOverviewPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-[var(--t1)] leading-tight">
-            {greetingText}, {username || "Ziad"}
+            {greetingText}{username ? `, ${username}` : ""}
           </h1>
           <p className="text-[13px] text-[var(--t2)] leading-relaxed mt-1">
             {dateRangeLabel} ·{" "}

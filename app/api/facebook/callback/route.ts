@@ -148,10 +148,17 @@ export async function GET(request: NextRequest) {
       console.warn("[FB Callback] /me fetch failed:", e)
     }
 
-    // 4. Get Pages (Accounts) user manages
+    // 4. Get Pages (Accounts) user manages with access tokens
     let pages: any[] = []
     try {
-      const accountsRes = await fetch(`${FACEBOOK_GRAPH_BASE}/me/accounts?access_token=${accessToken}`)
+      const accountsUrl = `${FACEBOOK_GRAPH_BASE}/me/accounts?fields=id,name,category,access_token,tasks&limit=100&access_token=${accessToken}`
+      let accountsRes = await fetch(accountsUrl)
+      if (!accountsRes.ok) {
+        accountsRes = await fetch(`${FACEBOOK_GRAPH_BASE}/me/accounts?fields=id,name,category,access_token&limit=100&access_token=${accessToken}`)
+      }
+      if (!accountsRes.ok) {
+        accountsRes = await fetch(`${FACEBOOK_GRAPH_BASE}/me/accounts?access_token=${accessToken}`)
+      }
       if (accountsRes.ok) {
         const accountsData = await accountsRes.json()
         if (Array.isArray(accountsData?.data)) {
@@ -162,43 +169,55 @@ export async function GET(request: NextRequest) {
       console.warn("[FB Callback] /me/accounts fetch failed:", e)
     }
 
-    const savedAny = []
+    const savedAny: string[] = []
+    let reachedLimit = false
+    const eligiblePages: any[] = []
 
-    // Save Pages if available
+    // Filter pages that are allowed under the plan (don't abort the entire OAuth flow if one page exceeds plan limit)
     for (const page of pages) {
+      const pageId = String(page.id)
       try {
-        await assertChannelConnect(supabase, account, { platform: "facebook", pageId: String(page.id) })
+        await assertChannelConnect(supabase, account, { platform: "facebook", pageId })
+        eligiblePages.push(page)
       } catch (error) {
         if (error instanceof PlanLimitError) {
-          return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=limit_channels", request.url))
+          reachedLimit = true
+          console.warn(`[FB Callback] Channel limit reached; skipping Facebook page ${pageId} (${page.name})`)
+          continue
         }
+        console.warn(`[FB Callback] Error asserting page connect for ${pageId}:`, error)
+        eligiblePages.push(page)
       }
     }
 
     const pageResults = await Promise.allSettled(
-      pages.map(async (page: any) => {
-        const pageAccessToken = page.access_token
-        const storedPageToken = sealAccessToken(pageAccessToken)
+      eligiblePages.map(async (page: any) => {
         const pageId = String(page.id)
+        const pageAccessToken = page.access_token || accessToken
+        const storedPageToken = sealAccessToken(pageAccessToken)
 
         // Subscribe the Page to webhook events (best-effort)
         let webhookSubscribed = false
-        try {
-          const subscribeUrl = new URL(`${FACEBOOK_GRAPH_BASE}/${pageId}/subscribed_apps`)
-          subscribeUrl.searchParams.set("subscribed_fields", "messages,messaging_postbacks,feed")
-          subscribeUrl.searchParams.set("access_token", pageAccessToken)
-          const subRes = await fetch(subscribeUrl.toString(), { method: "POST" })
-          const subData = await subRes.json()
-          webhookSubscribed = !!(subRes.ok && subData.success)
-        } catch (subErr) {
-          console.warn(`[FB Callback] Webhook subscription error for page ${pageId}:`, subErr)
+        if (pageAccessToken) {
+          try {
+            const subscribeUrl = new URL(`${FACEBOOK_GRAPH_BASE}/${pageId}/subscribed_apps`)
+            subscribeUrl.searchParams.set("subscribed_fields", "messages,messaging_postbacks,feed")
+            subscribeUrl.searchParams.set("access_token", pageAccessToken)
+            const subRes = await fetch(subscribeUrl.toString(), { method: "POST" })
+            const subData = await subRes.json()
+            webhookSubscribed = !!(subRes.ok && subData.success)
+          } catch (subErr) {
+            console.warn(`[FB Callback] Webhook subscription error for page ${pageId}:`, subErr)
+          }
         }
 
         const sharedMeta = {
           name: page.name,
-          category: page.category,
+          category: page.category || "Business",
           webhook_subscribed: webhookSubscribed,
           facebook_id: meData?.id ? String(meData.id) : pageId,
+          is_user_profile: false,
+          status: "active",
         }
 
         const upsert = async (platform: "facebook" | "messenger") => {
@@ -235,6 +254,7 @@ export async function GET(request: NextRequest) {
         facebook_id: fbUserId,
         is_user_profile: true,
         webhook_subscribed: true,
+        status: "active",
         picture: meData.picture?.data?.url || null,
       }
       const userRow = {
@@ -264,6 +284,10 @@ export async function GET(request: NextRequest) {
     const failures = pageResults.filter((r) => r.status === "rejected")
     if (failures.length > 0) {
       console.warn(`[FB Callback] ${failures.length}/${pageResults.length} pages failed to save`)
+    }
+
+    if (reachedLimit && eligiblePages.length === 0 && pages.length > 0) {
+      return NextResponse.redirect(new URL("/dashboard/connected-platforms?warning=limit_channels", request.url))
     }
 
     return NextResponse.redirect(new URL("/dashboard/connected-platforms?success=1", request.url))

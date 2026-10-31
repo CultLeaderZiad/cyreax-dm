@@ -75,6 +75,10 @@ export async function acceptInboundWebhook(
     return { ...result, fallback: false }
   } catch (error: any) {
     if (queueIsMissing(error)) {
+      if (process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production") {
+        console.error("[inbound] FATAL: inbound_events table is missing in production! Apply migration 20261028_inbound_queue.sql.")
+        throw new Error("Queue infrastructure not provisioned: inbound_events table missing in production.")
+      }
       console.warn("[inbound] inbound_events is not installed; processing this delivery in the request")
       return { accepted: 0, duplicates: 0, fallback: true }
     }

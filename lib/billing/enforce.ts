@@ -90,15 +90,17 @@ export async function measureUsage(supabase: any, accountId: string, metric: Met
   const rows = profiles.error ? [] : profiles.data || []
   const ids = rows.map((row: any) => row.id).filter((id: unknown) => id != null)
   if (metric === "channels") {
+    const connQuery = supabase.from("platform_connections").select("platform, page_id, external_account_id, metadata")
     const connections = ids.length
-      ? await supabase.from("platform_connections").select("platform, page_id, external_account_id").in("user_id", ids)
-      : { data: [], error: null }
+      ? await connQuery.or(`account_id.eq.${accountId},user_id.in.(${ids.join(",")})`)
+      : await connQuery.eq("account_id", accountId)
     return channelSlots({
       profiles: rows.map((row: any) => ({ accessToken: row.access_token, businessAccountId: row.business_account_id ? String(row.business_account_id) : null })),
       connections: (connections.data || []).map((row: any) => ({
         platform: String(row.platform || ""),
         pageId: row.page_id,
         externalId: row.external_account_id,
+        metadata: row.metadata,
       })),
     })
   }
@@ -163,13 +165,19 @@ export async function assertChannelConnect(
   const plan = await resolveAccountPlan(supabase, account)
   const profiles = await supabase.from("users").select("id, access_token, business_account_id").eq("account_id", account.id)
   const rows = profiles.error ? [] : profiles.data || []
-  const ids = rows.map((row: any) => row.id)
+  const ids = rows.map((row: any) => row.id).filter((id: unknown) => id != null)
+  const connQuery = supabase.from("platform_connections").select("platform, page_id, external_account_id, metadata")
   const connections = ids.length
-    ? await supabase.from("platform_connections").select("platform, page_id, external_account_id").in("user_id", ids)
-    : { data: [] }
+    ? await connQuery.or(`account_id.eq.${account.id},user_id.in.(${ids.join(",")})`)
+    : await connQuery.eq("account_id", account.id)
   const current = {
     profiles: rows.map((row: any) => ({ accessToken: row.access_token, businessAccountId: row.business_account_id ? String(row.business_account_id) : null })),
-    connections: (connections.data || []).map((row: any) => ({ platform: String(row.platform || ""), pageId: row.page_id, externalId: row.external_account_id })),
+    connections: (connections.data || []).map((row: any) => ({
+      platform: String(row.platform || ""),
+      pageId: row.page_id,
+      externalId: row.external_account_id,
+      metadata: row.metadata,
+    })),
   }
   const projected = slotsAfterConnect(current, addition)
   const decision = judgeUsage({ metric: "channels", used: projected.used, limit: limitFor(plan, "channels"), adding: projected.adding, blocked: plan.blocked })

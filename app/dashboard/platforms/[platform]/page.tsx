@@ -86,12 +86,30 @@ export default function PlatformDashboardPage() {
   const colors = COLOR_MAP[config?.color || "blue"]
 
   // Fetch connections
-  const { data: connectionsData, isLoading: isConnLoading } = useSWR("/api/user/connections", fetcher)
+  const { data: connectionsData, isLoading: isConnLoading, mutate: mutateConnections } = useSWR("/api/user/connections", fetcher)
   const connections = connectionsData?.connections || []
   const platformConnections = connections.filter(
     (c: any) => c.platform === platform || (platform === "facebook" && c.platform === "messenger")
   )
-  const isConnected = platformConnections.length > 0
+
+  // Deduplicate twin facebook & messenger connections by page_id so business pages aren't shown twice
+  const displayedConnections = (function() {
+    const map = new Map<string, any>()
+    for (const conn of platformConnections) {
+      const key = conn.page_id || conn.id
+      if (!map.has(key)) {
+        map.set(key, { ...conn, platforms: [conn.platform] })
+      } else {
+        const existing = map.get(key)
+        if (!existing.platforms.includes(conn.platform)) {
+          existing.platforms.push(conn.platform)
+        }
+      }
+    }
+    return Array.from(map.values())
+  })()
+
+  const isConnected = displayedConnections.length > 0
 
   // Fetch automations scoped to this platform
   const { data: automationsData, isLoading: isAutoLoading } = useSWR<Automation[]>(
@@ -101,9 +119,9 @@ export default function PlatformDashboardPage() {
   const automations = Array.isArray(automationsData) ? automationsData : []
   const platformAutomations = automations.filter((a) => (a.platform || "instagram") === platform)
 
-  // Fetch recent activity for this platform
+  // Fetch recent activity and metrics for this specific platform
   const { data: statsData, isLoading: isStatsLoading } = useSWR(
-    userId ? `/api/dashboard/stats?userId=${userId}` : null,
+    userId ? `/api/dashboard/stats?userId=${userId}&platform=${platform}` : null,
     fetcher
   )
   const recentActivity = statsData?.recentActivity || []
@@ -127,9 +145,13 @@ export default function PlatformDashboardPage() {
       const res = await fetch(`/api/user/connections?id=${connectionId}`, { method: "DELETE" })
       if (res.ok) {
         toast.success(`Disconnected ${targetName}. Automations stopped.`)
-        router.push("/dashboard/connected-platforms")
+        await mutateConnections()
+        if (displayedConnections.length <= 1) {
+          router.push("/dashboard/connected-platforms")
+        }
       } else {
-        toast.error("Failed to disconnect")
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.error || "Failed to disconnect")
       }
     } catch (err) {
       console.error("Disconnect failed:", err)
@@ -232,7 +254,7 @@ export default function PlatformDashboardPage() {
             Connected Accounts
           </h2>
           <span className={`text-xs px-2 py-1 rounded-full ${colors.badge}`}>
-            {platformConnections.length} account{platformConnections.length !== 1 ? "s" : ""}
+            {displayedConnections.length} account{displayedConnections.length !== 1 ? "s" : ""}
           </span>
         </div>
         {platform === "whatsapp" && (
@@ -312,7 +334,7 @@ export default function PlatformDashboardPage() {
           </div>
         )}
         <div className="space-y-3">
-          {platformConnections.map((conn: any) => (
+          {displayedConnections.map((conn: any) => (
             <div key={conn.id} className="flex items-center justify-between bg-white/[0.03] p-4 rounded-xl border border-white/5">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-full ${colors.bg} flex items-center justify-center ${colors.text}`}>
@@ -325,7 +347,12 @@ export default function PlatformDashboardPage() {
                     {conn.metadata?.username || conn.metadata?.name || conn.page_id}
                   </p>
                   <p className="text-[10px] text-neutral-500 uppercase tracking-wider">
-                    {conn.platform} · Connected {conn.connected_at ? new Date(conn.connected_at).toLocaleDateString() : ""}
+                    {conn.metadata?.is_user_profile
+                      ? "Facebook User Profile"
+                      : conn.platforms?.length > 1
+                      ? "Facebook & Messenger"
+                      : conn.platform}{" "}
+                    · Connected {conn.connected_at ? new Date(conn.connected_at).toLocaleDateString() : ""}
                   </p>
                 </div>
               </div>

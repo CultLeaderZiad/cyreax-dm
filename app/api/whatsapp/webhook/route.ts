@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic"
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { devWebhookSignatureBypass } from "@/lib/webhooks/signature-guard"
 
 export { processWhatsAppWebhookBody } from "@/lib/channels/ingress"
 
@@ -62,7 +63,10 @@ export async function POST(request: NextRequest) {
     const rawBody = await request.text()
     const signature = request.headers.get("x-hub-signature-256")
     if (!isValidSignature(rawBody, signature)) {
-      if (process.env.DISABLE_WEBHOOK_SIGNATURE_CHECK !== "true") {
+      console.error("[whatsapp-webhook] 401: invalid signature")
+      if (devWebhookSignatureBypass()) {
+        console.warn("[whatsapp-webhook] SIGNATURE CHECK BYPASSED — remove DISABLE_WEBHOOK_SIGNATURE_CHECK after debugging")
+      } else {
         return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
       }
     }

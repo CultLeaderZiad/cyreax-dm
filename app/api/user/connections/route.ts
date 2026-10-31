@@ -135,9 +135,29 @@ export async function DELETE(request: NextRequest) {
 
     const supabase = await getSupabaseBypassClient()
 
-    // For Instagram, we can't disconnect (it's the primary account)
-    if (platform === "instagram") {
-      return NextResponse.json({ error: "Cannot disconnect your primary Instagram account" }, { status: 400 })
+    // 1. Handle Instagram disconnection
+    if (connectionId.startsWith("ig_") || platform === "instagram") {
+      if (igUser?.id) {
+        await supabase
+          .from("users")
+          .update({
+            access_token: "revoked_meta",
+            page_id: null,
+            business_account_id: null,
+            token_expires_at: null,
+            token_refreshed_at: null,
+          })
+          .eq("id", igUser.id)
+
+        await supabase
+          .from("platform_connections")
+          .delete()
+          .eq("user_id", igUser.id)
+          .eq("platform", "instagram")
+
+        return NextResponse.json({ ok: true, platform: "instagram" })
+      }
+      return NextResponse.json({ error: "No Instagram account found to disconnect" }, { status: 404 })
     }
 
     // Only the active workspace's profile. Another client workspace on the
@@ -151,27 +171,73 @@ export async function DELETE(request: NextRequest) {
     // disconnect attempt with "Failed to disconnect".
     const { data: row, error: rowError } = await supabase
       .from("platform_connections")
-      .select("id, user_id, account_id, platform, page_id, external_account_id, access_token, metadata")
+      .select("id, user_id, account_id, workspace_id, platform, page_id, external_account_id, access_token, metadata")
       .eq("id", connectionId)
       .maybeSingle()
 
-    const isOwner = row && (ownedUserIds.has(String(row.user_id)) || (account?.id && row.account_id === account.id))
+    const isOwner = row && (
+      ownedUserIds.has(String(row.user_id)) ||
+      (account?.id && row.account_id === account.id) ||
+      (result.workspace?.id && row.workspace_id === result.workspace.id)
+    )
     if (rowError || !row || !isOwner) {
       return NextResponse.json({ error: "Connection not found or does not belong to your account" }, { status: 404 })
     }
 
     if (row.platform === "whatsapp") {
       await releaseStoredWhatsApp(supabase, row)
+    } else if (row.platform === "telegram") {
+      try {
+        const token = openAccessToken(row.access_token)
+        if (token && !isPlaceholderToken(token)) {
+          const { deleteWebhook } = await import("@/lib/telegram-api")
+          await deleteWebhook(token)
+        }
+      } catch (tgErr) {
+        console.warn("[telegram] deleteWebhook failed:", tgErr)
+      }
+    } else if (row.platform === "facebook" || row.platform === "messenger") {
+      try {
+        const token = openAccessToken(row.access_token)
+        if (token && !isPlaceholderToken(token) && row.page_id && !(row.metadata as any)?.is_user_profile) {
+          await fetch(`https://graph.facebook.com/v21.0/${row.page_id}/subscribed_apps?access_token=${token}`, {
+            method: "DELETE",
+          }).catch(() => null)
+        }
+      } catch (fbErr) {
+        console.warn("[facebook] unsubscribed_apps cleanup failed:", fbErr)
+      }
     }
 
-    const { error: deleteError } = await supabase
-      .from("platform_connections")
-      .delete()
-      .eq("id", connectionId)
+    // If disconnecting a Facebook/Messenger page, remove both platform rows for that page
+    if ((row.platform === "facebook" || row.platform === "messenger") && row.page_id && !(row.metadata as any)?.is_user_profile) {
+      let delQuery = supabase
+        .from("platform_connections")
+        .delete()
+        .eq("page_id", row.page_id)
+        .in("platform", ["facebook", "messenger"])
 
-    if (deleteError) {
-      console.error("Error disconnecting platform:", deleteError)
-      return NextResponse.json({ error: "Failed to disconnect" }, { status: 500 })
+      if (row.workspace_id) {
+        delQuery = delQuery.eq("workspace_id", row.workspace_id)
+      } else if (row.user_id) {
+        delQuery = delQuery.eq("user_id", row.user_id)
+      }
+
+      const { error: deleteError } = await delQuery
+      if (deleteError) {
+        console.error("Error disconnecting Facebook page:", deleteError)
+        return NextResponse.json({ error: "Failed to disconnect" }, { status: 500 })
+      }
+    } else {
+      const { error: deleteError } = await supabase
+        .from("platform_connections")
+        .delete()
+        .eq("id", connectionId)
+
+      if (deleteError) {
+        console.error("Error disconnecting platform:", deleteError)
+        return NextResponse.json({ error: "Failed to disconnect" }, { status: 500 })
+      }
     }
 
     return NextResponse.json({ ok: true })

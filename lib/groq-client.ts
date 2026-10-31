@@ -43,7 +43,17 @@ export interface GroqCompletionRequest {
   response_format?: { type: "json_object" }
 }
 
+// In-memory short-lived budget cache to avoid DB exhaustion under high concurrency
+const aiUsageCache = new Map<string, { count: number; expiresAt: number }>()
+
 export async function checkAILimit(userId: number | string): Promise<boolean> {
+  const cacheKey = String(userId)
+  const now = Date.now()
+  const cached = aiUsageCache.get(cacheKey)
+  if (cached && cached.expiresAt > now) {
+    return cached.count < MAX_AI_CALLS_PER_DAY
+  }
+
   const supabase = await getSupabaseBypassClient()
   
   // Count usage for today
@@ -52,16 +62,18 @@ export async function checkAILimit(userId: number | string): Promise<boolean> {
 
   const { count, error } = await supabase
     .from("ai_usage_log")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .gte("created_at", today.toISOString())
 
   if (error) {
-    console.error("[groq-client] Error checking AI limit (gracefully continuing):", error)
-    return true // Assume within limit if table is missing or DB errors
+    console.error("[groq-client] Error checking AI limit (failing closed to prevent unbounded spend):", error)
+    return false // Fail closed on DB error
   }
 
-  return (count || 0) < MAX_AI_CALLS_PER_DAY
+  const currentCount = count || 0
+  aiUsageCache.set(cacheKey, { count: currentCount, expiresAt: now + 30_000 })
+  return currentCount < MAX_AI_CALLS_PER_DAY
 }
 
 export async function logAIUsage(
@@ -70,6 +82,12 @@ export async function logAIUsage(
   model: string,
   tokensUsed: number
 ) {
+  const cacheKey = String(userId)
+  const cached = aiUsageCache.get(cacheKey)
+  if (cached) {
+    cached.count += 1
+  }
+
   try {
     const supabase = await getSupabaseBypassClient()
     const { error } = await supabase.from("ai_usage_log").insert({

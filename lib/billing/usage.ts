@@ -94,6 +94,7 @@ export interface ChannelConnection {
   platform: string
   pageId?: string | null
   externalId?: string | null
+  metadata?: any
 }
 
 const PLACEHOLDERS = new Set([
@@ -116,7 +117,7 @@ function slotKey(connection: ChannelConnection): string {
   return `${connection.platform}:${id}`
 }
 
-/** Distinct connected channels. A Facebook page and its Messenger row count once. */
+/** Distinct connected channels. A Facebook page and its Messenger row count once. Personal user profile rows do not consume channel slots. */
 export function channelSlots(input: { profiles?: ChannelProfile[]; connections?: ChannelConnection[] }): number {
   const keys = new Set<string>()
   for (const profile of input.profiles || []) {
@@ -125,6 +126,7 @@ export function channelSlots(input: { profiles?: ChannelProfile[]; connections?:
   }
   for (const connection of input.connections || []) {
     if (!connection.platform) continue
+    if (connection.metadata?.is_user_profile) continue
     keys.add(slotKey(connection))
   }
   return keys.size
@@ -143,6 +145,9 @@ export function slotsAfterConnect(
     return { used, adding: Math.max(0, next - used) }
   }
   const connection = addition as ChannelConnection
+  if (connection.metadata?.is_user_profile) {
+    return { used, adding: 0 }
+  }
   const next = channelSlots({
     profiles: current.profiles,
     connections: [...(current.connections || []), connection],
