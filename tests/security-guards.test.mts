@@ -42,7 +42,7 @@ describe("webhook signature guard", () => {
         VERCEL_ENV: "preview",
         DISABLE_WEBHOOK_SIGNATURE_CHECK: "true",
       }),
-      true,
+      false,
     )
     assert.equal(
       devWebhookSignatureBypass({

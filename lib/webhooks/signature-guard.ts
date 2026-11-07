@@ -5,11 +5,12 @@ export type WebhookGuardEnv = {
 }
 
 /**
- * True only outside production when the explicit dev bypass flag is set.
- * NODE_ENV or VERCEL_ENV of "production" always fails closed.
+ * True only on a local machine when the explicit dev bypass flag is set.
+ * Any Vercel deployment (production, preview or development) fails closed:
+ * preview URLs are public, so an unsigned webhook there is still forgeable.
  */
 export function devWebhookSignatureBypass(env: WebhookGuardEnv = process.env): boolean {
-  if (env.NODE_ENV === "production" || env.VERCEL_ENV === "production") return false
+  if (env.NODE_ENV === "production" || env.VERCEL_ENV) return false
   return env.DISABLE_WEBHOOK_SIGNATURE_CHECK === "true"
 }
 
