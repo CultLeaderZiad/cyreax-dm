@@ -40,6 +40,12 @@ export async function GET(request: NextRequest) {
       console.error("[inbound] webhook drain failed:", error)
       summary.errors.push(error?.message || "webhook drain failed")
     }
+    // Send-once claims older than 30 days can never be retried against.
+    await supabase
+      .from("outbound_sends")
+      .delete()
+      .lt("created_at", new Date(Date.now() - 30 * 86_400_000).toISOString())
+      .then(() => undefined, () => undefined)
     return NextResponse.json({ ...summary, flows, webhooks })
   } catch (error: any) {
     console.error("[cron/process-inbound-events]", error)

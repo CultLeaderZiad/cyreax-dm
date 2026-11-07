@@ -1,0 +1,76 @@
+# Runs the cron routes that do not fit Vercel Hobby's limit of two daily crons.
+# Vercel still runs refresh-instagram-tokens and weekly-coach-digest (vercel.json).
+#
+# Setup (once): GitHub repo -> Settings -> Secrets and variables -> Actions
+#   Secret   CRON_SECRET   = the same value as CRON_SECRET in Vercel
+#   Variable CRON_BASE_URL = https://cyreax-dm.vercel.app   (optional; this is the default)
+# Without CRON_SECRET the jobs skip with a notice instead of failing.
+#
+# GitHub may delay scheduled runs by several minutes under load, and pauses
+# schedules on repositories with no activity for 60 days.
+name: Scheduled jobs
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # inbound queue retries, flow delays/sequences, outgoing webhooks
+    - cron: "7 * * * *"      # scheduled email campaigns (hourly)
+    - cron: "17 */12 * * *"  # TikTok token refresh
+    - cron: "23 4 * * *"     # dunning: trial expiry, past-due, grace period
+    - cron: "41 5 * * *"     # agency client reports
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Route to run now"
+        required: true
+        type: choice
+        options:
+          - process-inbound-events
+          - send-scheduled-campaigns
+          - refresh-tiktok-tokens
+          - dunning
+          - client-reports
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-${{ github.event.schedule || github.event.inputs.job }}
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Pick route
+        id: pick
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          MANUAL: ${{ github.event.inputs.job }}
+        run: |
+          case "$SCHEDULE" in
+            "*/10 * * * *")   job=process-inbound-events ;;
+            "7 * * * *")      job=send-scheduled-campaigns ;;
+            "17 */12 * * *")  job=refresh-tiktok-tokens ;;
+            "23 4 * * *")     job=dunning ;;
+            "41 5 * * *")     job=client-reports ;;
+            *)                job="$MANUAL" ;;
+          esac
+          echo "job=$job" >> "$GITHUB_OUTPUT"
+      - name: Call /api/cron/${{ steps.pick.outputs.job }}
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: ${{ vars.CRON_BASE_URL || 'https://cyreax-dm.vercel.app' }}
+          JOB: ${{ steps.pick.outputs.job }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::notice::CRON_SECRET is not set in GitHub Actions secrets; skipping $JOB."
+            exit 0
+          fi
+          code=$(curl -sS -o response.json -w '%{http_code}' --max-time 90 \
+            -H "Authorization: Bearer ${CRON_SECRET}" "${BASE_URL}/api/cron/${JOB}")
+          echo "HTTP $code"
+          # Print counts only (no message bodies or customer data).
+          node -e 'try{const r=require("./response.json");const o={};for(const[k,v]of Object.entries(r)){if(typeof v==="number"||typeof v==="boolean")o[k]=v}console.log(JSON.stringify(o))}catch{}'
+          rm -f response.json
+          [ "$code" -lt 400 ]
