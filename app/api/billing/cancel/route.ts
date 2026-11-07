@@ -1,20 +1,15 @@
-// Stripe cancellation at period end. Access is preserved; only the account owner
-// (or a platform admin) may cancel, and we never write 'canceling' anywhere.
-// Gating reads billing_accounts.status, so the paid period keeps its plan until
-// current_period_end.
+// Cancel at period end. Billing is manual (wallet / InstaPay) with no provider
+// subscription to call, so this only flags cancel_at_period_end. Access is
+// preserved until current_period_end; only the account owner (or a platform
+// admin) may cancel, and we never write 'canceling' anywhere.
 //
-// POST /api/stripe/cancel
+// POST /api/billing/cancel
+export const dynamic = "force-dynamic"
 import { type NextRequest, NextResponse } from "next/server"
-import Stripe from "stripe"
 import { requireSessionUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { resolvePlan } from "@/lib/billing/plans"
 import { scheduleCancel } from "@/lib/billing/activation"
-
-const stripeKey = process.env.STRIPE_SECRET_KEY
-const stripe = new Stripe(stripeKey || "sk_test_placeholder_do_not_use", {
-  apiVersion: "2026-08-26.dahlia",
-})
 
 export async function POST(request: NextRequest) {
   const session = await requireSessionUser(request)
@@ -49,17 +44,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Only paid plans can be canceled at period end." }, { status: 400 })
     }
 
-    // Mirror the cancel on the provider so no further invoices are raised, while
-    // the customer keeps access until current_period_end.
     const subscriptionId = billing.provider_subscription_id
-    if (billing.provider === "stripe" && subscriptionId && stripeKey && stripeKey !== "sk_test_placeholder_do_not_use") {
-      try {
-        await stripe.subscriptions.update(String(subscriptionId), { cancel_at_period_end: true })
-      } catch (stripeError: any) {
-        console.error("[stripe/cancel] provider update failed:", stripeError?.message ?? stripeError)
-        return NextResponse.json({ error: "Stripe could not schedule the cancellation." }, { status: 502 })
-      }
-    }
 
     // Source of truth: keep status='active', only flag the period-end cancel.
     await scheduleCancel({
@@ -75,7 +60,7 @@ export async function POST(request: NextRequest) {
       message: "Subscription canceled. It stays active until the end of the paid period.",
     })
   } catch (error: any) {
-    console.error("[stripe/cancel] Error:", error?.message ?? error)
+    console.error("[billing/cancel] Error:", error?.message ?? error)
     return NextResponse.json({ error: "Failed to cancel subscription" }, { status: 500 })
   }
 }

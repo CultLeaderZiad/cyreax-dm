@@ -1,13 +1,13 @@
-// Billing checkout. The annual toggle now records interval='year', the Stripe
-// price data drives the recurring interval, and the platform-billing paths no
-// longer hard-code 'monthly'. No secrets are logged.
+// Billing checkout. Manual wallet / InstaPay transfers are the default; Paymob
+// and Tap links are used only when their platform env keys are set. The annual
+// toggle records interval='year'. No secrets are logged.
 //
 // POST /api/billing/checkout
 import { type NextRequest, NextResponse } from "next/server"
 import { requireSessionUser } from "@/lib/auth"
 import { planPriceCents, resolvePlan } from "@/lib/billing/plans"
 import { resolveInterval } from "@/lib/billing/activation"
-import { createPaymobLink, createStripeSubscriptionLink, createTapLink } from "@/lib/commerce/payments"
+import { createPaymobLink, createTapLink } from "@/lib/commerce/payments"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { BRAND } from "@/lib/brand"
 
@@ -77,34 +77,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ url: link.url, provider, reference: link.reference, planId: plan.id })
     }
 
-    const secretKey = process.env.STRIPE_SECRET_KEY
-    if (!secretKey) return NextResponse.json({ error: "Stripe is not configured." }, { status: 503 })
-
-    const link = await createStripeSubscriptionLink(
-      {
-        ...requestBody,
-        interval,
-        metadata: {
-          userId: session.igUser?.id ? String(session.igUser.id) : "",
-          accountId: session.user.id,
-          planType: interval === "year" ? "year" : "month",
-          cyreaxPlan: plan.id,
-          helixaPlan: plan.id,
-          interval,
-          email: session.user.email || "",
-        },
-      },
-      { secretKey }
-    )
-
-    return NextResponse.json({
-      url: link.url,
-      provider: "stripe",
-      reference: link.reference,
-      planId: plan.id,
-      amountCents,
-      interval,
-    })
+    return NextResponse.json({ error: "Unsupported payment provider." }, { status: 400 })
   } catch (error) {
     const { captureException } = await import("@/lib/monitoring")
     await captureException(error, { route: "billing/checkout" })

@@ -61,7 +61,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">4. Payment Terms</h2>
                         <p>
-                            Payments are processed via Stripe, Paymob, or Tap, or via verified local cash transfer methods.
+                            Payments are made by verified local transfer (Egyptian e-wallets such as Vodafone Cash, or InstaPay), or through Paymob or Tap where offered.
                             All payments are billed in the stated currency. You agree to maintain valid billing details.
                         </p>
                     </section>

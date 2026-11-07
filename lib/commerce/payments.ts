@@ -185,35 +185,6 @@ export function verifyStripeSignature(secret: string, payload: string, header: s
   return timingSafeEqual(left, right)
 }
 
-export async function createStripeSubscriptionLink(
-  input: PaymentLinkRequest & { interval: "month" | "year"; metadata?: Record<string, string> },
-  config: StripeConfig,
-  fetchImpl: FetchLike = fetch,
-): Promise<PaymentLink> {
-  const body = new URLSearchParams()
-  body.set("mode", "subscription")
-  body.set("success_url", input.successUrl)
-  body.set("cancel_url", input.cancelUrl)
-  body.set("client_reference_id", input.orderId)
-  body.set("line_items[0][quantity]", "1")
-  body.set("line_items[0][price_data][currency]", input.currency.toLowerCase())
-  body.set("line_items[0][price_data][unit_amount]", String(input.amountCents))
-  body.set("line_items[0][price_data][recurring][interval]", input.interval)
-  body.set("line_items[0][price_data][product_data][name]", input.description.slice(0, 120) || BRAND.name)
-  for (const [key, value] of Object.entries(input.metadata || {})) {
-    if (value) body.set(`metadata[${key}]`, value)
-    if (value) body.set(`subscription_data[metadata][${key}]`, value)
-  }
-  const response = await fetchImpl("https://api.stripe.com/v1/checkout/sessions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${config.secretKey}`, "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  })
-  const json = await readJson(response as Response)
-  if (!response.ok || !json?.url) throw new Error(json?.error?.message || "Stripe subscription checkout failed")
-  return { provider: "stripe", reference: String(json.id), url: String(json.url) }
-}
-
 export async function createStripeLink(input: PaymentLinkRequest, config: StripeConfig, fetchImpl: FetchLike = fetch): Promise<PaymentLink> {
   const body = new URLSearchParams()
   body.set("mode", "payment")

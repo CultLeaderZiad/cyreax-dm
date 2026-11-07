@@ -483,15 +483,6 @@ export default function DashboardAdminPlansPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-neutral-300">Stripe Price ID (optional)</Label>
-                <Input
-                  className="bg-white/5 border-white/10 text-white"
-                  placeholder="price_..."
-                  value={form.stripe_price_id}
-                  onChange={(e) => setForm({ ...form, stripe_price_id: e.target.value })}
-                />
-              </div>
             </div>
 
             <div className="space-y-1.5">

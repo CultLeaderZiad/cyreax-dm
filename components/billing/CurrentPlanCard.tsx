@@ -33,7 +33,7 @@ export function CurrentPlanCard({
   const handleConfirmCancel = async () => {
     setCancelling(true)
     try {
-      const res = await fetch("/api/stripe/cancel", {
+      const res = await fetch("/api/billing/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       })

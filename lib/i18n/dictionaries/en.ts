@@ -72,7 +72,7 @@ export const en = {
 
   // Pricing Page
   pricingTitle: "Simple, transparent pricing",
-  pricingSubtitle: "Start for free, then choose a plan that fits your needs. We offer automated billing via Stripe or manual payments via Vodafone Cash.",
+  pricingSubtitle: "Start for free, then choose a plan that fits your needs. Pay from any Egyptian e-wallet (Vodafone Cash, Etisalat Cash, Orange Cash and others) or InstaPay.",
   monthly: "Monthly",
   annually: "Annually",
   save20: "Save 20%",

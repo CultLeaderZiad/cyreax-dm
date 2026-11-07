@@ -68,7 +68,7 @@ export default function CookiesPage() {
                             </table>
                         </div>
                         <p className="mt-4 text-sm text-neutral-400">
-                            Note: if you sign in with Google or pay with Stripe, those providers may set their own
+                            Note: if you sign in with Google or pay by card through Paymob or Tap, those providers may set their own
                             cookies on their pages during those flows, governed by their respective policies.
                         </p>
                     </section>
@@ -77,7 +77,7 @@ export default function CookiesPage() {
                         <h2 className="text-2xl font-bold text-white mb-4">3. Data Processing Summary</h2>
                         <ul className="list-disc ps-6 space-y-2 mt-2">
                             <li><strong className="text-white">Legal bases (GDPR &amp; Egypt/GCC PDPL):</strong> contract performance (running your automations and billing), legitimate interest (service security, abuse prevention), and compliance with legal accounting obligations.</li>
-                            <li><strong className="text-white">Sub-processors:</strong> Supabase (hosting/database/auth), Stripe, Paymob, and Tap (payment processing), Vercel (hosting/analytics), Sentry (error diagnostics), IPQualityScore (OAuth fraud protection), Meta, TikTok, and Telegram (platform APIs), and AI providers (Groq by default, or your configured BYOK keys). Complete details in the <Link href="/privacy" className="text-[var(--gold,#D6AE5C)] hover:underline">Privacy Policy</Link>.</li>
+                            <li><strong className="text-white">Sub-processors:</strong> Supabase (hosting/database/auth), Paymob and Tap (payment processing), Vercel (hosting/analytics), Sentry (error diagnostics), IPQualityScore (OAuth fraud protection), Meta, TikTok, and Telegram (platform APIs), and AI providers (Groq by default, or your configured BYOK keys). Complete details in the <Link href="/privacy" className="text-[var(--gold,#D6AE5C)] hover:underline">Privacy Policy</Link>.</li>
                             <li><strong className="text-white">International transfers:</strong> our processors store and process data in secure cloud regions outside Egypt/GCC; they maintain contractual and technical safeguards for cross-border transfers.</li>
                             <li><strong className="text-white">Your choices &amp; rights:</strong> you can clear or block cookies in your browser at any time. To exercise data subject rights (access, rectification, erasure), contact us at {BRAND.emails.support ? <a href={`mailto:${BRAND.emails.support}`} className="text-[var(--gold,#D6AE5C)] hover:underline">{BRAND.emails.support}</a> : <span>support</span>}.</li>
                         </ul>

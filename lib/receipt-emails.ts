@@ -44,7 +44,7 @@ export interface PaymentReceipt {
   planName: string
   amount: number
   currency?: string
-  paymentMethod: "stripe" | "vodafone_cash"
+  paymentMethod: "wallet" | "instapay" | "vodafone_cash"
   transactionReference?: string
   billingPeriod?: string
   isRenewal?: boolean
@@ -52,7 +52,7 @@ export interface PaymentReceipt {
 
 export async function sendPaymentReceipt(opts: PaymentReceipt): Promise<boolean> {
   const currency = opts.currency || "USD"
-  const methodLabel = opts.paymentMethod === "stripe" ? "Card payment (Stripe)" : "Vodafone Cash (manual)"
+  const methodLabel = opts.paymentMethod === "instapay" ? "InstaPay (manual)" : "E-wallet transfer (manual)"
   const refRow = opts.transactionReference
     ? row("Reference", `<span style="font-family:monospace;">${opts.transactionReference}</span>`)
     : ""
