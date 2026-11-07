@@ -3,26 +3,10 @@ import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { devWebhookSignatureBypass } from "@/lib/webhooks/signature-guard"
+import { metaVerifyTokenMatches } from "@/lib/webhooks/verify-token"
 
 function isAuthorizedVerifyToken(candidate: string | null): boolean {
-  if (!candidate) return false
-  const validTokens = [
-    process.env.FACEBOOK_WEBHOOK_VERIFY_TOKEN,
-    process.env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN,
-    process.env.META_VERIFY_TOKEN,
-    process.env.META_WEBHOOK_VERIFY_TOKEN,
-    process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
-    process.env.WEBHOOK_VERIFY_TOKEN,
-    "GlymL4xsz3vkDEZ0FwS6XHpN2aUTICJ1",
-    "cyreax_dm_verify_2026",
-    "cyreax_verify_token",
-  ].filter(Boolean) as string[]
-
-  if (validTokens.length === 0) return false
-
-  return validTokens.some(
-    (expected) => expected === candidate || expected.toLowerCase() === candidate.toLowerCase()
-  )
+  return metaVerifyTokenMatches(candidate)
 }
 
 // Meta signs every webhook POST with HMAC-SHA256 of the raw body. Depending on app setup the
