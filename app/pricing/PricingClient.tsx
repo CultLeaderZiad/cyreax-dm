@@ -179,7 +179,12 @@ export default function PricingClient({ plans }: { plans: any[] }) {
                   </p>
                   <div className="mt-4 flex items-baseline gap-1">
                     <span className="text-3xl font-bold text-white font-mono-ui">
-                      ${isAnnual ? mainPlan.price_yearly : mainPlan.price_usd}
+                      {(() => {
+                        // Customers pay in EGP; show it whenever the admin set an EGP price.
+                        const egp = isAnnual ? mainPlan.price_yearly_egp : mainPlan.price_egp
+                        if (egp) return `EGP ${new Intl.NumberFormat("en-US").format(Math.round(Number(egp)))}`
+                        return `$${isAnnual ? mainPlan.price_yearly : mainPlan.price_usd}`
+                      })()}
                     </span>
                     <span className="text-neutral-500 text-xs">/{isAnnual ? (isAr ? 'سنة' : 'yr') : (isAr ? 'شهر' : 'mo')}</span>
                   </div>
