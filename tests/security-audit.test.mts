@@ -403,3 +403,57 @@ describe("public lead form and client ip", () => {
     assert.ok(post.indexOf("takeRateSlots(") > 0 && post.indexOf("takeRateSlots(") < post.indexOf('from("contacts")'))
   })
 })
+
+const { claimSend, releaseSend, sendKey } = await import("../lib/channels/send-once.ts")
+
+function fakeSendsDb(opts: { missing?: boolean } = {}) {
+  const keys = new Set<string>()
+  return {
+    keys,
+    from() {
+      return {
+        async insert(row: { send_key: string }) {
+          if (opts.missing) return { error: { code: "42P01", message: "relation outbound_sends does not exist" } }
+          if (keys.has(row.send_key)) return { error: { code: "23505", message: "duplicate" } }
+          keys.add(row.send_key)
+          return { error: null }
+        },
+        delete() {
+          return { eq: async (_c: string, v: string) => { keys.delete(v); return { error: null } } }
+        },
+      }
+    },
+  } as any
+}
+
+describe("a retried event never sends the same reply twice", () => {
+  const event = { channel: "instagram", messageId: "mid.1", contactExternalId: "u1" } as any
+
+  it("second attempt for the same message and purpose is a duplicate", async () => {
+    const db = fakeSendsDb()
+    const key = sendKey(event, "dm:auto1")
+    assert.equal(await claimSend(db, key), "claimed")
+    assert.equal(await claimSend(db, key), "duplicate")
+    assert.equal(await claimSend(db, sendKey(event, "ai")), "claimed", "different purpose is a different send")
+  })
+
+  it("a failed send releases the claim so a retry can send", async () => {
+    const db = fakeSendsDb()
+    const key = sendKey(event, "dm:auto1")
+    await claimSend(db, key)
+    await releaseSend(db, key)
+    assert.equal(await claimSend(db, key), "claimed")
+  })
+
+  it("sends untracked (as before) when the table is not migrated or there is no id", async () => {
+    assert.equal(await claimSend(fakeSendsDb({ missing: true }), sendKey(event, "x")), "untracked")
+    assert.equal(sendKey({ channel: "instagram", contactExternalId: "u1" } as any, "x"), null)
+  })
+
+  it("pipeline routes every DM, AI and public comment reply through a claim", () => {
+    const source = readFileSync("lib/channels/pipeline.ts", "utf8")
+    assert.match(source, /claimSend\(supabase, key\)/)
+    assert.match(source, /purpose: "ai"/)
+    assert.match(source, /sendKey\(event, `public:/)
+  })
+})

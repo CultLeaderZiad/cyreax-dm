@@ -1,4 +1,5 @@
 import { aiReplyEvent } from "@/lib/channel-ids"
+import { claimSend, releaseSend, sendKey } from "@/lib/channels/send-once"
 import { telegramMessageId } from "@/lib/channel-ids"
 import { checkTrialStatus, parseContent, pickRandom, pickVariant } from "@/lib/webhook-utils"
 import { processLeadCapture } from "@/lib/lead-capture"
@@ -21,6 +22,7 @@ import type {
   NormalizedInbound,
   OutboundContent,
   SendContext,
+  SendOutcome,
 } from "@/lib/channels/types"
 import { isBotPaused } from "@/lib/contacts"
 import { botLocale, botText, followSubtitle, publicReplies, type BotLocale } from "@/lib/bot-copy"
@@ -207,8 +209,28 @@ async function sendTracked(
   ctx: SendContext,
   content: OutboundContent,
   event: NormalizedInbound,
+  options: { privateComment?: boolean; automationId?: string | null; variantId?: string | null; purpose?: string },
+): Promise<SendOutcome> {
+  const purpose = options.purpose || `${options.privateComment ? "private" : "dm"}:${options.automationId || "default"}`
+  const key = sendKey(event, purpose)
+  if ((await claimSend(supabase, key)) === "duplicate") {
+    return { ok: false, error: "duplicate_send" }
+  }
+  const outcome = await sendTrackedOnce(supabase, adapter, tenant, policy, ctx, content, event, options)
+  if (!outcome.ok) await releaseSend(supabase, key)
+  return outcome
+}
+
+async function sendTrackedOnce(
+  supabase: Db,
+  adapter: ChannelAdapter,
+  tenant: TenantContext,
+  policy: ChannelPolicy,
+  ctx: SendContext,
+  content: OutboundContent,
+  event: NormalizedInbound,
   options: { privateComment?: boolean; automationId?: string | null; variantId?: string | null },
-) {
+): Promise<SendOutcome> {
   const tracked = await attachTrackedLinks(supabase, content, {
     userId: tenant.userId,
     workspaceId: tenant.workspaceId,
@@ -325,7 +347,8 @@ async function maybeAi(
     })
     if (!decision?.reply) return false
     const content = { message: decision.reply }
-    await sendTracked(supabase, adapter, tenant, policy, sendContext(tenant, event), content, event, {})
+    const aiSent = await sendTracked(supabase, adapter, tenant, policy, sendContext(tenant, event), content, event, { purpose: "ai" })
+    if (aiSent.error === "duplicate_send") return true
     await recordOutbound(supabase, tenant, policy, conversationId, decision.reply)
     await logAutomationEvent(
       supabase,
@@ -454,7 +477,11 @@ async function runAction(
     const organicTikTok = event.channel === "tiktok" && event.commentSurface === "organic"
     if (mode !== "dm_only" && adapter.publicReply) {
       const pool = (content.public_replies || []).filter(Boolean)
-      await adapter.publicReply(sendContext(tenant, event, true), event.commentId, pickRandom(pool.length ? pool : publicReplies(tenantLocale(tenant))))
+      const publicKey = sendKey(event, `public:${action.rule.id}`)
+      if ((await claimSend(supabase, publicKey)) !== "duplicate") {
+        const replied = await adapter.publicReply(sendContext(tenant, event, true), event.commentId, pickRandom(pool.length ? pool : publicReplies(tenantLocale(tenant))))
+        if (!replied?.ok) await releaseSend(supabase, publicKey)
+      }
     }
     if (mode !== "public_only" && !organicTikTok) {
       const lead = await runLead(supabase, adapter, tenant, event, action.rule, content, event.displayName || "User", event.commentId)
