@@ -1,4 +1,5 @@
 import { GroqMessage, GroqCompletionRequest, checkAILimit, logAIUsage, GroqAPIError, GroqRateLimitError } from "./groq-client"
+import { llmRateRules, takeRateSlots } from "@/lib/rate-limit"
 import { getSupabaseBypassClient } from "./supabase-server"
 import { historyRole } from "./analytics-metrics"
 import { BRAND } from "./brand"
@@ -128,6 +129,14 @@ export async function generateCompletion(
   const isWithinLimit = await checkAILimit(userId)
   if (!isWithinLimit) {
     throw new GroqRateLimitError("AI limit exceeded for today.")
+  }
+
+  // 1b. Burst and platform-wide ceilings. The daily count above is cached for
+  // 30s per instance, so concurrent calls could overshoot it; these slots are
+  // shared across instances. Fail closed: a DB error must not mean unbounded spend.
+  const burstOk = await takeRateSlots(await getSupabaseBypassClient(), llmRateRules(userId, accountUuid))
+  if (!burstOk) {
+    throw new GroqRateLimitError("AI rate limit reached. Try again in a minute.")
   }
 
   // 2. Fetch Agent Config — fall back to default Groq if agent row doesn't exist.

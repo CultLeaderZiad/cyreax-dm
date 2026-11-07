@@ -273,3 +273,63 @@ describe("cron routes require CRON_SECRET", () => {
     }
   })
 })
+
+const { takeRateSlots, escapeHtml, llmRateRules } = await import("../lib/rate-limit.ts")
+
+/** Same semantics as public.take_inbound_rate_slot: fixed window per key. */
+function fakeRateDb(now = () => Date.now()) {
+  const buckets = new Map<string, { start: number; count: number }>()
+  return {
+    buckets,
+    async rpc(_fn: string, args: Record<string, unknown>) {
+      const key = String(args.p_account_key)
+      const limit = Number(args.p_limit)
+      const windowMs = Number(args.p_window_seconds) * 1000
+      const bucket = buckets.get(key) || { start: now(), count: 0 }
+      if (bucket.start < now() - windowMs) Object.assign(bucket, { start: now(), count: 0 })
+      buckets.set(key, bucket)
+      if (bucket.count >= limit) return { data: false, error: null }
+      bucket.count += 1
+      return { data: true, error: null }
+    },
+  }
+}
+
+describe("abuse and cost limits", () => {
+  it("a retry storm of 500 LLM calls from one account gets at most the per-minute budget", async () => {
+    const db = fakeRateDb()
+    let allowed = 0
+    for (let i = 0; i < 500; i++) if (await takeRateSlots(db, llmRateRules("123", "acct-a", {}))) allowed += 1
+    assert.equal(allowed, 30)
+  })
+
+  it("many accounts together stop at the global ceiling", async () => {
+    const db = fakeRateDb()
+    let allowed = 0
+    for (let a = 0; a < 100; a++) {
+      for (let i = 0; i < 30; i++) if (await takeRateSlots(db, llmRateRules(String(a), `acct-${a}`, {}))) allowed += 1
+    }
+    assert.equal(allowed, 600)
+  })
+
+  it("fails closed when the rate store errors", async () => {
+    const broken = { rpc: async () => ({ data: null, error: { message: "connection reset" } }) }
+    assert.equal(await takeRateSlots(broken, [{ key: "abuse:x", limit: 5, windowSeconds: 60 }]), false)
+    assert.equal(await takeRateSlots(broken, [{ key: "abuse:x", limit: 5, windowSeconds: 60 }], { failOpen: true }), true)
+  })
+
+  it("newsletter route rate-limits by IP, per address, globally, and escapes the name", () => {
+    const source = readFileSync("app/api/newsletter/subscribe/route.ts", "utf8")
+    assert.match(source, /abuse:newsletter:ip:/)
+    assert.match(source, /abuse:newsletter:to:/)
+    assert.match(source, /abuse:newsletter:global/)
+    assert.match(source, /escapeHtml\(normalizedName\)/)
+    assert.equal(escapeHtml(`<a href="x">'`), "&lt;a href=&quot;x&quot;&gt;&#39;")
+  })
+
+  it("generateCompletion checks the burst limit before calling any provider", () => {
+    const source = readFileSync("lib/llm-provider.ts", "utf8")
+    const fn = source.slice(source.indexOf("export async function generateCompletion("))
+    assert.ok(fn.indexOf("takeRateSlots(") > 0 && fn.indexOf("takeRateSlots(") < fn.indexOf("callGroqAPI("))
+  })
+})
