@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { randomUUID } from "crypto"
 import { normalizeLead } from "@/lib/growth/tools"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { clientIpFromHeaders, takeRateSlots } from "@/lib/rate-limit"
 import { startIdempotencyKey } from "@/lib/flows/engine"
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
@@ -21,6 +22,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const lead = normalizeLead({ email: body.email, phone: body.phone, name: body.name })
     if (!lead.ok) return NextResponse.json({ error: lead.error }, { status: 400 })
     const supabase = await getSupabaseBypassClient()
+    // Unauthenticated form that writes contacts into a tenant's CRM and can
+    // start a flow: cap per IP and per page so it can't be used to flood them.
+    const allowed = await takeRateSlots(supabase, [
+      { key: `abuse:bio:ip:${clientIpFromHeaders(request.headers)}`, limit: 10, windowSeconds: 3600 },
+      { key: `abuse:bio:page:${String(slug).slice(0, 80)}`, limit: 300, windowSeconds: 3600 },
+    ])
+    if (!allowed) return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 })
     const page = await supabase.from("bio_pages").select("*").eq("slug", slug).maybeSingle()
     if (!page.data) return NextResponse.json({ error: "Not found" }, { status: 404 })
     const externalId = (lead.email || lead.phone || "").toLowerCase()

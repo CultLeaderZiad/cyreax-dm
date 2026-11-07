@@ -388,3 +388,18 @@ describe("outbound fetches resolve DNS before connecting (SSRF)", () => {
     assert.equal(fetched, 0)
   })
 })
+
+const { clientIpFromHeaders } = await import("../lib/rate-limit.ts")
+
+describe("public lead form and client ip", () => {
+  it("prefers Vercel's client ip header over a spoofable x-forwarded-for", () => {
+    const h = new Headers({ "x-forwarded-for": "1.1.1.1", "x-vercel-forwarded-for": "9.9.9.9" })
+    assert.equal(clientIpFromHeaders(h), "9.9.9.9")
+    assert.equal(clientIpFromHeaders(new Headers({ "x-forwarded-for": "2.2.2.2, 3.3.3.3" })), "2.2.2.2")
+  })
+  it("bio lead POST is rate limited before touching contacts", () => {
+    const source = readFileSync("app/api/public/bio/[slug]/route.ts", "utf8")
+    const post = source.slice(source.indexOf("export async function POST"))
+    assert.ok(post.indexOf("takeRateSlots(") > 0 && post.indexOf("takeRateSlots(") < post.indexOf('from("contacts")'))
+  })
+})
