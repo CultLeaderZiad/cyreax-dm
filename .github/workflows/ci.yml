@@ -27,6 +27,32 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: "1"
 
+  # Applies the security/payment migrations to a real Postgres with a minimal
+  # Supabase shim and runs tests/sql/payments-and-rls.test.sql.
+  db:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: sudo apt-get install -y -q postgresql-client
+      - run: node --experimental-strip-types --test tests/db-migrations.test.mts
+        env:
+          CYREAX_TEST_PG: postgresql://postgres:postgres@localhost:5432/postgres
+
   # Report-only security checks. They never fail the build and never print
   # secret values: gitleaks runs with --redact and only rule/file/line/commit
   # are written to the job summary.
