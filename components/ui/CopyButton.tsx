@@ -13,6 +13,7 @@ export function CopyButton({ value, label, className = "" }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
+    if (!value) return
     try {
       await navigator.clipboard.writeText(value)
       setCopied(true)
@@ -39,6 +40,7 @@ export function CopyButton({ value, label, className = "" }: CopyButtonProps) {
     <button
       type="button"
       onClick={handleCopy}
+      disabled={!value}
       aria-label={copied ? "Copied" : `Copy ${label || "value"}`}
       title={copied ? "Copied!" : "Copy"}
       className={`inline-flex items-center gap-1.5 p-1.5 rounded-md text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#e5a93c] ${className}`}
