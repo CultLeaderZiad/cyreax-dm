@@ -1,6 +1,6 @@
 import { sourceToChunks, htmlToText, extractPdfText } from "@/lib/ai-agent/chunk"
 import { embedText, vectorLiteral } from "@/lib/ai-agent/embed"
-import { isSafeWebhookUrl } from "@/lib/flows/graph"
+import { resolvesToPublicHost } from "@/lib/net/public-host"
 import type { Db } from "@/lib/channels/types"
 
 export async function saveKnowledge(input: {
@@ -44,8 +44,12 @@ export async function saveKnowledge(input: {
   return { id: created.data.id, chunks: stored }
 }
 
-export async function importWebsite(url: string, fetchImpl: typeof fetch = fetch): Promise<{ title: string; body: string } | { error: string }> {
-  if (!isSafeWebhookUrl(url)) return { error: "URL must be https on a public host" }
+export async function importWebsite(
+  url: string,
+  fetchImpl: typeof fetch = fetch,
+  checkHost: (url: string) => Promise<boolean> = resolvesToPublicHost,
+): Promise<{ title: string; body: string } | { error: string }> {
+  if (!(await checkHost(url))) return { error: "URL must be https on a public host" }
   const response = await fetchImpl(url, { redirect: "manual" })
   if (response.status >= 300 && response.status < 400) return { error: "Redirects are not followed" }
   if (!response.ok) return { error: `The site returned ${response.status}` }

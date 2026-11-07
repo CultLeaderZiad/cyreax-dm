@@ -696,7 +696,7 @@ async function performEffects(
     if (effect.type === "send") {
       await sendFlowMessage(supabase, job, flow, result.run, effect.content, sender, effect)
     }
-    if (effect.type === "webhook" && isSafeWebhookUrl(effect.url)) {
+    if (effect.type === "webhook" && isSafeWebhookUrl(effect.url) && (await (await import("@/lib/net/public-host")).resolvesToPublicHost(effect.url))) {
       const controller = new AbortController()
       const timer = setTimeout(() => controller.abort(), 8000)
       try {

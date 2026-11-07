@@ -55,8 +55,12 @@ export async function deliverWebhook(input: {
   body: string
   nowMs: number
   fetchImpl?: typeof fetch
+  checkHost?: (url: string) => Promise<boolean>
 }): Promise<{ ok: boolean; status: number }> {
   const fetchImpl = input.fetchImpl || fetch
+  const checkHost = input.checkHost || (await import("@/lib/net/public-host")).resolvesToPublicHost
+  // Endpoints are re-checked at send time: DNS can change after the URL was saved.
+  if (!(await checkHost(input.url))) return { ok: false, status: 0 }
   const response = await fetchImpl(input.url, {
     method: "POST",
     headers: webhookHeaders(input.secret, input.body, input.nowMs),

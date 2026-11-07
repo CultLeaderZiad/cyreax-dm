@@ -360,3 +360,31 @@ describe("catalog sync refuses internal or plaintext store URLs (SSRF)", () => {
     assert.match(called, /^https:\/\/my-store\.myshopify\.com\/admin\/api\//)
   })
 })
+
+const { isPrivateAddress, resolvesToPublicHost } = await import("../lib/net/public-host.ts")
+const { importWebsite } = await import("../lib/ai-agent/ingest.ts")
+const { deliverWebhook } = await import("../lib/integrations/dispatch.ts")
+
+describe("outbound fetches resolve DNS before connecting (SSRF)", () => {
+  const resolvingTo = (address: string) => async () => [{ address }]
+  it("classifies private and public addresses", () => {
+    for (const ip of ["10.1.2.3", "127.0.0.1", "169.254.169.254", "172.20.0.1", "192.168.0.9", "100.64.0.1", "0.0.0.0", "::1", "fd00::1", "fe80::1", "::ffff:10.0.0.1"]) {
+      assert.equal(isPrivateAddress(ip), true, ip)
+    }
+    for (const ip of ["8.8.8.8", "104.16.0.1", "2606:4700::1111"]) assert.equal(isPrivateAddress(ip), false, ip)
+  })
+  it("refuses a public-looking name that resolves to a private address", async () => {
+    assert.equal(await resolvesToPublicHost("https://rebind.example.com/x", resolvingTo("10.0.0.5")), false)
+    assert.equal(await resolvesToPublicHost("https://ok.example.com/x", resolvingTo("93.184.216.34")), true)
+    assert.equal(await resolvesToPublicHost("https://err.example.com/x", async () => { throw new Error("NXDOMAIN") }), false)
+  })
+  it("URL import and outgoing webhooks never fetch a private target", async () => {
+    let fetched = 0
+    const fetchSpy = (async () => { fetched += 1; return new Response("x") }) as any
+    const imported = await importWebsite("https://rebind.example.com/", fetchSpy, async () => false)
+    assert.ok("error" in imported)
+    const sent = await deliverWebhook({ url: "https://rebind.example.com/", secret: "s", body: "{}", nowMs: 0, fetchImpl: fetchSpy, checkHost: async () => false })
+    assert.deepEqual(sent, { ok: false, status: 0 })
+    assert.equal(fetched, 0)
+  })
+})
