@@ -3,6 +3,9 @@
    ═══════════════════════════════════════════ */
 
 :root {
+  /* power3.out: fast start, long soft landing (matches the reference GSAP ease) */
+  --pill-ease: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --pill-dur: 0.42s;
   --base: #ffffff;
   --pill-bg: #0a0a0a;
   --hover-text: #050505;
@@ -90,14 +93,14 @@
   width: 20px;
   height: 20px;
   object-fit: contain;
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
+  transition: transform 0.5s var(--pill-ease), filter 0.3s ease;
   animation: logo-mark-pulse 3.6s ease-in-out infinite;
   will-change: transform;
 }
 
 .pill-logo:hover .pill-logo-icon {
-  animation-play-state: paused;
-  transform: rotate(14deg) scale(1.2);
+  animation: none;
+  transform: rotate(360deg) scale(1.1);
   filter: drop-shadow(0 2px 8px rgba(42, 171, 238, 0.7));
 }
 
@@ -202,7 +205,8 @@
   border-radius: 50%;
   background: var(--base, #ffffff);
   transform: translate(-50%, 0) scale(0);
-  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--pill-dur) var(--pill-ease);
+  will-change: transform;
   pointer-events: none;
   z-index: 1;
 }
@@ -228,11 +232,14 @@
   align-items: center;
   gap: 0.35rem;
   transform: translateY(0);
-  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--pill-dur) var(--pill-ease);
+  will-change: transform;
 }
 
-.pill:hover .pill-label {
-  transform: translateY(-130%);
+/* The resting label lifts out by the pill height... */
+.pill:hover .pill-label,
+.pill:focus-visible .pill-label {
+  transform: translateY(calc(-1 * (var(--nav-h) - 8px) - 8px));
 }
 
 .pill .pill-label-hover {
@@ -246,14 +253,61 @@
   justify-content: center;
   gap: 0.35rem;
   color: var(--hover-text, #050505);
-  transform: translateY(130%);
+  /* ...while the hover label shoots up from far below and settles. */
+  transform: translateY(calc(var(--nav-h) - 8px + 100px));
   opacity: 0;
-  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s ease;
+  transition: transform var(--pill-dur) var(--pill-ease), opacity calc(var(--pill-dur) * 0.6) var(--pill-ease);
+  will-change: transform, opacity;
 }
 
-.pill:hover .pill-label-hover {
+.pill:hover .pill-label-hover,
+.pill:focus-visible .pill-label-hover {
   transform: translateY(0);
   opacity: 1;
+}
+
+.pill:focus-visible .hover-circle {
+  transform: translate(-50%, 0) scale(1.2);
+}
+
+.pill:active {
+  transform: scale(0.97);
+  transition: transform 0.12s var(--pill-ease);
+}
+
+/* Entrance: the logo pops in, then the track unrolls. */
+.pill-logo {
+  animation: pill-logo-in 0.6s var(--pill-ease) backwards;
+}
+.pill-nav-items {
+  animation: pill-items-in 0.7s var(--pill-ease) 0.12s backwards;
+}
+@keyframes pill-logo-in {
+  from { transform: scale(0.4); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes pill-items-in {
+  from { clip-path: inset(0 100% 0 0 round 9999px); opacity: 0; transform: translateX(-8px); }
+  to { clip-path: inset(0 0 0 0 round 9999px); opacity: 1; transform: translateX(0); }
+}
+[dir="rtl"] .pill-nav-items {
+  animation-name: pill-items-in-rtl;
+}
+@keyframes pill-items-in-rtl {
+  from { clip-path: inset(0 0 0 100% round 9999px); opacity: 0; transform: translateX(8px); }
+  to { clip-path: inset(0 0 0 0 round 9999px); opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill-logo,
+  .pill-nav-items {
+    animation: none !important;
+  }
+  .pill .hover-circle,
+  .pill .pill-label,
+  .pill .pill-label-hover {
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ═══════════════════ SILVER CTA PILL (START BUILD ->) ═══════════════════ */
