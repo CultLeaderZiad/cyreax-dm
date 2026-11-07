@@ -111,3 +111,19 @@ describe("every auth redirect route validates next", () => {
     }
   })
 })
+
+describe("facebook oauth is bound to the browser that started it", () => {
+  it("auth route sets a state cookie and sends state to Facebook", () => {
+    const source = readFileSync("app/api/facebook/auth/route.ts", "utf8")
+    assert.match(source, /createOAuthState\(\)/)
+    assert.equal((source.match(/&state=\$\{state\}/g) || []).length, 2)
+    assert.match(source, /cookies\.set\(FB_OAUTH_STATE_COOKIE/)
+  })
+  it("callback rejects a missing or mismatched state before exchanging the code", () => {
+    const source = readFileSync("app/api/facebook/callback/route.ts", "utf8")
+    const stateCheck = source.indexOf("safeEqual(state, expectedState)")
+    const exchange = source.indexOf("oauth/access_token")
+    assert.ok(stateCheck > 0 && exchange > stateCheck)
+    assert.doesNotMatch(source, /JSON\.stringify\(allParams\)/)
+  })
+})

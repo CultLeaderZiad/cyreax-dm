@@ -6,16 +6,17 @@ import { sealAccessToken } from "@/lib/token-crypto"
 import { resolveTenantProfile } from "@/lib/tenant-user"
 import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
 import { assertChannelConnect, PlanLimitError } from "@/lib/billing/enforce"
+import { oauthCookieOptions, safeEqual } from "@/lib/instagram-oauth"
+
+const FB_OAUTH_STATE_COOKIE = "fb_oauth_state"
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const code = searchParams.get("code")
   const error = searchParams.get("error")
 
-  // Diagnostic logging — capture everything Facebook sends back
-  const allParams: Record<string, string> = {}
-  searchParams.forEach((value, key) => { allParams[key] = value })
-  console.log("[FB Callback] Incoming query params:", JSON.stringify(allParams))
+  // Log only which params arrived, never their values (the code is a credential).
+  console.log("[FB Callback] Incoming query params:", Array.from(searchParams.keys()).join(","))
 
   if (error) {
     const errorReason = searchParams.get("error_reason") || "unknown"
@@ -27,6 +28,14 @@ export async function GET(request: NextRequest) {
 
   if (!code) {
     return NextResponse.json({ error: "Invalid callback" }, { status: 400 })
+  }
+
+  const state = searchParams.get("state")
+  const expectedState = request.cookies.get(FB_OAUTH_STATE_COOKIE)?.value
+  if (!state || !expectedState || !safeEqual(state, expectedState)) {
+    const denied = NextResponse.redirect(new URL("/dashboard/connected-platforms?error=oauth_state", request.url))
+    denied.cookies.set(FB_OAUTH_STATE_COOKIE, "", oauthCookieOptions(0))
+    return denied
   }
 
   const session = await loadWorkspaceContext(request)
@@ -290,7 +299,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/dashboard/connected-platforms?warning=limit_channels", request.url))
     }
 
-    return NextResponse.redirect(new URL("/dashboard/connected-platforms?success=1", request.url))
+    const done = NextResponse.redirect(new URL("/dashboard/connected-platforms?success=1", request.url))
+    done.cookies.set(FB_OAUTH_STATE_COOKIE, "", oauthCookieOptions(0))
+    return done
   } catch (error) {
     console.error("Facebook auth error:", error)
     return NextResponse.redirect(new URL("/dashboard/connected-platforms?error=server_error", request.url))

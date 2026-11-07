@@ -1,6 +1,9 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from "next/server"
+import { createOAuthState, oauthCookieOptions } from "@/lib/instagram-oauth"
+
+const FB_OAUTH_STATE_COOKIE = "fb_oauth_state"
 
 export async function GET(request: Request) {
   const clientId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || process.env.INSTAGRAM_APP_ID || process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID
@@ -22,15 +25,21 @@ export async function GET(request: Request) {
   // Only use config_id if explicitly requested by client; never default to WhatsApp config ID
   const configId = searchParams.get("config_id")
 
+  // CSRF: bind the callback to this browser. The callback refuses a code
+  // that does not come back with the same state.
+  const state = createOAuthState()
+
   let url: string
   if (configId) {
     // Facebook Login for Business uses a Configuration ID instead of manual scope string
-    url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${encodeURIComponent(configId)}&response_type=code&override_default_response_type=true&auth_type=rerequest`
+    url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${encodeURIComponent(configId)}&response_type=code&override_default_response_type=true&auth_type=rerequest&state=${state}`
   } else {
     // Standard Facebook Login using scope (public_profile is required)
     const scope = "public_profile,pages_show_list,pages_read_engagement,pages_manage_metadata,pages_messaging"
-    url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=code&auth_type=rerequest`
+    url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=code&auth_type=rerequest&state=${state}`
   }
 
-  return NextResponse.redirect(url)
+  const response = NextResponse.redirect(url)
+  response.cookies.set(FB_OAUTH_STATE_COOKIE, state, oauthCookieOptions(10 * 60))
+  return response
 }
