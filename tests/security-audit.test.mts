@@ -1,6 +1,8 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
+import { readFileSync } from "node:fs"
 
+const { safeAuthNext } = await import("../lib/auth-redirect.ts")
 const { resolveVerifiedPageToken } = await import("../lib/meta/page-connect.ts")
 
 type Route = (url: URL) => { status: number; body: unknown }
@@ -91,5 +93,21 @@ describe("smtp settings never expose the password", () => {
   it("still reads legacy plaintext rows so mail keeps working", () => {
     assert.equal(openSmtpPassword({ pass: "legacy" }), "legacy")
     assert.equal(openSmtpPassword(null), null)
+  })
+})
+
+describe("every auth redirect route validates next", () => {
+  for (const file of ["app/auth/callback/route.ts", "app/auth/confirm/route.ts", "app/api/auth/callback/route.ts"]) {
+    it(`${file} passes next through safeAuthNext`, () => {
+      const source = readFileSync(file, "utf8")
+      assert.match(source, /safeAuthNext\(searchParams\.get\(['"]next['"]\)/)
+      assert.doesNotMatch(source, /searchParams\.get\(['"]next['"]\)\s*\?\?/)
+    })
+  }
+  it("rejects userinfo / host-suffix payloads that `${origin}${next}` would turn into another host", () => {
+    for (const payload of ["@evil.com", ".evil.com", "evil.com", "//evil.com", "/\\evil.com", "/%5Cevil.com", "https:evil.com"]) {
+      const next = safeAuthNext(payload, "/dashboard", "https://cyreax-dm.vercel.app")
+      assert.equal(new URL(`https://cyreax-dm.vercel.app${next}`).host, "cyreax-dm.vercel.app", payload)
+    }
   })
 })
