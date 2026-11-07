@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic"
 import { type NextRequest, NextResponse } from "next/server"
 import { requireUser } from "@/lib/auth"
-import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { getSupabaseBypassClient, getSupabaseServerClient } from "@/lib/supabase-server"
 import { workspaceRoleFromLegacy } from "@/lib/workspace-access"
 import { addWorkspaceMember } from "@/lib/workspaces"
 
@@ -15,8 +15,16 @@ export async function POST(request: NextRequest) {
   const result = await requireUser(request)
   if (result.response) return result.response
 
-  const email = result.user.email?.trim().toLowerCase()
+  // The invite is bound to an email address, so the caller must have proven
+  // they own it. Without this, signing up with someone else's address (when
+  // email confirmation is off) would be enough to take their seat.
+  const { data: authData } = await (await getSupabaseServerClient()).auth.getUser()
+  const authUser = authData?.user
+  const email = authUser?.email?.trim().toLowerCase()
   if (!email) return NextResponse.json({ error: "Your account has no email address" }, { status: 400 })
+  if (!authUser?.email_confirmed_at) {
+    return NextResponse.json({ error: "Confirm your email address before accepting an invite" }, { status: 403 })
+  }
 
   let body: { id?: string }
   try {

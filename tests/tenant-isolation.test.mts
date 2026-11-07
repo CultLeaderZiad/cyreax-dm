@@ -15,6 +15,7 @@ const B = "bbbbbbbb-0000-0000-0000-00000000000b"
 
 function seed() {
   const db = fakeDb()
+  db.emailConfirmed = true
   db.tables = {
     accounts: [
       { id: A, email: "a@test.local", role: "customer", plan: "pro", active_workspace_id: "wA" },
@@ -173,5 +174,36 @@ describe("anonymous callers are denied", () => {
       await flowById.GET(req("/api/flows/flowA"), ctx("flowA")),
     ]
     assert.deepEqual(responses.map((r) => r.status), responses.map(() => 401))
+  })
+})
+
+const teamAccept = await import("../app/api/team/accept/route.ts")
+
+describe("team invites require a confirmed email", () => {
+  beforeEach(() => {
+    const db = seed()
+    db.tables.agency_team_members = [
+      { id: "inv1", email: "b@test.local", status: "invited", permission_level: "admin", workspace_id: "wA", agency_account_id: A },
+    ]
+  })
+  it("an unconfirmed account with the invited address cannot take the seat", async () => {
+    as(B)
+    fakeDb().emailConfirmed = false
+    const res = await teamAccept.POST(req("/api/team/accept", json({ id: "inv1" })))
+    assert.equal(res.status, 403)
+    assert.equal(fakeDb().tables.agency_team_members[0].status, "invited")
+  })
+  it("a different account cannot accept someone else's invite", async () => {
+    as(A)
+    fakeDb().emailConfirmed = true
+    const res = await teamAccept.POST(req("/api/team/accept", json({ id: "inv1" })))
+    assert.equal(res.status, 404)
+  })
+  it("the confirmed invitee can accept", async () => {
+    as(B)
+    fakeDb().emailConfirmed = true
+    const res = await teamAccept.POST(req("/api/team/accept", json({ id: "inv1" })))
+    assert.equal(res.status, 200)
+    assert.equal(fakeDb().tables.agency_team_members[0].status, "active")
   })
 })

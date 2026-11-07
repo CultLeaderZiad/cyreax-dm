@@ -12,6 +12,7 @@ type Filter = (row: Row) => boolean
 export interface FakeState {
   tables: Record<string, Row[]>
   authUserId: string | null
+  emailConfirmed?: boolean
 }
 
 const state: FakeState = ((globalThis as any).__cyreaxFakeDb ||= { tables: {}, authUserId: null })
@@ -113,7 +114,16 @@ const client = {
   auth: {
     getUser: async () =>
       state.authUserId
-        ? { data: { user: { id: state.authUserId, email: `${state.authUserId}@test.local` } }, error: null }
+        ? {
+          data: {
+            user: {
+              id: state.authUserId,
+              email: (state.tables.accounts || []).find((a) => a.id === state.authUserId)?.email || `${state.authUserId}@test.local`,
+              email_confirmed_at: state.emailConfirmed === false ? null : "2026-01-01T00:00:00Z",
+            },
+          },
+          error: null,
+        }
         : { data: { user: null }, error: { message: "no session" } },
     getSession: async () => ({ data: { session: null }, error: null }),
   },
