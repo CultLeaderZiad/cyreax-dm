@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
+import { aiErrorResponse } from "@/lib/ai-errors"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
 import { generateGroqCompletion } from "@/lib/groq-client"
@@ -81,12 +82,8 @@ Return ONLY a JSON array of 3 strings. Do not include markdown formatting or exp
 
   } catch (error: any) {
     console.error("[copy-suggestion] Server error:", error)
-    if (error.name === "GroqRateLimitError") {
-      return NextResponse.json({ error: "Rate limit reached — try again in a minute" }, { status: 429 })
-    }
-    if (error.name === "GroqAPIError") {
-      return NextResponse.json({ error: `AI request failed: ${error.message}` }, { status: error.status || 500 })
-    }
+    const aiError = aiErrorResponse(error)
+    if (aiError) return aiError
     return NextResponse.json({ error: "Something went wrong generating suggestions. Please try again." }, { status: 500 })
   }
 }

@@ -296,20 +296,20 @@ function fakeRateDb(now = () => Date.now()) {
 }
 
 describe("abuse and cost limits", () => {
-  it("a retry storm of 500 LLM calls from one account gets at most the per-minute budget", async () => {
+  it("a retry storm of 500 LLM calls from one account gets at most the per-minute budget (60)", async () => {
     const db = fakeRateDb()
     let allowed = 0
     for (let i = 0; i < 500; i++) if (await takeRateSlots(db, llmRateRules("123", "acct-a", {}))) allowed += 1
-    assert.equal(allowed, 30)
+    assert.equal(allowed, 60)
   })
 
   it("many accounts together stop at the global ceiling", async () => {
     const db = fakeRateDb()
     let allowed = 0
     for (let a = 0; a < 100; a++) {
-      for (let i = 0; i < 30; i++) if (await takeRateSlots(db, llmRateRules(String(a), `acct-${a}`, {}))) allowed += 1
+      for (let i = 0; i < 60; i++) if (await takeRateSlots(db, llmRateRules(String(a), `acct-${a}`, {}))) allowed += 1
     }
-    assert.equal(allowed, 600)
+    assert.equal(allowed, 1200)
   })
 
   it("fails closed when the rate store errors", async () => {
@@ -330,7 +330,7 @@ describe("abuse and cost limits", () => {
   it("generateCompletion checks the burst limit before calling any provider", () => {
     const source = readFileSync("lib/llm-provider.ts", "utf8")
     const fn = source.slice(source.indexOf("export async function generateCompletion("))
-    assert.ok(fn.indexOf("takeRateSlots(") > 0 && fn.indexOf("takeRateSlots(") < fn.indexOf("callGroqAPI("))
+    assert.ok(fn.indexOf("waitForRateSlot(") > 0 && fn.indexOf("waitForRateSlot(") < fn.indexOf("providerChain("))
   })
 })
 
@@ -455,5 +455,20 @@ describe("a retried event never sends the same reply twice", () => {
     assert.match(source, /claimSend\(supabase, key\)/)
     assert.match(source, /purpose: "ai"/)
     assert.match(source, /sendKey\(event, `public:/)
+  })
+})
+
+describe("AI errors customers can act on", () => {
+  it("routes never echo provider errors or the old one-minute message", () => {
+    for (const f of ["analyze-comment-themes", "analyze-inbox-faqs", "copy-suggestion", "keyword-suggestion", "parse-automation-intent", "analytics-summary"]) {
+      const source = readFileSync(`app/api/ai/${f}/route.ts`, "utf8")
+      assert.match(source, /aiErrorResponse\(error\)/, f)
+      assert.doesNotMatch(source, /Rate limit reached|AI request failed: \$\{/, f)
+    }
+  })
+  it("provider failures fall through every configured provider with a retry", () => {
+    const source = readFileSync("lib/llm-provider.ts", "utf8")
+    assert.match(source, /for \(const step of chain\)/)
+    assert.match(source, /withRetry\(\(\) => callProvider/)
   })
 })

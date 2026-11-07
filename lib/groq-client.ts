@@ -1,7 +1,7 @@
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
 // Defaulting to 300 requests per user per day to protect Groq rate limits.
-const MAX_AI_CALLS_PER_DAY = 300
+const MAX_AI_CALLS_PER_DAY = Math.max(1, Number(process.env.AI_CALLS_PER_DAY) || 1000)
 
 // Maps internal AI feature names to agent catalog keys (scripts/32-schema-agents-system.sql)
 // so agent-level provider config + BYOK keys are applied to the right features.

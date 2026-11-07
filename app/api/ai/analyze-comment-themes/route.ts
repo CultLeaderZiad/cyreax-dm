@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
+import { aiErrorResponse } from "@/lib/ai-errors"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
 import { generateCompletion } from "@/lib/llm-provider"
@@ -165,12 +166,8 @@ Return ONLY a valid JSON object with a "themes" array.`
 
   } catch (error: any) {
     console.error("[analyze-comment-themes] GET error:", error)
-    if (error.name === "GroqRateLimitError") {
-      return NextResponse.json({ error: "Rate limit reached — try again in a minute" }, { status: 429 })
-    }
-    if (error.name === "GroqAPIError") {
-      return NextResponse.json({ error: `AI request failed: ${error.message}` }, { status: error.status || 500 })
-    }
+    const aiError = aiErrorResponse(error)
+    if (aiError) return aiError
     return NextResponse.json({ error: "Something went wrong analyzing themes. Please try again." }, { status: 500 })
   }
 }

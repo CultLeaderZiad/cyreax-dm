@@ -134,9 +134,9 @@ export async function generateCompletion(
   // 1b. Burst and platform-wide ceilings. The daily count above is cached for
   // 30s per instance, so concurrent calls could overshoot it; these slots are
   // shared across instances. Fail closed: a DB error must not mean unbounded spend.
-  const burstOk = await takeRateSlots(await getSupabaseBypassClient(), llmRateRules(userId, accountUuid))
+  const burstOk = await waitForRateSlot(userId, accountUuid)
   if (!burstOk) {
-    throw new GroqRateLimitError("AI rate limit reached. Try again in a minute.")
+    throw new GroqRateLimitError("Too many AI requests at the same moment. Please try again shortly.")
   }
 
   // 2. Fetch Agent Config — fall back to default Groq if agent row doesn't exist.
@@ -208,53 +208,24 @@ export async function generateCompletion(
     return responseText
   }
 
-  // 4. Execute based on Provider
+  // 4. Execute: requested provider first, then every other configured
+  // provider. Each call retries a 429/5xx once with a short backoff, so a busy
+  // provider never surfaces to the customer as an error.
+  const chain = providerChain(provider, apiKey)
   let responseText: string | null = null
-
-  if (provider === "gemini") {
+  let lastError: unknown = null
+  for (const step of chain) {
     try {
-      responseText = await callGeminiAPI(options, apiKey)
+      responseText = await withRetry(() => callProvider(step.provider, options, step.key))
+      provider = step.provider
+      break
     } catch (err: any) {
-      console.warn(`[llm-provider] Gemini failed for ${feature}, falling back to Groq. Error:`, err.message)
-      if (!GROQ_API_KEY) throw new GroqAPIError(500, "AI provider failed and no fallback available.")
-      responseText = await callGroqAPI(options, GROQ_API_KEY)
-      provider = "groq"
+      lastError = err
+      console.warn(`[llm-provider] ${step.provider} failed for ${feature}: ${String(err?.message || err).slice(0, 160)}`)
     }
-
-  } else if (provider === "anthropic") {
-    try {
-      responseText = await callAnthropicAPI(options, apiKey)
-    } catch (err: any) {
-      console.warn(`[llm-provider] Anthropic failed for ${feature}, falling back to Groq. Error:`, err.message)
-      if (!GROQ_API_KEY) throw new GroqAPIError(500, "AI provider failed and no fallback available.")
-      responseText = await callGroqAPI(options, GROQ_API_KEY)
-      provider = "groq"
-    }
-
-  } else if (provider === "openai") {
-    try {
-      responseText = await callOpenAIAPI(options, apiKey)
-    } catch (err: any) {
-      console.warn(`[llm-provider] OpenAI failed for ${feature}, falling back to Groq. Error:`, err.message)
-      if (!GROQ_API_KEY) throw new GroqAPIError(500, "AI provider failed and no fallback available.")
-      responseText = await callGroqAPI(options, GROQ_API_KEY)
-      provider = "groq"
-    }
-
-  } else if (provider === "groq" || provider === "openrouter") {
-    // Try Groq, fallback to OpenRouter
-    try {
-      responseText = await callGroqAPI(options, apiKey)
-    } catch (err: any) {
-      console.warn(`[llm-provider] Groq failed for ${feature}. Falling back to OpenRouter. Error:`, err.message)
-      
-      // Fallback to OpenRouter
-      if (!OPENROUTER_API_KEY) {
-        throw new GroqAPIError(500, "AI request failed and no fallback API key is configured.")
-      }
-      responseText = await callOpenRouterAPI(options, OPENROUTER_API_KEY)
-      provider = "openrouter"
-    }
+  }
+  if (responseText === null && lastError) {
+    throw new GroqAPIError(503, "The AI service is busy. Please try again shortly.")
   }
 
   // 5. Log usage + record agent activity (powers "last used" in the Agents UI)
@@ -485,5 +456,66 @@ export async function fetchConversationHistory(
     return (legacy.data || []).reverse()
   } catch {
     return []
+  }
+}
+
+
+// ---------------------------------------------------------------------------
+// Resilience helpers
+
+type ProviderName = "groq" | "gemini" | "openrouter" | "anthropic" | "openai"
+
+function providerChain(primary: string, primaryKey: string): Array<{ provider: ProviderName; key: string }> {
+  const managed: Array<{ provider: ProviderName; key: string | undefined }> = [
+    { provider: "groq", key: GROQ_API_KEY },
+    { provider: "gemini", key: GEMINI_API_KEY },
+    { provider: "openrouter", key: OPENROUTER_API_KEY },
+  ]
+  const chain: Array<{ provider: ProviderName; key: string }> = []
+  if (primaryKey) chain.push({ provider: primary as ProviderName, key: primaryKey })
+  for (const entry of managed) {
+    if (entry.key && !chain.some((c) => c.provider === entry.provider && c.key === entry.key)) {
+      chain.push({ provider: entry.provider, key: entry.key })
+    }
+  }
+  return chain
+}
+
+function callProvider(provider: ProviderName, options: GroqCompletionRequest, key: string) {
+  if (provider === "gemini") return callGeminiAPI(options, key)
+  if (provider === "anthropic") return callAnthropicAPI(options, key)
+  if (provider === "openai") return callOpenAIAPI(options, key)
+  if (provider === "openrouter") return callOpenRouterAPI(options, key)
+  return callGroqAPI(options, key)
+}
+
+function retryable(err: any): boolean {
+  return /\b(429|500|502|503|504)\b|rate.?limit|overloaded|timeout|ECONNRESET|fetch failed/i.test(String(err?.message || err))
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+export async function withRetry<T>(fn: () => Promise<T>, attempts = 2, baseMs = 800): Promise<T> {
+  let last: unknown
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn()
+    } catch (err) {
+      last = err
+      if (!retryable(err) || i === attempts - 1) break
+      await sleep(baseMs * (i + 1) + Math.floor(Math.random() * 250))
+    }
+  }
+  throw last
+}
+
+/** Up to ~8 s for a per-minute slot; only then give up. */
+async function waitForRateSlot(userId: string, accountUuid: string): Promise<boolean> {
+  const supabase = await getSupabaseBypassClient()
+  const deadline = Date.now() + 8_000
+  for (;;) {
+    if (await takeRateSlots(supabase, llmRateRules(userId, accountUuid))) return true
+    if (Date.now() + 2_000 > deadline) return false
+    await sleep(2_000)
   }
 }

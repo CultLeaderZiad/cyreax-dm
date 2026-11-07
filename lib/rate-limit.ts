@@ -41,8 +41,8 @@ export async function takeRateSlots(
 
 /** Per-identity burst plus a global ceiling on managed LLM calls. Override with env. */
 export function llmRateRules(userId: string, accountId: string, env: Record<string, string | undefined> = process.env): RateRule[] {
-  const perMinute = Math.max(1, Number(env.LLM_PER_ACCOUNT_PER_MINUTE) || 30)
-  const globalPerMinute = Math.max(1, Number(env.LLM_GLOBAL_PER_MINUTE) || 600)
+  const perMinute = Math.max(1, Number(env.LLM_PER_ACCOUNT_PER_MINUTE) || 60)
+  const globalPerMinute = Math.max(1, Number(env.LLM_GLOBAL_PER_MINUTE) || 1200)
   return [
     { key: `abuse:llm:account:${accountId || userId}`, limit: perMinute, windowSeconds: 60 },
     { key: "abuse:llm:global", limit: globalPerMinute, windowSeconds: 60 },
