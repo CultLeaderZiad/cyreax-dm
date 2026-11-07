@@ -6,6 +6,7 @@ import { sealAccessToken } from "@/lib/token-crypto"
 import { ensureTenantProfile } from "@/lib/tenant-user"
 import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
 import { assertChannelConnect, limitPayload, PlanLimitError } from "@/lib/billing/enforce"
+import { resolveVerifiedPageToken } from "@/lib/meta/page-connect"
 
 /**
  * POST /api/facebook/connect
@@ -27,9 +28,7 @@ export async function POST(request: NextRequest) {
 
   let body: {
     page_id?: string
-    _token?: string
     session_id?: string
-    page_token?: string
     name?: string
   }
   try {
@@ -38,7 +37,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
   }
 
-  const { page_id, _token, session_id } = body
+  const { session_id } = body
+  const page_id = String(body.page_id || "").trim()
   if (!page_id) {
     return NextResponse.json({ error: "Missing page_id in body" }, { status: 400 })
   }
@@ -51,9 +51,11 @@ export async function POST(request: NextRequest) {
     throw error
   }
 
-  // Resolve the user access token. Preferred path: server-side OAuth session.
-  // Fallbacks: body._token, body.page_token, or an existing Facebook connection for this account.
-  let userAccessToken = _token || body.page_token || ""
+  // Resolve the caller's Facebook *user* token from server-side state only:
+  // the one-time OAuth session, or this account's existing Facebook login.
+  // Client-supplied tokens are not accepted (they cannot prove page control
+  // for the page id in the body).
+  let userAccessToken = ""
 
   if (session_id) {
     const { data: session } = await supabase
@@ -120,87 +122,37 @@ export async function POST(request: NextRequest) {
   const userId = profile.id
 
   try {
-    // 1. Fetch the Page Access Token + metadata for the specific page
-    let pageAccessToken = body.page_token || ""
-    let pageName = body.name || `Facebook Page (${page_id})`
-    let pageCategory = "Business"
-    let status = "active"
-
-    if (userAccessToken && !pageAccessToken) {
-      // Method A: Check user's managed pages list from Graph API
-      try {
-        const accountsUrl = `${FACEBOOK_GRAPH_BASE}/me/accounts?fields=id,name,category,access_token&limit=100&access_token=${userAccessToken}`
-        const accountsRes = await fetch(accountsUrl)
-        const accountsData = await accountsRes.json()
-        if (accountsRes.ok && Array.isArray(accountsData?.data)) {
-          const match = accountsData.data.find((p: any) => String(p.id) === String(page_id))
-          if (match && match.access_token) {
-            pageAccessToken = match.access_token
-            pageName = body.name || match.name || pageName
-            pageCategory = match.category || pageCategory
-            status = "active"
-            console.log(`[FB Connect] Resolved page ${page_id} (${pageName}) from /me/accounts`)
-          }
-        }
-      } catch (err) {
-        console.warn("[FB Connect] /me/accounts lookup error:", err)
-      }
-
-      // Method B: Direct page lookup if not in /me/accounts (New Pages Experience / Business Manager)
-      if (!pageAccessToken) {
-        try {
-          const pageUrl = new URL(`${FACEBOOK_GRAPH_BASE}/${page_id}`)
-          pageUrl.searchParams.set("fields", "access_token,name,category")
-          pageUrl.searchParams.set("access_token", userAccessToken)
-
-          const pageRes = await fetch(pageUrl.toString())
-          const pageData = await pageRes.json()
-
-          if (pageRes.ok) {
-            pageAccessToken = pageData.access_token || userAccessToken
-            pageName = body.name || pageData.name || pageName
-            pageCategory = pageData.category || pageCategory
-            status = "active"
-          } else {
-            console.warn("[FB Connect] Direct page lookup note:", pageData?.error?.message)
-            pageAccessToken = userAccessToken
-            pageName = body.name || pageName
-            status = "active"
-          }
-        } catch (err) {
-          console.warn("[FB Connect] Direct page lookup error:", err)
-          pageAccessToken = userAccessToken
-          status = "active"
-        }
-      }
+    // 1. Prove the caller manages this Page. Graph only hands a Page token to
+    // someone with a task on the Page. Without that proof we refuse: page_id
+    // decides which workspace receives the Page's webhooks.
+    const verified = await resolveVerifiedPageToken({ pageId: page_id, userAccessToken })
+    if (!verified.ok) {
+      const message = verified.error === "no_user_token"
+        ? "Connect Facebook first (Connect with Facebook), then add the Page."
+        : "We could not confirm you manage this Facebook Page. Reconnect Facebook with an account that has a task on the Page."
+      return NextResponse.json({ error: message }, { status: verified.error === "no_user_token" ? 400 : 403 })
     }
-
-    const storedPageToken = pageAccessToken
-      ? sealAccessToken(pageAccessToken)
-      : (userAccessToken ? sealAccessToken(userAccessToken) : sealAccessToken("facebook_managed"))
+    const pageAccessToken = verified.pageAccessToken
+    const pageName = verified.name || body.name || `Facebook Page (${page_id})`
+    const pageCategory = verified.category || "Business"
+    const status = "active"
+    const storedPageToken = sealAccessToken(pageAccessToken)
 
     // 2. Subscribe the Page to webhook events (best-effort — don't block on failure)
     let webhookSubscribed = false
-    const tokenToSubscribe = pageAccessToken || userAccessToken
-    if (tokenToSubscribe) {
-      try {
-        const subscribeUrl = new URL(`${FACEBOOK_GRAPH_BASE}/${page_id}/subscribed_apps`)
-        subscribeUrl.searchParams.set("subscribed_fields", "messages,messaging_postbacks,feed")
-        subscribeUrl.searchParams.set("access_token", tokenToSubscribe)
+    try {
+      const subscribeUrl = new URL(`${FACEBOOK_GRAPH_BASE}/${page_id}/subscribed_apps`)
+      subscribeUrl.searchParams.set("subscribed_fields", "messages,messaging_postbacks,feed")
+      subscribeUrl.searchParams.set("access_token", pageAccessToken)
 
-        const subRes = await fetch(subscribeUrl.toString(), { method: "POST" })
-        const subData = await subRes.json()
-
-        if (subRes.ok && subData.success) {
-          webhookSubscribed = true
-          console.log(`[FB Connect] Webhook subscription successful for page ${page_id}`)
-        } else {
-          console.warn(`[FB Connect] Webhook subscription response for page ${page_id}:`, subData)
-          webhookSubscribed = true
-        }
-      } catch (subError) {
-        console.warn(`[FB Connect] Webhook subscription error for page ${page_id}:`, subError)
+      const subRes = await fetch(subscribeUrl.toString(), { method: "POST" })
+      const subData = await subRes.json().catch(() => null)
+      webhookSubscribed = Boolean(subRes.ok && subData?.success)
+      if (!webhookSubscribed) {
+        console.warn(`[FB Connect] Webhook subscription not confirmed for page ${page_id}:`, subData?.error?.message || subRes.status)
       }
+    } catch (subError) {
+      console.warn(`[FB Connect] Webhook subscription error for page ${page_id}:`, subError)
     }
 
     // 3. Upsert into platform_connections with workspace and account association
