@@ -333,3 +333,30 @@ describe("abuse and cost limits", () => {
     assert.ok(fn.indexOf("takeRateSlots(") > 0 && fn.indexOf("takeRateSlots(") < fn.indexOf("callGroqAPI("))
   })
 })
+
+const { fetchShopifyProducts, fetchWooProducts } = await import("../lib/commerce/sync.ts")
+
+describe("catalog sync refuses internal or plaintext store URLs (SSRF)", () => {
+  const never = async () => {
+    throw new Error("fetch must not be called")
+  }
+  for (const shop of ["localhost", "127.0.0.1", "169.254.169.254", "10.0.0.5", "shop.internal", "evil.com/../x", "a.com:8080", "user:pw@a.com"]) {
+    it(`shopify rejects ${shop}`, async () => {
+      await assert.rejects(fetchShopifyProducts(shop, "t", never as any), /public https hostname/)
+    })
+  }
+  for (const site of ["http://shop.example.com", "https://127.0.0.1", "https://localhost", "https://192.168.1.10/wp"]) {
+    it(`woocommerce rejects ${site}`, async () => {
+      await assert.rejects(fetchWooProducts(site, "k", "s", never as any), /https URL on a public host/)
+    })
+  }
+  it("still allows a normal store", async () => {
+    let called = ""
+    const ok = async (url: string) => {
+      called = url
+      return new Response(JSON.stringify({ products: [] }), { status: 200 })
+    }
+    await fetchShopifyProducts("my-store.myshopify.com", "t", ok as any)
+    assert.match(called, /^https:\/\/my-store\.myshopify\.com\/admin\/api\//)
+  })
+})
