@@ -123,8 +123,9 @@ async function reserveRateSlot(supabase: any, accountKey: string): Promise<boole
     .eq("account_key", accountKey)
     .maybeSingle()
   if (readError) {
-    console.warn("[inbound] rate bucket read failed:", readError.message)
-    return true
+    // Fail closed: defer the event rather than send without a limit.
+    console.warn("[inbound] rate bucket read failed, deferring:", readError.message)
+    return false
   }
   const current = bucket
     ? { windowStart: Date.parse(bucket.window_start), count: Number(bucket.count) || 0 }
