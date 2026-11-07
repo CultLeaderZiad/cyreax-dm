@@ -2,23 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseBypassClient } from "@/lib/supabase-server";
 import { sendEmail } from "@/lib/email-provider";
 import { BRAND } from "@/lib/brand";
+import { clientIpFromHeaders, escapeHtml, takeRateSlots } from "@/lib/rate-limit";
+
+const EMAIL_PATTERN = /^[^\s@<>"']{1,64}@[^\s@<>"']{1,189}\.[^\s@<>"']{2,}$/;
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, name } = await request.json();
+    const { email: rawEmail, name } = await request.json();
 
-    if (!email || typeof email !== "string" || !email.includes("@")) {
+    const email = typeof rawEmail === "string" ? rawEmail.toLowerCase().trim() : "";
+    if (!email || email.length > 254 || !EMAIL_PATTERN.test(email)) {
       return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
     }
 
     const supabase = await getSupabaseBypassClient();
-    const normalizedName = (typeof name === "string" && name.trim()) ? name.trim() : null;
+    const normalizedName = (typeof name === "string" && name.trim()) ? name.trim().slice(0, 80) : null;
+
+    // Unauthenticated endpoint that sends mail from the platform's SMTP
+    // account: cap it per IP, per address and globally.
+    const ip = clientIpFromHeaders(request.headers);
+    const ipAllowed = await takeRateSlots(supabase, [
+      { key: `abuse:newsletter:ip:${ip}`, limit: 5, windowSeconds: 3600 },
+    ]);
+    if (!ipAllowed) {
+      return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+    }
 
     // Insert into newsletter_subscribers, update name if already exists
     const { error } = await supabase
       .from("newsletter_subscribers")
       .upsert(
-        { email: email.toLowerCase().trim(), name: normalizedName },
+        { email, name: normalizedName },
         { onConflict: "email" }
       );
 
@@ -28,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Send welcome email with personalization
-    const greeting = normalizedName ? `Hey ${normalizedName},` : "Hey there,";
+    const greeting = normalizedName ? `Hey ${escapeHtml(normalizedName)},` : "Hey there,";
     const subject = `Welcome to ${BRAND.name}!`;
     const html = `
       <!DOCTYPE html>
@@ -99,6 +113,14 @@ export async function POST(request: NextRequest) {
       </body>
       </html>
     `;
+
+    const mayEmail = await takeRateSlots(supabase, [
+      { key: `abuse:newsletter:to:${email}`, limit: 1, windowSeconds: 86400 },
+      { key: "abuse:newsletter:global", limit: 200, windowSeconds: 3600 },
+    ]);
+    if (!mayEmail) {
+      return NextResponse.json({ ok: true, message: "Subscribed successfully" });
+    }
 
     await sendEmail({
       to: email,
