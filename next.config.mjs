@@ -34,8 +34,18 @@ const nextConfig = {
             value: 'DENY',
           },
           {
+            // The legacy XSS auditor is removed from browsers and could be abused; disable explicitly.
             key: 'X-XSS-Protection',
-            value: '1; mode=block',
+            value: '0',
+          },
+          {
+            // HTTPS only for a year. No includeSubDomains/preload: agency custom domains are tenant-owned.
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
           },
           {
             key: 'Referrer-Policy',
