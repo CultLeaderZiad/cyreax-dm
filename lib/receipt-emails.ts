@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/rate-limit"
 import { sendEmail } from "./email-provider"
 import { getSupabaseBypassClient } from "./supabase-server"
 import { BRAND } from "./brand"
@@ -95,24 +96,24 @@ export async function sendManualPaymentApproved(opts: {
   periodEnd?: string
 }): Promise<boolean> {
   const html = shell(
-    "Vodafone Cash payment approved",
+    "Payment approved",
     `
     <p>Your manual payment has been verified and approved. Your plan is now active.</p>
     ${receiptTable(
       [
         row("Plan", opts.planName),
-        row("Payment method", "Vodafone Cash (manual)"),
+        row("Payment method", "E-wallet / InstaPay transfer (manual review)"),
         row("Reference", `<span style="font-family:monospace;">${opts.transactionReference}</span>`),
         ...(opts.periodEnd ? [row("Active until", opts.periodEnd)] : []),
       ].join(""),
-      `$${opts.amount}`
+      `EGP ${opts.amount}`
     )}
     <p style="color:#9ca3af;font-size:12px;">Note: manual payments do not auto-renew — we'll remind you before your period ends. Cancellation and refund terms: <a href="${BRAND.appUrl}/refund" style="color:${BRAND_GOLD};">${BRAND.short} refund policy</a>.</p>
     `
   )
   const result = await sendEmail({
     to: opts.to,
-    subject: `${BRAND.name} — payment approved, plan activated ($${opts.amount})`,
+    subject: `${BRAND.name} — payment approved, plan activated (EGP ${opts.amount})`,
     html,
   })
   if (!result.success) {
@@ -128,18 +129,18 @@ export async function sendManualPaymentRejected(opts: {
   reason?: string
 }): Promise<boolean> {
   const html = shell(
-    "Vodafone Cash payment could not be verified",
+    "Payment could not be verified",
     `
     <p>We could not match your submitted payment to a received transfer, so the submission was rejected.</p>
     ${receiptTable(
       [
         row("Reference", `<span style="font-family:monospace;">${opts.transactionReference}</span>`),
-        row("Amount expected", `$${opts.amount}`),
-        ...(opts.reason ? [row("Reason", opts.reason)] : []),
+        row("Amount expected", `EGP ${opts.amount}`),
+        ...(opts.reason ? [row("Reason", escapeHtml(opts.reason))] : []),
       ].join(""),
-      `$${opts.amount}`
+      `EGP ${opts.amount}`
     )}
-    <p>If you already sent the transfer, reply to this email with your transfer screenshot and the wallet number it was sent from — we will verify it and, if it cannot be matched, the transferred amount will be <strong style="color:#fff;">refunded to the sending wallet</strong>.</p>
+    <p>If you already sent the transfer, reply to this email or contact support with your payment reference — we will verify it and, if it cannot be matched, the transferred amount will be <strong style="color:#fff;">refunded to the sending wallet</strong>.</p>
     `
   )
   const result = await sendEmail({

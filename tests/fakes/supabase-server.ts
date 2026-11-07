@@ -13,6 +13,10 @@ export interface FakeState {
   tables: Record<string, Row[]>
   authUserId: string | null
   emailConfirmed?: boolean
+  /** Optional per-test RPC handlers; unknown RPCs return { data: true }. */
+  rpc?: Record<string, (args: any) => { data: any; error: any }>
+  /** bucket -> path -> { bytes, contentType } */
+  storage?: Record<string, Record<string, { bytes: Uint8Array; contentType?: string }>>
 }
 
 const state: FakeState = ((globalThis as any).__cyreaxFakeDb ||= { tables: {}, authUserId: null })
@@ -110,7 +114,30 @@ class Query implements PromiseLike<any> {
 
 const client = {
   from: (name: string) => new Query(name),
-  rpc: async () => ({ data: true, error: null }),
+  rpc: async (name: string, args: any) => {
+    const handler = state.rpc?.[name]
+    return handler ? handler(args) : { data: true, error: null }
+  },
+  storage: {
+    from: (bucket: string) => {
+      const files = ((state.storage ||= {})[bucket] ||= {})
+      return {
+        async upload(path: string, bytes: Uint8Array, opts: { contentType?: string; upsert?: boolean } = {}) {
+          if (files[path] && !opts.upsert) return { data: null, error: { message: "The resource already exists" } }
+          files[path] = { bytes, contentType: opts.contentType }
+          return { data: { path }, error: null }
+        },
+        async remove(paths: string[]) {
+          for (const path of paths) delete files[path]
+          return { data: paths, error: null }
+        },
+        async createSignedUrl(path: string, expiresIn: number) {
+          if (!files[path]) return { data: null, error: { message: "Object not found" } }
+          return { data: { signedUrl: `https://storage.test/${bucket}/${path}?token=signed&expires=${expiresIn}` }, error: null }
+        },
+      }
+    },
+  },
   auth: {
     getUser: async () =>
       state.authUserId

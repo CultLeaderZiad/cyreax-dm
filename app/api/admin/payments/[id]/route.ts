@@ -1,15 +1,16 @@
-// Admin review for Vodafone Cash (and other manual) payments.
-// Billing source of truth is billing_accounts. The review is an atomic
-// compare-and-set on status='pending', so a double-click or a replay grants (or
-// rejects) the plan exactly once. activatePlan() runs only when this request won
-// the race.
+// Admin review for manual payments (e-wallet, InstaPay and older Vodafone
+// Cash rows). The whole review runs inside cyreax_review_payment(): it locks
+// the row, refuses anything that is not pending (so a double click or a
+// retry never extends a plan twice), extends the paid period, writes the
+// billing tables and the audit row, all in one transaction.
 //
-// PATCH /api/admin/payments/[id]
+// PATCH /api/admin/payments/[id]  { action: "approve" | "reject", note? }
+export const dynamic = "force-dynamic"
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
-import { activatePlan } from "@/lib/billing/activation"
 import { sendManualPaymentApproved, sendManualPaymentRejected, getEmailForUserId } from "@/lib/receipt-emails"
+import { notifyCustomerOfReview } from "@/lib/billing/payment-notify"
 import { BRAND } from "@/lib/brand"
 
 export async function PATCH(
@@ -20,144 +21,102 @@ export async function PATCH(
   if (result.response) return result.response
 
   const { id: paymentId } = await params
+  if (!/^[0-9a-f-]{36}$/i.test(paymentId)) return NextResponse.json({ error: "Payment not found" }, { status: 404 })
   const adminAccount = result.user
 
+  let body: any
   try {
-    const { action, rejection_reason } = await request.json()
-    if (!["approve", "reject"].includes(action)) {
-      return NextResponse.json({ error: "Invalid action" }, { status: 400 })
-    }
-
-    const supabase = await getSupabaseBypassClient()
-
-    const { data: payment, error: fetchError } = await supabase
-      .from("payment_submissions")
-      .select("*")
-      .eq("id", paymentId)
-      .single()
-    if (fetchError || !payment) {
-      return NextResponse.json({ error: "Payment not found" }, { status: 404 })
-    }
-    if (payment.status !== "pending") {
-      return NextResponse.json({ error: "Payment is not pending" }, { status: 409 })
-    }
-
-    // The reviewing admin's users.id (int64) for the audit trail.
-    const { data: adminUserRow } = await supabase
-      .from("users")
-      .select("id")
-      .eq("account_id", adminAccount.id)
-      .maybeSingle()
-    const adminUserId: number | null = adminUserRow?.id ?? null
-
-    const nextStatus = action === "approve" ? "approved" : "rejected"
-
-    // Compare-and-set on status='pending'. Exactly one review wins the race.
-    const { data: reviewed, error: updateError } = await supabase
-      .from("payment_submissions")
-      .update({
-        status: nextStatus,
-        reviewed_by: adminUserId,
-        reviewed_at: new Date().toISOString(),
-        rejection_reason: action === "reject" ? rejection_reason || null : null,
-      })
-      .eq("id", paymentId)
-      .eq("status", "pending")
-      .select("id")
-    if (updateError) {
-      return NextResponse.json({ error: "Could not update the payment." }, { status: 500 })
-    }
-    if (!reviewed || reviewed.length === 0) {
-      // Another review already won. No-op so money is never applied twice.
-      return NextResponse.json({ success: true, note: "Already reviewed" })
-    }
-
-    // Resolve the target account for the entitlement write.
-    const { data: targetUser } = await supabase
-      .from("users")
-      .select("account_id")
-      .eq("id", payment.user_id)
-      .maybeSingle()
-    const accountId: string | null = targetUser?.account_id ?? null
-
-    if (action === "approve" && accountId) {
-      let planId: string
-      if (payment.plan_id) {
-        const { data: plan } = await supabase
-          .from("plans")
-          .select("billing_cycle")
-          .eq("id", payment.plan_id)
-          .maybeSingle()
-        planId = plan?.billing_cycle === "monthly" ? "creator" : "creator_plus"
-      } else {
-        planId = Number(payment.amount) === 199 ? "creator_plus" : "creator"
-      }
-
-      try {
-        await activatePlan({
-          accountId,
-          planId,
-          interval: "month",
-          source: payment.payment_method ?? "vodafone_cash",
-          providerRef: String(payment.id),
-        })
-      } catch (activateError: any) {
-        console.error("[admin/payments] activatePlan failed:", activateError?.message ?? activateError)
-        return NextResponse.json({ error: "Could not activate the plan" }, { status: 500 })
-      }
-    }
-
-    if (adminUserId !== null) {
-      await supabase.from("admin_audit_log").insert({
-        admin_user_id: adminUserId,
-        target_user_id: payment.user_id,
-        action: `payment_${action}`,
-        details: { payment_id: paymentId, amount: payment.amount },
-      })
-    }
-
-    // Transactional notice to the customer. Non-blocking.
-    try {
-      const toEmail = await getEmailForUserId(payment.user_id)
-      if (toEmail) {
-        let planName = `${BRAND.name} Plan`
-        if (payment.plan_id) {
-          const { data: planRow } = await supabase
-            .from("plans")
-            .select("name")
-            .eq("id", payment.plan_id)
-            .maybeSingle()
-          planName = planRow?.name || planName
-        }
-        if (action === "approve") {
-          const { data: subRow } = await supabase
-            .from("subscriptions")
-            .select("current_period_end")
-            .eq("user_id", payment.user_id)
-            .maybeSingle()
-          await sendManualPaymentApproved({
-            to: toEmail,
-            planName,
-            amount: Number(payment.amount),
-            transactionReference: payment.transaction_reference,
-            periodEnd: subRow?.current_period_end ? new Date(subRow.current_period_end).toLocaleDateString() : undefined,
-          })
-        } else {
-          await sendManualPaymentRejected({
-            to: toEmail,
-            amount: Number(payment.amount),
-            transactionReference: payment.transaction_reference,
-            reason: rejection_reason || undefined,
-          })
-        }
-      }
-    } catch (e) {
-      console.error("[admin/payments] Notice email failed (non-blocking):", e)
-    }
-
-    return NextResponse.json({ success: true })
-  } catch (err: any) {
-    console.error("[admin/payments] Error:", err?.message ?? err)
-    return NextResponse.json({ error: "Failed to review payment" }, { status: 500 })
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   }
+  const action = body?.action
+  if (action !== "approve" && action !== "reject") {
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 })
+  }
+  const note = String(body?.note ?? body?.rejection_reason ?? "").trim().slice(0, 500) || null
+  if (action === "reject" && !note) {
+    return NextResponse.json({ error: "Add a reason so the customer knows what to fix." }, { status: 400 })
+  }
+
+  const supabase = await getSupabaseBypassClient()
+  const { data: payment } = await supabase
+    .from("payment_submissions")
+    .select("id, user_id, account_id, workspace_id, plan_id, plan_slug, amount, amount_egp, transaction_reference, reference_code, status")
+    .eq("id", paymentId)
+    .maybeSingle()
+  if (!payment) return NextResponse.json({ error: "Payment not found" }, { status: 404 })
+
+  // Older rows have no plan slug: keep the previous mapping for them.
+  let fallbackPlan: string | null = null
+  if (!payment.plan_slug) {
+    if (payment.plan_id) {
+      const { data: plan } = await supabase.from("plans").select("billing_cycle").eq("id", payment.plan_id).maybeSingle()
+      fallbackPlan = plan?.billing_cycle === "monthly" ? "creator" : "creator_plus"
+    } else {
+      fallbackPlan = Number(payment.amount) === 199 ? "creator_plus" : "creator"
+    }
+  }
+
+  const { data: review, error } = await supabase.rpc("cyreax_review_payment", {
+    p_payment_id: paymentId,
+    p_action: action,
+    p_admin_account: adminAccount.id,
+    p_note: note,
+    p_fallback_plan: fallbackPlan,
+  })
+  if (error) {
+    console.error("[admin/payments] review failed:", error.message)
+    const missing = /cyreax_review_payment|schema cache|does not exist/i.test(error.message || "")
+    return NextResponse.json(
+      { error: missing ? "Run the payments migration (20261107120300) first." : "Could not review the payment." },
+      { status: missing ? 503 : 500 },
+    )
+  }
+
+  const outcome = review?.result
+  if (outcome === "not_found") return NextResponse.json({ error: "Payment not found" }, { status: 404 })
+  if (outcome === "already_reviewed") {
+    return NextResponse.json({ success: true, alreadyReviewed: true, status: review.status })
+  }
+
+  const accountId: string | null = review?.account_id || payment.account_id || null
+  if (accountId) {
+    await notifyCustomerOfReview(supabase, {
+      accountId,
+      workspaceId: payment.workspace_id,
+      referenceCode: payment.reference_code,
+      approved: outcome === "approved",
+      note,
+    })
+  }
+
+  // Email notice. Non-blocking.
+  try {
+    const toEmail = await getEmailForUserId(payment.user_id)
+    if (toEmail) {
+      let planName = `${BRAND.name} Plan`
+      if (payment.plan_id) {
+        const { data: planRow } = await supabase.from("plans").select("name").eq("id", payment.plan_id).maybeSingle()
+        planName = planRow?.name || planName
+      }
+      const amount = Number(payment.amount_egp ?? payment.amount)
+      const reference = payment.reference_code || payment.transaction_reference
+      if (outcome === "approved") {
+        await sendManualPaymentApproved({
+          to: toEmail,
+          planName,
+          amount,
+          transactionReference: reference,
+          periodEnd: review?.period_end ? new Date(review.period_end).toLocaleDateString("en-GB") : undefined,
+        })
+      } else {
+        await sendManualPaymentRejected({ to: toEmail, amount, transactionReference: reference, reason: note || undefined })
+      }
+    }
+  } catch (e: any) {
+    console.error("[admin/payments] notice email failed (non-blocking):", e?.message)
+  }
+
+  return NextResponse.json({ success: true, status: outcome, periodEnd: review?.period_end ?? null })
 }
