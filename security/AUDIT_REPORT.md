@@ -9,7 +9,7 @@ Date: 2026-11-07. Baseline: `main` at `efb0512`. Scope: the whole repository, wh
 | Check | Result |
 |---|---|
 | `pnpm exec tsc --noEmit` | pass |
-| `pnpm test` | 221 + 13 pass, 0 fail. The baseline was 178 |
+| `pnpm test` | 226 + 16 pass, 0 fail. The baseline was 178 |
 | `pnpm build` (no Supabase env, same as CI) | pass |
 | `pnpm install --frozen-lockfile` | **failed on baseline**: the lockfile specifier didn't match. Fixed |
 | `pnpm audit --prod` | baseline 4 critical / 23 high. After the fixes: 0 critical / 3 high (nodemailer ×2, source-map-js) |
@@ -90,19 +90,19 @@ Date: 2026-11-07. Baseline: `main` at `efb0512`. Scope: the whole repository, wh
 | # | Finding | Evidence | Recommendation |
 |---|---|---|---|
 | P2-1 | SSRF in the Shopify/WooCommerce sync. Arbitrary host, response stored in `products`; Woo secret sent over http | `lib/commerce/sync.ts:5,15` (baseline) | **Fixed**: `isSafeWebhookUrl` + bare hostname. Tests: 13 cases |
-| P2-2 | SSRF guard checks the host string only, with no DNS resolution: a public name resolving to a private IP passes. Applies to the URL importer, flow webhooks and outgoing webhooks | `lib/flows/graph.ts:62-78` | Resolve and check the IP before fetching, or proxy outbound fetches. Lower impact on Vercel (no IMDS), but still reachable |
+| P2-2 | SSRF guard checks the host string only, with no DNS resolution: a public name resolving to a private IP passes. Applies to the URL importer, flow webhooks and outgoing webhooks | `lib/flows/graph.ts:62-78` | **Fixed** (`a4988d6`): `lib/net/public-host.ts` resolves DNS and requires every address to be public, for URL import, outgoing webhooks (checked again at send time) and flow webhooks. Residual: DNS rebinding between the check and the fetch |
 | P2-3 | Telegram bot token in the webhook URL path, so it lands in Vercel access logs | `app/api/telegram/connect/route.ts:75` | Use `setWebhook` `secret_token` + `X-Telegram-Bot-Api-Secret-Token`, with a per-bot random path. Needs a re-register of every bot, so it was deliberately not done in this pass |
-| P2-4 | No CSP or HSTS header; `X-XSS-Protection` is obsolete | `next.config.mjs:23-50` | Add `Strict-Transport-Security` and a report-only CSP first. `dangerouslySetInnerHTML` is used only for a server-generated QR SVG (`app/dashboard/growth/page.tsx:123`) |
+| P2-4 | No CSP or HSTS header; `X-XSS-Protection` is obsolete | `next.config.mjs:23-50` | **Partly fixed** (`085a92c`): HSTS (1 year), Permissions-Policy, `X-XSS-Protection: 0`. **Open:** CSP (roll it out report-only first). `dangerouslySetInnerHTML` is used only for a server-generated QR SVG |
 | P2-5 | Retry after a partial send can double-send: there's an idempotency key per event, but not per outbound message | `lib/inbound-worker.ts:52-82` | Record a send key (event id + step) before calling the provider and skip it if it already exists |
 | P2-6 | Column-level `REVOKE SELECT (access_token)` is a no-op while table-level SELECT is granted (Supabase default) | `supabase/migrations/20260930_phase1_rls_realtime.sql:266,273` | Tokens are encrypted at rest, so impact is low. To really hide the column, revoke table SELECT and grant a column list. Check the realtime and admin-page reads first |
-| P2-7 | Inbound rate limiter fails open if the bucket read errors | `lib/inbound-worker.ts:125-127` | Fail closed (defer) |
-| P2-8 | Team invite accepted on an email match only; relies on Supabase "Confirm email" being on | `app/api/team/accept/route.ts:47` | Check the auth user's `email_confirmed_at`. Confirm the setting in Supabase Auth (UNVERIFIED) |
-| P2-9 | Public lead and web chat endpoints rely on Origin (spoofable outside browsers) plus 20/min/IP; the bio lead form has no limit | `lib/webchat/security.ts`, `app/api/public/bio/[slug]/route.ts:17` | Reuse `takeRateSlots` per IP and per page; AI replies there are already metered by plan |
-| P2-10 | Dev signature bypass is allowed on `VERCEL_ENV=preview` when `NODE_ENV` isn't production (on Vercel, `NODE_ENV` is production, so this is effectively off) | `lib/webhooks/signature-guard.ts:12` | Also require `VERCEL_ENV` unset. Never set `DISABLE_WEBHOOK_SIGNATURE_CHECK` in Vercel |
-| P2-11 | Crons that exist but are not scheduled: `refresh-tiktok-tokens`, `send-scheduled-campaigns`, `dunning`, `client-reports` | `vercel.json` vs `app/api/cron/*` | TikTok tokens will expire unrefreshed. On Hobby, check how many daily crons the plan allows, and that the existing `* * * * *` entry is accepted (UNVERIFIED) |
+| P2-7 | Inbound rate limiter fails open if the bucket read errors | `lib/inbound-worker.ts:125-127` | **Fixed** (`4720ceb`): the event is deferred |
+| P2-8 | Team invite accepted on an email match only; relies on Supabase "Confirm email" being on | `app/api/team/accept/route.ts:47` | **Fixed** (`50b5383`): requires `email_confirmed_at` on the Supabase Auth user. Tests: unconfirmed 403, other account 404, confirmed 200 |
+| P2-9 | Public lead and web chat endpoints rely on Origin (spoofable outside browsers) plus 20/min/IP; the bio lead form has no limit | `lib/webchat/security.ts`, `app/api/public/bio/[slug]/route.ts:17` | **Fixed for bio** (`2c167aa`): 10/hour per IP, 300/hour per page. Web chat keeps its own 20/min limiter, and AI replies are plan-metered |
+| P2-10 | Dev signature bypass is allowed on `VERCEL_ENV=preview` when `NODE_ENV` isn't production (on Vercel, `NODE_ENV` is production, so this is effectively off) | `lib/webhooks/signature-guard.ts:12` | **Fixed** (`227f357`): the bypass is refused whenever `VERCEL_ENV` is set |
+| P2-11 | Crons that exist but are not scheduled: `refresh-tiktok-tokens`, `send-scheduled-campaigns`, `dunning`, `client-reports` | `vercel.json` vs `app/api/cron/*` | **Partly fixed** (`08fa9b7`): TikTok refresh is scheduled daily. **Open:** `send-scheduled-campaigns`, `dunning` and `client-reports` are left unscheduled on purpose, because enabling them starts real sends and charges and needs a product decision. Check the plan's cron limits (UNVERIFIED) |
 | P2-12 | Leftover Stripe dependency and routes after the move to Vodafone Cash/Paymob | `package.json:44`, `app/api/stripe/*`, `app/api/payments/stripe` | Remove if unused, after checking the billing UI. Not removed here (no sweeping changes) |
 | P2-13 | nodemailer `<10.0.6` addressparser ReDoS (high), source-map-js DoS | `pnpm audit` | Upgrade nodemailer to 10.x (major version: test sending) |
-| P2-14 | `x-forwarded-for` first hop is used as the client IP for limits | `lib/rate-limit.ts`, `lib/webchat/security.ts` | On Vercel the platform sets this header, but confirm it (UNVERIFIED). Prefer `x-vercel-forwarded-for` |
+| P2-14 | `x-forwarded-for` first hop is used as the client IP for limits | `lib/rate-limit.ts`, `lib/webchat/security.ts` | **Fixed** (`2c167aa`): `x-vercel-forwarded-for` is preferred |
 | P2-15 | `next.config` `removeConsole` keeps `error`/`warn`, and some error logs include Supabase error objects and emails (e.g. `lib/auth.ts:70-75`) | various | Redact emails and IDs in logs. Sentry is env-gated (`SENTRY_DSN`); scrub PII before sending |
 
 ## Verified as fine (spot checks)
@@ -137,5 +137,12 @@ Date: 2026-11-07. Baseline: `main` at `efb0512`. Scope: the whole repository, wh
 | `a8afd31` | tenant isolation tests | `git revert` (tests only) |
 | `c31ee98` | P0-3 Next 16.4.3 | `git revert` (restores the vulnerable 16.0.10) |
 | `1ebe7e8` | CI report-only security job | `git revert` |
+| `4720ceb` | P2-7 inbound limiter fails closed | `git revert` |
+| `227f357` | P2-10 no signature bypass on any Vercel env | `git revert` |
+| `50b5383` | P2-8 confirmed email for invites | `git revert` |
+| `a4988d6` | P2-2 DNS-resolving SSRF check | `git revert` |
+| `2c167aa` | P2-9/P2-14 bio lead limits, Vercel IP header | `git revert` |
+| `085a92c` | P2-4 HSTS / Permissions-Policy | `git revert`. Browsers cache HSTS for a year either way, which is harmless on an HTTPS-only app |
+| `08fa9b7` | TikTok refresh cron scheduled | remove the entry from `vercel.json` |
 
 The hashes are local. If the commits are re-applied through another route, the hashes will differ.
