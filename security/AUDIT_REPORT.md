@@ -99,7 +99,7 @@ Date: 2026-11-07. Baseline: `main` at `efb0512`. Scope: the whole repository, wh
 | P2-8 | Team invite accepted on an email match only; relies on Supabase "Confirm email" being on | `app/api/team/accept/route.ts:47` | **Fixed** (`50b5383`): requires `email_confirmed_at` on the Supabase Auth user. Tests: unconfirmed 403, other account 404, confirmed 200 |
 | P2-9 | Public lead and web chat endpoints rely on Origin (spoofable outside browsers) plus 20/min/IP; the bio lead form has no limit | `lib/webchat/security.ts`, `app/api/public/bio/[slug]/route.ts:17` | **Fixed for bio** (`2c167aa`): 10/hour per IP, 300/hour per page. Web chat keeps its own 20/min limiter, and AI replies are plan-metered |
 | P2-10 | Dev signature bypass is allowed on `VERCEL_ENV=preview` when `NODE_ENV` isn't production (on Vercel, `NODE_ENV` is production, so this is effectively off) | `lib/webhooks/signature-guard.ts:12` | **Fixed** (`227f357`): the bypass is refused whenever `VERCEL_ENV` is set |
-| P2-11 | Crons that exist but are not scheduled: `refresh-tiktok-tokens`, `send-scheduled-campaigns`, `dunning`, `client-reports` | `vercel.json` vs `app/api/cron/*` | **Partly fixed** (`08fa9b7`): TikTok refresh is scheduled daily. **Open:** `send-scheduled-campaigns`, `dunning` and `client-reports` are left unscheduled on purpose, because enabling them starts real sends and charges and needs a product decision. Check the plan's cron limits (UNVERIFIED) |
+| P2-11 | Crons exist but aren't scheduled: `refresh-tiktok-tokens`, `send-scheduled-campaigns`, `dunning`, `client-reports`, `process-inbound-events` | `vercel.json` vs `app/api/cron/*` | **Open (plan limit).** Production deploys had failed since `efb0512` because it added a `* * * * *` cron, which Vercel Hobby rejects. `720cb5c` restores the two-cron config that last deployed, and drops the TikTok cron from `08fa9b7`. The queue is still drained by the webhook `after()` hook. To run the rest, upgrade to Pro or call them from an external scheduler with `Authorization: Bearer $CRON_SECRET` |
 | P2-12 | Leftover Stripe dependency and routes after the move to Vodafone Cash/Paymob | `package.json:44`, `app/api/stripe/*`, `app/api/payments/stripe` | Remove if unused, after checking the billing UI. Not removed here (no sweeping changes) |
 | P2-13 | nodemailer `<10.0.6` addressparser ReDoS (high), source-map-js DoS | `pnpm audit` | Upgrade nodemailer to 10.x (major version: test sending) |
 | P2-14 | `x-forwarded-for` first hop is used as the client IP for limits | `lib/rate-limit.ts`, `lib/webchat/security.ts` | **Fixed** (`2c167aa`): `x-vercel-forwarded-for` is preferred |
@@ -143,6 +143,7 @@ Date: 2026-11-07. Baseline: `main` at `efb0512`. Scope: the whole repository, wh
 | `a4988d6` | P2-2 DNS-resolving SSRF check | `git revert` |
 | `2c167aa` | P2-9/P2-14 bio lead limits, Vercel IP header | `git revert` |
 | `085a92c` | P2-4 HSTS / Permissions-Policy | `git revert`. Browsers cache HSTS for a year either way, which is harmless on an HTTPS-only app |
-| `08fa9b7` | TikTok refresh cron scheduled | remove the entry from `vercel.json` |
+| `08fa9b7` | TikTok refresh cron scheduled (superseded by `720cb5c`) | n/a |
+| `720cb5c` | restore Hobby-compatible crons; **fixes failing production deploys** | re-adding a sub-daily cron breaks deploys on Hobby again |
 
 The hashes are local. If the commits are re-applied through another route, the hashes will differ.
