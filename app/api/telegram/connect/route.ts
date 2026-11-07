@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { forbidBelow, requireSessionUser } from "@/lib/auth"
 import { getBotInfo, setWebhook } from "@/lib/telegram-api"
+import { telegramWebhookSecret, telegramWebhookUrl } from "@/lib/telegram-webhook"
 import { sealAccessToken } from "@/lib/token-crypto"
 import { ensureTenantProfile } from "@/lib/tenant-user"
 import { assertChannelConnect, limitPayload, PlanLimitError } from "@/lib/billing/enforce"
@@ -71,15 +72,16 @@ export async function POST(request: NextRequest) {
     // Deep fix: skip webhook if testing on localhost since Telegram blocks HTTP webhooks
     const isLocal = validatedAppUrl.includes("localhost") || validatedAppUrl.startsWith("http://")
 
-    // Token is in the path as Telegram's security measure
-    const webhookUrl = `${validatedAppUrl}/api/telegram/webhook/${botToken}`
+    // Bot id in the path, secret in Telegram's secret_token header. The bot
+    // token never appears in a URL (and so never in access logs).
+    const webhookUrl = telegramWebhookUrl(validatedAppUrl, String(botInfo.id))
     
     let webhookSubscribed = false
     
     if (isLocal) {
       console.warn(`[Telegram Connect] Skipping webhook registration for local development: ${validatedAppUrl}`)
     } else {
-      const webhookResult = await setWebhook(botToken, webhookUrl)
+      const webhookResult = await setWebhook(botToken, webhookUrl, telegramWebhookSecret(botToken))
       if (!webhookResult.ok) {
         return NextResponse.json({ error: `Failed to register webhook with Telegram: ${webhookResult.error}` }, { status: 502 })
       }
@@ -103,7 +105,8 @@ export async function POST(request: NextRequest) {
         name: botInfo.first_name,
         username: botInfo.username,
         is_bot: botInfo.is_bot,
-        webhook_subscribed: webhookSubscribed
+        webhook_subscribed: webhookSubscribed,
+        webhook_secret_v2: webhookSubscribed,
       }
     }
     

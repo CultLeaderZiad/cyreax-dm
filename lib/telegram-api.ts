@@ -53,18 +53,30 @@ export async function getBotInfo(botToken: string): Promise<{ ok: boolean; bot?:
   }
 }
 
-export async function setWebhook(botToken: string, webhookUrl: string): Promise<{ ok: boolean; error?: string }> {
+export async function setWebhook(
+  botToken: string,
+  webhookUrl: string,
+  secretToken?: string,
+): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await fetch(`${TG_API}/bot${botToken}/setWebhook?url=${encodeURIComponent(webhookUrl)}`)
+    // POST body, not query string: keeps the secret out of any intermediary URL logs.
+    const res = await fetch(`${TG_API}/bot${botToken}/setWebhook`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: webhookUrl,
+        ...(secretToken ? { secret_token: secretToken } : {}),
+      }),
+    })
     const data = await res.json()
     if (data.ok) {
-      console.log(`[tg-api] Webhook set successfully: ${webhookUrl}`)
+      console.log("[tg-api] Webhook set successfully")
       return { ok: true }
     }
-    console.error("[tg-api] setWebhook failed:", data)
-    return { ok: false, error: data.description || JSON.stringify(data) }
+    console.error("[tg-api] setWebhook failed:", data?.description || "unknown error")
+    return { ok: false, error: data.description || "setWebhook failed" }
   } catch (e: any) {
-    console.error("[tg-api] setWebhook network error:", e)
+    console.error("[tg-api] setWebhook network error:", e?.message || String(e))
     return { ok: false, error: e.message || String(e) }
   }
 }
