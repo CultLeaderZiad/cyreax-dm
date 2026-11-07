@@ -91,17 +91,17 @@ Date: 2026-11-07. Baseline: `main` at `efb0512`. Scope: the whole repository, wh
 |---|---|---|---|
 | P2-1 | SSRF in the Shopify/WooCommerce sync. Arbitrary host, response stored in `products`; Woo secret sent over http | `lib/commerce/sync.ts:5,15` (baseline) | **Fixed**: `isSafeWebhookUrl` + bare hostname. Tests: 13 cases |
 | P2-2 | SSRF guard checks the host string only, with no DNS resolution: a public name resolving to a private IP passes. Applies to the URL importer, flow webhooks and outgoing webhooks | `lib/flows/graph.ts:62-78` | **Fixed** (`a4988d6`): `lib/net/public-host.ts` resolves DNS and requires every address to be public, for URL import, outgoing webhooks (checked again at send time) and flow webhooks. Residual: DNS rebinding between the check and the fetch |
-| P2-3 | Telegram bot token in the webhook URL path, so it lands in Vercel access logs | `app/api/telegram/connect/route.ts:75` | Use `setWebhook` `secret_token` + `X-Telegram-Bot-Api-Secret-Token`, with a per-bot random path. Needs a re-register of every bot, so it was deliberately not done in this pass |
-| P2-4 | No CSP or HSTS header; `X-XSS-Protection` is obsolete | `next.config.mjs:23-50` | **Partly fixed** (`085a92c`): HSTS (1 year), Permissions-Policy, `X-XSS-Protection: 0`. **Open:** CSP (roll it out report-only first). `dangerouslySetInnerHTML` is used only for a server-generated QR SVG |
-| P2-5 | Retry after a partial send can double-send: there's an idempotency key per event, but not per outbound message | `lib/inbound-worker.ts:52-82` | Record a send key (event id + step) before calling the provider and skip it if it already exists |
+| P2-3 | Telegram bot token in the webhook URL path, so it lands in Vercel access logs | `app/api/telegram/connect/route.ts` (baseline) | **Fixed** (`0be5506`): bot-id URL + `secret_token` header (HMAC of the stored token); old registrations migrate themselves on first delivery, then the token path is refused |
+| P2-4 | No CSP or HSTS header; `X-XSS-Protection` is obsolete | `next.config.mjs` | **Fixed** (`085a92c` HSTS/Permissions-Policy, `020741b` enforced CSP). `script-src` keeps `'unsafe-inline'` for the App Router bootstrap (nonces would force every page dynamic). Zero violations on a production build |
+| P2-5 | Retry after a partial send could double-send | `lib/inbound-worker.ts` | **Fixed** (`c97d5be`): each DM / AI / private / public comment reply claims `outbound_sends` before the provider call; a duplicate claim skips. Needs migration `20261107120200`. Flow-engine sends keep their own per-node `delivered` set |
 | P2-6 | Column-level `REVOKE SELECT (access_token)` is a no-op while table-level SELECT is granted (Supabase default) | `supabase/migrations/20260930_phase1_rls_realtime.sql:266,273` | Tokens are encrypted at rest, so impact is low. To really hide the column, revoke table SELECT and grant a column list. Check the realtime and admin-page reads first |
 | P2-7 | Inbound rate limiter fails open if the bucket read errors | `lib/inbound-worker.ts:125-127` | **Fixed** (`4720ceb`): the event is deferred |
 | P2-8 | Team invite accepted on an email match only; relies on Supabase "Confirm email" being on | `app/api/team/accept/route.ts:47` | **Fixed** (`50b5383`): requires `email_confirmed_at` on the Supabase Auth user. Tests: unconfirmed 403, other account 404, confirmed 200 |
 | P2-9 | Public lead and web chat endpoints rely on Origin (spoofable outside browsers) plus 20/min/IP; the bio lead form has no limit | `lib/webchat/security.ts`, `app/api/public/bio/[slug]/route.ts:17` | **Fixed for bio** (`2c167aa`): 10/hour per IP, 300/hour per page. Web chat keeps its own 20/min limiter, and AI replies are plan-metered |
 | P2-10 | Dev signature bypass is allowed on `VERCEL_ENV=preview` when `NODE_ENV` isn't production (on Vercel, `NODE_ENV` is production, so this is effectively off) | `lib/webhooks/signature-guard.ts:12` | **Fixed** (`227f357`): the bypass is refused whenever `VERCEL_ENV` is set |
-| P2-11 | Crons exist but aren't scheduled: `refresh-tiktok-tokens`, `send-scheduled-campaigns`, `dunning`, `client-reports`, `process-inbound-events` | `vercel.json` vs `app/api/cron/*` | **Open (plan limit).** Production deploys had failed since `efb0512` because it added a `* * * * *` cron, which Vercel Hobby rejects. `720cb5c` restores the two-cron config that last deployed, and drops the TikTok cron from `08fa9b7`. The queue is still drained by the webhook `after()` hook. To run the rest, upgrade to Pro or call them from an external scheduler with `Authorization: Bearer $CRON_SECRET` |
-| P2-12 | Leftover Stripe dependency and routes after the move to Vodafone Cash/Paymob | `package.json:44`, `app/api/stripe/*`, `app/api/payments/stripe` | Remove if unused, after checking the billing UI. Not removed here (no sweeping changes) |
-| P2-13 | nodemailer `<10.0.6` addressparser ReDoS (high), source-map-js DoS | `pnpm audit` | Upgrade nodemailer to 10.x (major version: test sending) |
+| P2-11 | Crons exist but weren't scheduled | `vercel.json` vs `app/api/cron/*` | **Fixed** (`3e09ffd`): Vercel keeps its 2 Hobby crons; `.github/workflows/scheduled-jobs.yml` calls the others with the same `CRON_SECRET` (queue/flows every 10 min, campaigns hourly, TikTok 12-hourly, dunning + client reports daily). Inactive until the `CRON_SECRET` Actions secret is set |
+| P2-12 | Leftover Stripe dependency and routes | `package.json`, `app/api/stripe/*` | **Fixed** (`05be475`): platform Stripe billing, routes and the `stripe` package removed; cancel is `/api/billing/cancel`. Kept: the optional per-workspace Stripe connector customers use to sell to their own buyers |
+| P2-13 | nodemailer ReDoS (high), source-map-js DoS | `pnpm audit` | **Fixed** (`c46b9df`): nodemailer 10.2.1, `source-map-js` override. `pnpm audit --prod`: no known vulnerabilities |
 | P2-14 | `x-forwarded-for` first hop is used as the client IP for limits | `lib/rate-limit.ts`, `lib/webchat/security.ts` | **Fixed** (`2c167aa`): `x-vercel-forwarded-for` is preferred |
 | P2-15 | `next.config` `removeConsole` keeps `error`/`warn`, and some error logs include Supabase error objects and emails (e.g. `lib/auth.ts:70-75`) | various | Redact emails and IDs in logs. Sentry is env-gated (`SENTRY_DSN`); scrub PII before sending |
 
@@ -147,3 +147,20 @@ Date: 2026-11-07. Baseline: `main` at `efb0512`. Scope: the whole repository, wh
 | `720cb5c` | restore Hobby-compatible crons; **fixes failing production deploys** | re-adding a sub-daily cron breaks deploys on Hobby again |
 
 The hashes are local. If the commits are re-applied through another route, the hashes will differ.
+
+## Follow-up batch (2026-11-07, second pass)
+
+| Commit | Change | Rollback |
+|---|---|---|
+| `05be475` | remove Stripe platform billing + dependency | `git revert`; re-add `STRIPE_*` env |
+| `c46b9df` | nodemailer 10.2.1, source-map-js override | `git revert` |
+| `0be5506` | Telegram secret_token webhooks | `git revert` (migrated bots keep working on the bot-id URL only after re-registering; reconnect them if reverting) |
+| `c97d5be` | at-most-once outbound replies + migration 20261107120200 | `git revert`; `DROP TABLE public.outbound_sends` |
+| `020741b` | Content-Security-Policy | `git revert` |
+| `3e09ffd` | GitHub Actions scheduler for the remaining crons | delete the workflow or disable it in Actions |
+| `16bacc1` | wallet/InstaPay migration 20261107120300 + real-Postgres tests | rollback SQL in the migration header |
+| `6f4d17a` | payment API, proof upload, atomic admin review | `git revert` (old `/api/payments/submit` returns) |
+| `eeb0409` | bilingual checkout | `git revert` |
+| `cf1818a` | billing page status, fake states removed | `git revert` |
+| `6f62e9b` | admin review page, EGP prices in plan editor | `git revert` |
+
