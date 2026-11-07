@@ -26,3 +26,46 @@ jobs:
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
+
+  # Report-only security checks. They never fail the build and never print
+  # secret values: gitleaks runs with --redact and only rule/file/line/commit
+  # are written to the job summary.
+  security:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Dependency audit (production deps)
+        run: |
+          pnpm audit --prod > audit.txt 2>&1 || true
+          {
+            echo "## pnpm audit --prod"
+            echo '```'
+            tail -n 3 audit.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Secret scan (redacted)
+        env:
+          GITLEAKS_VERSION: 8.21.2
+        run: |
+          curl -sSL -o gitleaks.tgz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          tar xzf gitleaks.tgz gitleaks
+          ./gitleaks git . --redact --no-banner --exit-code 0 --report-format json --report-path gitleaks.json
+          node -e '
+            const rows = require("./gitleaks.json") || [];
+            const lines = rows.map(r => `| ${r.RuleID} | ${r.File} | ${r.StartLine} | ${String(r.Commit).slice(0, 8)} |`);
+            console.log(["## gitleaks (redacted, full history)", "", `Findings: ${rows.length}`, "", "| rule | file | line | commit |", "|---|---|---|---|", ...lines].join("\n"));
+          ' >> "$GITHUB_STEP_SUMMARY"
+          rm -f gitleaks.json
