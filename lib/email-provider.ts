@@ -1,6 +1,7 @@
 import { getSupabaseBypassClient } from "./supabase-server";
 import nodemailer from "nodemailer";
 import { BRAND } from "./brand";
+import { openSmtpPassword } from "./smtp-settings";
 
 export interface SendEmailOptions {
   to: string;
@@ -38,7 +39,8 @@ export async function sendEmail({
       return { success: false, error: "Missing SMTP configuration. Please configure it in the Admin Dashboard." };
     }
 
-    const { host, port, secure, user, pass, fromName: defaultFromName, fromEmail: defaultFromEmail } = data.value;
+    const { host, port, secure, user, fromName: defaultFromName, fromEmail: defaultFromEmail } = data.value;
+    const pass = openSmtpPassword(data.value);
 
     if (!host || !port || !user || !pass) {
       return { success: false, error: "Incomplete SMTP configuration." };

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireAdmin } from "@/lib/auth"
+import { maskSmtpSettings, mergeSmtpUpdate } from "@/lib/smtp-settings"
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,10 +18,10 @@ export async function GET(req: NextRequest) {
 
     if (error) throw new Error(error.message)
 
-    return NextResponse.json(data?.value || {})
+    return NextResponse.json(maskSmtpSettings(data?.value))
   } catch (error: any) {
-    console.error("[api/admin/settings/smtp] GET error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error("[api/admin/settings/smtp] GET error:", error?.message)
+    return NextResponse.json({ error: "Failed to load SMTP settings" }, { status: 500 })
   }
 }
 
@@ -30,15 +31,25 @@ export async function PATCH(req: NextRequest) {
     if (adminCheck.response) return adminCheck.response
 
     const body = await req.json()
-    const { host, port, secure, user, pass, fromName, fromEmail } = body
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Invalid body" }, { status: 400 })
+    }
 
     const supabase = await getSupabaseBypassClient()
+    const current = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "smtp_settings")
+      .maybeSingle()
+    if (current.error) throw new Error(current.error.message)
+    const value = mergeSmtpUpdate(current.data?.value, body)
+
     const { error } = await supabase
       .from("app_settings")
       .upsert(
         { 
           key: "smtp_settings", 
-          value: { host, port, secure, user, pass, fromName, fromEmail },
+          value,
           updated_at: new Date().toISOString()
         },
         { onConflict: "key" }
@@ -48,7 +59,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    console.error("[api/admin/settings/smtp] PATCH error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error("[api/admin/settings/smtp] PATCH error:", error?.message)
+    return NextResponse.json({ error: "Failed to save SMTP settings" }, { status: 500 })
   }
 }

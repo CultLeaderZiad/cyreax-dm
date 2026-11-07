@@ -60,3 +60,36 @@ describe("facebook page connect requires proof of page control", () => {
     assert.equal(graph.calls.length, 0)
   })
 })
+
+const { maskSmtpSettings, mergeSmtpUpdate, openSmtpPassword } = await import("../lib/smtp-settings.ts")
+
+describe("smtp settings never expose the password", () => {
+  const seal = (plain: string) => `sealed(${plain})`
+
+  it("masks plaintext and sealed passwords for the admin UI", () => {
+    assert.equal(maskSmtpSettings({ host: "h", pass: "plain" }).pass, "")
+    assert.equal(maskSmtpSettings({ host: "h", pass: "plain" }).hasPassword, true)
+    const sealed = maskSmtpSettings({ host: "h", pass_encrypted: "x" }) as Record<string, unknown>
+    assert.equal(sealed.pass_encrypted, undefined)
+    assert.equal(sealed.hasPassword, true)
+  })
+
+  it("seals a new password and never stores plaintext", () => {
+    const row = mergeSmtpUpdate(null, { host: "smtp.example.com", port: 465, user: "u", pass: "s3cret" }, seal)
+    assert.equal(row.pass, undefined)
+    assert.equal(row.pass_encrypted, "sealed(s3cret)")
+  })
+
+  it("keeps the existing password when the masked form is saved", () => {
+    const row = mergeSmtpUpdate({ pass_encrypted: "old" }, { host: "h", pass: "" }, seal)
+    assert.equal(row.pass_encrypted, "old")
+    const legacy = mergeSmtpUpdate({ pass: "legacy" }, { host: "h" }, seal)
+    assert.equal(legacy.pass_encrypted, "sealed(legacy)")
+    assert.equal(legacy.pass, undefined)
+  })
+
+  it("still reads legacy plaintext rows so mail keeps working", () => {
+    assert.equal(openSmtpPassword({ pass: "legacy" }), "legacy")
+    assert.equal(openSmtpPassword(null), null)
+  })
+})
