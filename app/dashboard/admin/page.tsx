@@ -382,8 +382,8 @@ export default function AdminPage() {
   const handlePayment = async (paymentId: string, action: 'approve' | 'reject') => {
     let rejection_reason = null
     if (action === 'reject') {
-      rejection_reason = prompt("Enter rejection reason (optional):")
-      if (rejection_reason === null) return // Cancelled
+      rejection_reason = prompt("Reason for rejecting (shown to the customer, required):")
+      if (rejection_reason === null || !rejection_reason.trim()) return // Cancelled or empty
     }
 
     // Optimistic: remove the row immediately so the UI reflects the action.

@@ -1,5 +1,6 @@
 "use client"
 
+import { PLAN_CATALOG } from "@/lib/billing/plans"
 import { useState, useEffect } from "react"
 import { Loader2, Plus, Pencil, Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -32,6 +33,9 @@ interface Plan {
   description: string | null
   price_usd: number
   price_yearly: number | null
+  price_egp?: number | null
+  price_yearly_egp?: number | null
+  catalog_plan_id?: string | null
   billing_cycle: "monthly" | "yearly" | "lifetime"
   features: string[] | null
   is_active: boolean
@@ -61,6 +65,9 @@ const EMPTY_FORM = {
   description: "",
   price_usd: "",
   price_yearly: "",
+  price_egp: "",
+  price_yearly_egp: "",
+  catalog_plan_id: "",
   billing_cycle: "monthly" as Plan["billing_cycle"],
   features: "",
   stripe_price_id: "",
@@ -153,6 +160,9 @@ export default function DashboardAdminPlansPage() {
       description: plan.description || "",
       price_usd: String(plan.price_usd),
       price_yearly: plan.price_yearly !== null ? String(plan.price_yearly) : "",
+      price_egp: plan.price_egp != null ? String(plan.price_egp) : "",
+      price_yearly_egp: plan.price_yearly_egp != null ? String(plan.price_yearly_egp) : "",
+      catalog_plan_id: plan.catalog_plan_id || "",
       billing_cycle: plan.billing_cycle,
       features: Array.isArray(plan.features) ? plan.features.join(", ") : "",
       stripe_price_id: plan.stripe_price_id || "",
@@ -181,6 +191,9 @@ export default function DashboardAdminPlansPage() {
         description: form.description.trim() || null,
         price_usd: parseFloat(form.price_usd),
         price_yearly: form.price_yearly ? parseFloat(form.price_yearly) : null,
+        price_egp: form.price_egp ? Math.round(parseFloat(form.price_egp)) : null,
+        price_yearly_egp: form.price_yearly_egp ? Math.round(parseFloat(form.price_yearly_egp)) : null,
+        catalog_plan_id: form.catalog_plan_id || null,
         billing_cycle: form.billing_cycle,
         features: form.features
           .split(",")
@@ -451,6 +464,29 @@ export default function DashboardAdminPlansPage() {
                     onChange={(e) => setForm({ ...form, price_yearly: e.target.value })}
                   />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-neutral-300">EGP price (Mo / one-time)</Label>
+                  <Input type="number" step="1" min="0" className="bg-white/5 border-white/10 text-white" placeholder="1450"
+                    value={form.price_egp} onChange={(e) => setForm({ ...form, price_egp: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-neutral-300">EGP price (Yr)</Label>
+                  <Input type="number" step="1" min="0" className="bg-white/5 border-white/10 text-white" placeholder="14500"
+                    value={form.price_yearly_egp} onChange={(e) => setForm({ ...form, price_yearly_egp: e.target.value })} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-neutral-300">Grants plan (limits) on approval</Label>
+                <select className="w-full h-9 rounded-md bg-white/5 border border-white/10 text-white px-2 text-sm"
+                  value={form.catalog_plan_id} onChange={(e) => setForm({ ...form, catalog_plan_id: e.target.value })}>
+                  <option value="">Default (monthly → Creator, other → Creator Plus)</option>
+                  {PLAN_CATALOG.filter((entry) => entry.monthlyUsd > 0).map((entry) => (
+                    <option key={entry.id} value={entry.id}>{entry.name}</option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-neutral-500">Customers pay the EGP price by e-wallet or InstaPay. Without an EGP price the checkout asks them to contact support.</p>
               </div>
             </div>
 

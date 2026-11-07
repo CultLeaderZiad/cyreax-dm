@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { name, description, price_usd, price_yearly, billing_cycle, features, stripe_price_id, is_active, is_contact_sales, platforms } = body
+    const { name, description, price_usd, price_yearly, price_egp, price_yearly_egp, catalog_plan_id, billing_cycle, features, stripe_price_id, is_active, is_contact_sales, platforms } = body
     const supabase = await getSupabaseBypassClient()
 
     const { data, error } = await supabase
@@ -33,6 +33,9 @@ export async function POST(request: NextRequest) {
         description,
         price_usd,
         price_yearly,
+        price_egp: price_egp ?? null,
+        price_yearly_egp: price_yearly_egp ?? null,
+        catalog_plan_id: catalog_plan_id || null,
         billing_cycle,
         features: features || [],
         stripe_price_id,
