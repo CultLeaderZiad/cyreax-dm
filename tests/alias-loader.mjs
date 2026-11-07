@@ -3,8 +3,8 @@ import fs from "node:fs"
 import { pathToFileURL, fileURLToPath } from "node:url"
 
 export function resolve(specifier, context, nextResolve) {
-  if (specifier === "next/headers") {
-    return nextResolve(pathToFileURL(path.join(process.cwd(), "node_modules/next/headers.js")).href, context)
+  if (specifier === "next/headers" || specifier === "next/server") {
+    return nextResolve(pathToFileURL(path.join(process.cwd(), `node_modules/${specifier}.js`)).href, context)
   }
 
   if (specifier.startsWith("@/")) {

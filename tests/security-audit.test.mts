@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
-import { readFileSync } from "node:fs"
+import { readFileSync, readdirSync } from "node:fs"
 
 const { safeAuthNext } = await import("../lib/auth-redirect.ts")
 const { resolveVerifiedPageToken } = await import("../lib/meta/page-connect.ts")
@@ -125,5 +125,151 @@ describe("facebook oauth is bound to the browser that started it", () => {
     const exchange = source.indexOf("oauth/access_token")
     assert.ok(stateCheck > 0 && exchange > stateCheck)
     assert.doesNotMatch(source, /JSON\.stringify\(allParams\)/)
+  })
+})
+
+const { metaVerifyTokenMatches } = await import("../lib/webhooks/verify-token.ts")
+
+describe("meta webhook verify token", () => {
+  it("accepts only an exact configured token", () => {
+    const env = { FACEBOOK_WEBHOOK_VERIFY_TOKEN: "Configured-Token-123" }
+    assert.equal(metaVerifyTokenMatches("Configured-Token-123", env), true)
+    assert.equal(metaVerifyTokenMatches("configured-token-123", env), false)
+    assert.equal(metaVerifyTokenMatches("Configured-Token-12", env), false)
+    assert.equal(metaVerifyTokenMatches(null, env), false)
+  })
+  it("has no built-in fallback tokens and fails closed when none is configured", () => {
+    for (const leaked of ["GlymL4xsz3vkDEZ0FwS6XHpN2aUTICJ1", "cyreax_dm_verify_2026", "cyreax_verify_token"]) {
+      assert.equal(metaVerifyTokenMatches(leaked, {}), false)
+    }
+    for (const file of ["app/api/instagram/webhook/route.ts", "app/api/facebook/webhook/route.ts", "app/api/whatsapp/webhook/route.ts"]) {
+      const source = readFileSync(file, "utf8")
+      assert.doesNotMatch(source, /cyreax_dm_verify_2026|cyreax_verify_token|GlymL4/, file)
+      assert.doesNotMatch(source, /toLowerCase\(\) === candidate/, file)
+    }
+  })
+})
+
+const { splitInboundEvents } = await import("../lib/event-pipeline.ts")
+const { enqueueInboundEvents } = await import("../lib/inbound-queue.ts")
+
+function fakeQueueDb() {
+  const keys = new Set<string>()
+  return {
+    keys,
+    from() {
+      return {
+        async insert(row: { idempotency_key: string }) {
+          if (keys.has(row.idempotency_key)) return { error: { code: "23505", message: "duplicate key" } }
+          keys.add(row.idempotency_key)
+          return { error: null }
+        },
+      }
+    },
+  }
+}
+
+describe("webhook replay produces exactly one queued event", () => {
+  const delivery = {
+    object: "instagram",
+    entry: [{ id: "1784", time: 1, messaging: [{ sender: { id: "u1" }, recipient: { id: "1784" }, message: { mid: "m_1", text: "price?" } }] }],
+  }
+  it("the same Meta delivery twice is one event and one duplicate", async () => {
+    const db = fakeQueueDb()
+    const first = await enqueueInboundEvents(db, splitInboundEvents("instagram", delivery))
+    const second = await enqueueInboundEvents(db, splitInboundEvents("instagram", structuredClone(delivery)))
+    assert.deepEqual(first, { accepted: 1, duplicates: 0 })
+    assert.deepEqual(second, { accepted: 0, duplicates: 1 })
+    assert.equal(db.keys.size, 1)
+  })
+  it("a WhatsApp message id retried in a new envelope is still one event", async () => {
+    const wa = (time: number) => ({
+      object: "whatsapp_business_account",
+      entry: [{ id: "waba", changes: [{ field: "messages", value: { metadata: { phone_number_id: "p1" }, messages: [{ id: "wamid.X", timestamp: String(time), text: { body: "hi" } }] } }] }],
+    })
+    const db = fakeQueueDb()
+    await enqueueInboundEvents(db, splitInboundEvents("whatsapp", wa(1)))
+    const again = await enqueueInboundEvents(db, splitInboundEvents("whatsapp", wa(1)))
+    assert.equal(again.accepted, 0)
+    assert.equal(db.keys.size, 1)
+  })
+})
+
+const { createHmac } = await import("node:crypto")
+const { NextRequest } = await import("next/server")
+
+function signedRequest(url: string, body: string, secret: string | null, header = "x-hub-signature-256") {
+  const headers: Record<string, string> = { "content-type": "application/json" }
+  if (secret !== null) headers[header] = `sha256=${createHmac("sha256", secret).update(body).digest("hex")}`
+  return new NextRequest(url, { method: "POST", body, headers })
+}
+
+describe("webhook routes reject unsigned and forged deliveries", () => {
+  const body = JSON.stringify({ object: "instagram", entry: [{ id: "1", messaging: [{ message: { mid: "m", text: "hi" } }] }] })
+
+  it("instagram, facebook and whatsapp: forged signature is 401", async () => {
+    process.env.INSTAGRAM_APP_SECRET = "real-secret"
+    process.env.FACEBOOK_APP_SECRET = "real-secret"
+    process.env.META_APP_SECRET = "real-secret"
+    const routes = [
+      ["app/api/instagram/webhook/route.ts", "https://x.test/api/instagram/webhook"],
+      ["app/api/facebook/webhook/route.ts", "https://x.test/api/facebook/webhook"],
+      ["app/api/whatsapp/webhook/route.ts", "https://x.test/api/whatsapp/webhook"],
+    ] as const
+    for (const [file, url] of routes) {
+      const mod = await import(`../${file}?forged`)
+      const forged = await mod.POST(signedRequest(url, body, "attacker-guess"))
+      assert.equal(forged.status, 401, file)
+      const unsigned = await mod.POST(signedRequest(url, body, null))
+      assert.equal(unsigned.status, 401, file)
+    }
+  })
+
+  it("fails closed when the app secret is missing (no empty-key HMAC accepted)", async () => {
+    delete process.env.INSTAGRAM_APP_SECRET
+    delete process.env.META_APP_SECRET
+    delete process.env.FACEBOOK_APP_SECRET
+    for (const file of ["app/api/instagram/webhook/route.ts", "app/api/whatsapp/webhook/route.ts", "app/api/facebook/webhook/route.ts"]) {
+      const mod = await import(`../${file}?nosecret`)
+      const res = await mod.POST(signedRequest("https://x.test/hook", body, ""))
+      assert.equal(res.status, 401, file)
+    }
+  })
+
+  it("tiktok: forged signature is 401", async () => {
+    process.env.TIKTOK_APP_SECRET = "tt-secret"
+    const mod = await import("../app/api/tiktok/webhook/route.ts")
+    const req = new NextRequest("https://x.test/api/tiktok/webhook", {
+      method: "POST",
+      body: "{}",
+      headers: { "tiktok-signature": `t=${Math.floor(Date.now() / 1000)},s=deadbeef` },
+    })
+    assert.equal((await mod.POST(req)).status, 401)
+  })
+})
+
+const { unauthorizedCronResponse } = await import("../lib/cron-auth.ts")
+
+describe("cron routes require CRON_SECRET", () => {
+  const cron = (auth?: string) =>
+    new NextRequest("https://x.test/api/cron/process-inbound-events", { headers: auth ? { authorization: auth } : {} })
+
+  it("missing CRON_SECRET fails closed (503) even with a header", () => {
+    delete process.env.CRON_SECRET
+    assert.equal(unauthorizedCronResponse(cron("Bearer "))?.status, 503)
+    assert.equal(unauthorizedCronResponse(cron("Bearer undefined"))?.status, 503)
+  })
+  it("no or wrong bearer is 401; the right one passes", () => {
+    process.env.CRON_SECRET = "cron-secret-value"
+    assert.equal(unauthorizedCronResponse(cron())?.status, 401)
+    assert.equal(unauthorizedCronResponse(cron("Bearer wrong"))?.status, 401)
+    assert.equal(unauthorizedCronResponse(cron("cron-secret-value"))?.status, 401)
+    assert.equal(unauthorizedCronResponse(cron("Bearer cron-secret-value")), null)
+  })
+  it("every cron route calls the guard before doing work", () => {
+    for (const dir of readdirSync("app/api/cron")) {
+      const source = readFileSync(`app/api/cron/${dir}/route.ts`, "utf8")
+      assert.match(source, /unauthorizedCronResponse\(request\)/, dir)
+    }
   })
 })
