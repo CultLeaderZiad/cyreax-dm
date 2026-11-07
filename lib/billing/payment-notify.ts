@@ -57,3 +57,23 @@ export async function notifyCustomerOfReview(
     console.warn("[payment-notify] customer notice failed:", error?.message)
   }
 }
+
+/** Generic notices reused by support tickets. */
+export async function notifyAdmins(supabase: Db, notice: { title: string; body: string; link: string }) {
+  try {
+    const { data: admins } = await supabase.from("accounts").select("id").eq("role", "admin").limit(20)
+    for (const admin of admins || []) {
+      await insertNotice(supabase, admin.id, await ownedWorkspace(supabase, admin.id), notice)
+    }
+  } catch (error: any) {
+    console.warn("[notify] admin notice failed:", error?.message)
+  }
+}
+
+export async function notifyAccount(supabase: Db, accountId: string, workspaceId: string | null, notice: { title: string; body: string; link: string }) {
+  try {
+    await insertNotice(supabase, accountId, workspaceId || (await ownedWorkspace(supabase, accountId)), notice)
+  } catch (error: any) {
+    console.warn("[notify] account notice failed:", error?.message)
+  }
+}

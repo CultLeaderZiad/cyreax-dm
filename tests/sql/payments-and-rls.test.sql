@@ -175,4 +175,25 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- 9. Support tickets: owner-only reads, no direct writes.
+INSERT INTO public.support_tickets (id, account_id, subject) VALUES ('33333333-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-00000000000a', 'Help please');
+INSERT INTO public.support_messages (ticket_id, author_role, body) VALUES ('33333333-0000-0000-0000-000000000001', 'customer', 'secret details');
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', 'bbbbbbbb-0000-0000-0000-00000000000b', false);
+DO $$ BEGIN
+  IF (SELECT count(*) FROM public.support_tickets) <> 0 OR (SELECT count(*) FROM public.support_messages) <> 0 THEN
+    RAISE EXCEPTION 'FAIL: user B can read user A support ticket';
+  END IF;
+  BEGIN
+    INSERT INTO public.support_messages (ticket_id, author_role, body) VALUES ('33333333-0000-0000-0000-000000000001', 'admin', 'fake admin');
+    RAISE EXCEPTION 'FAIL: customer could write a support message directly';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+END $$;
+SELECT set_config('request.jwt.claim.sub', 'aaaaaaaa-0000-0000-0000-00000000000a', false);
+DO $$ BEGIN
+  IF (SELECT count(*) FROM public.support_messages) <> 1 THEN RAISE EXCEPTION 'FAIL: owner cannot read own ticket messages'; END IF;
+END $$;
+RESET ROLE;
+
 SELECT 'ALL DB CHECKS PASSED' AS result;

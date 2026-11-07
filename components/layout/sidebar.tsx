@@ -21,8 +21,7 @@ import {
   Globe,
   LogOut,
   Shield,
-  Bell,
-} from "lucide-react"
+  Bell, LifeBuoy } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import useSWR from "swr"
@@ -106,6 +105,7 @@ export function Sidebar({
   const WORKSPACE_NAV = [
     { href: "/dashboard/connected-platforms", icon: Share2, label: "Channels" },
     { href: "/dashboard/billing", icon: CreditCard, label: t.billingTitle || "Billing" },
+    { href: "/dashboard/support", icon: LifeBuoy, label: "Support" },
     { href: "/dashboard/settings", icon: Settings, label: t.settings || "Settings" },
   ]
 

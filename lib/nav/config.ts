@@ -8,6 +8,7 @@ import {
   BarChart3,
   MessageCircle,
   CreditCard,
+  LifeBuoy,
   SlidersHorizontal,
   Shield,
   Workflow,
@@ -111,6 +112,12 @@ export const NAV: NavItem[] = [
     icon: CreditCard,
   },
   {
+    id: "support",
+    label: "Support",
+    href: "/dashboard/support",
+    icon: LifeBuoy,
+  },
+  {
     id: "settings",
     label: "Settings",
     href: "/dashboard/settings",
@@ -132,6 +139,8 @@ export const NAV: NavItem[] = [
     children: [
       { id: "users", label: "Users", href: "/dashboard/admin" },
       { id: "plans", label: "Plans", href: "/dashboard/admin/plans" },
+      { id: "payments", label: "Payments", href: "/dashboard/admin/payments" },
+      { id: "support", label: "Support inbox", href: "/dashboard/admin/support" },
       { id: "trials", label: "Trials", href: "/dashboard/admin/enterprise" },
     ],
   },

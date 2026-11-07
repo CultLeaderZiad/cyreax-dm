@@ -16,6 +16,7 @@ const MIGRATIONS = [
   "supabase/migrations/20261107120100_security_rls_gaps_and_storage.sql",
   "supabase/migrations/20261107120200_outbound_sends.sql",
   "supabase/migrations/20261107120300_manual_wallet_payments.sql",
+  "supabase/migrations/20261107120400_support_tickets.sql",
 ]
 
 const base = process.env.CYREAX_TEST_PG

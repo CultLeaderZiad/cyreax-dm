@@ -28,6 +28,7 @@ const COPY = {
     instapay: "InstaPay",
     other: "Manual",
     help: "Questions about a payment? Email",
+    ticket: "open a ticket",
   },
   ar: {
     title: "مدفوعاتك",
@@ -40,6 +41,7 @@ const COPY = {
     instapay: "إنستاباي",
     other: "يدوي",
     help: "لديك سؤال عن دفعة؟ راسل",
+    ticket: "افتح تذكرة",
   },
 } as const
 
@@ -102,6 +104,8 @@ export function MyPayments() {
       <p className="text-xs text-neutral-500">
         {t.help}{" "}
         <a href={`mailto:${brand.supportEmail}`} className="text-[#e5a93c] hover:underline" dir="ltr">{brand.supportEmail}</a>
+        {" · "}
+        <a href={`/dashboard/support${payments[0]?.referenceCode ? `?ref=${payments[0].referenceCode}` : ""}`} className="text-[#e5a93c] hover:underline">{t.ticket}</a>
       </p>
     </section>
   )

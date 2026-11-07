@@ -78,6 +78,7 @@ const COPY = {
     doneBody: "We received your payment proof. You'll see the result on your Billing page and get a notification when it's reviewed.",
     doneRef: "Keep this reference for support",
     support: "Questions? Contact support",
+    ticket: "Open a support ticket",
     billing: "Go to Billing",
     noPriceTitle: "This plan can't be paid online yet",
     noPriceBody: "The EGP price for this plan isn't set. Contact support and we'll help you subscribe.",
@@ -135,6 +136,7 @@ const COPY = {
     doneBody: "استلمنا إثبات الدفع. ستظهر النتيجة في صفحة الفوترة وسيصلك إشعار عند المراجعة.",
     doneRef: "احتفظ بهذا الرقم المرجعي للتواصل مع الدعم",
     support: "لديك سؤال؟ تواصل مع الدعم",
+    ticket: "افتح تذكرة دعم",
     billing: "الذهاب إلى الفوترة",
     noPriceTitle: "لا يمكن دفع هذه الخطة إلكترونياً بعد",
     noPriceBody: "لم يتم تحديد سعر الخطة بالجنيه. تواصل مع الدعم وسنساعدك في الاشتراك.",
@@ -176,6 +178,9 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
   const SupportLinks = ({ reference }: { reference: string | null }) => (
     <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
       <span className="text-neutral-400">{t.support}:</span>
+      <Link href={`/dashboard/support${reference ? `?ref=${reference}` : ""}`} className="text-[#e5a93c] hover:underline">
+        {t.ticket}
+      </Link>
       <a href={supportHref(reference)} className="text-[#e5a93c] hover:underline" dir="ltr">
         {data.supportEmail}
       </a>
