@@ -1,20 +1,11 @@
+import { transition } from "@/lib/state/machines"
 export const ORDER_STATUSES = ["draft", "pending_payment", "paid", "fulfilled", "cancelled", "refunded"] as const
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number]
 
-const ALLOWED: Record<OrderStatus, OrderStatus[]> = {
-  draft: ["pending_payment", "cancelled"],
-  pending_payment: ["paid", "cancelled"],
-  paid: ["fulfilled", "refunded", "cancelled"],
-  fulfilled: ["refunded"],
-  cancelled: [],
-  refunded: [],
-}
-
+// Transitions live in lib/state/machines.ts (MACHINES.order).
 export function applyOrderStatus(current: OrderStatus, next: OrderStatus): { status: OrderStatus; changed: boolean } {
-  if (current === next) return { status: current, changed: false }
-  if (!ALLOWED[current].includes(next)) return { status: current, changed: false }
-  return { status: next, changed: true }
+  return transition("order", current, next) as { status: OrderStatus; changed: boolean }
 }
 
 export function orderStatusMatches(triggerKeywords: string | null | undefined, status: string): boolean {

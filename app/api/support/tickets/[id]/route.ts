@@ -5,6 +5,7 @@ import { requireSessionUser } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { takeRateSlots } from "@/lib/rate-limit"
 import { MESSAGES_PER_HOUR, TICKET_STATUSES, cleanText } from "@/lib/support"
+import { MACHINES, canTransition } from "@/lib/state/machines"
 import { notifyAccount, notifyAdmins } from "@/lib/billing/payment-notify"
 
 type Ctx = { params: Promise<{ id: string }> }
@@ -17,6 +18,7 @@ async function load(request: NextRequest, ctx: Ctx) {
   const supabase = await getSupabaseBypassClient()
   const { data: ticket } = await supabase.from("support_tickets").select("*").eq("id", id).maybeSingle()
   const isAdmin = session.user.role === "admin"
+  if (ticket && !ticket.status) ticket.status = MACHINES.supportTicket.initial
   // Someone else's ticket looks exactly like a missing one.
   if (!ticket || (!isAdmin && ticket.account_id !== session.user.id)) {
     return { response: NextResponse.json({ error: "Ticket not found" }, { status: 404 }) }
@@ -56,9 +58,14 @@ export async function POST(request: NextRequest, ctx: Ctx) {
   const now = new Date().toISOString()
   const role = isAdmin && ticket.account_id !== session.user.id ? "admin" : "customer"
   await supabase.from("support_messages").insert({ ticket_id: ticket.id, author_account_id: session.user.id, author_role: role, body })
+  const nextStatus = role === "admin" ? "waiting_customer" : "open"
   await supabase
     .from("support_tickets")
-    .update({ status: role === "admin" ? "waiting_customer" : "open", last_message_at: now, updated_at: now })
+    .update({
+      ...(canTransition("supportTicket", ticket.status, nextStatus) ? { status: nextStatus } : {}),
+      last_message_at: now,
+      updated_at: now,
+    })
     .eq("id", ticket.id)
   if (role === "admin") {
     await notifyAccount(supabase, ticket.account_id, ticket.workspace_id, {
@@ -80,6 +87,9 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
   if (!(TICKET_STATUSES as readonly string[]).includes(status)) return NextResponse.json({ error: "Invalid status" }, { status: 400 })
   // Customers may only close their own ticket; admins set any status.
   if (!isAdmin && status !== "closed") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  if (status !== ticket.status && !canTransition("supportTicket", ticket.status, status)) {
+    return NextResponse.json({ error: `A ${ticket.status} ticket can't become ${status}.`, from: ticket.status, to: status }, { status: 409 })
+  }
   await supabase.from("support_tickets").update({ status, updated_at: new Date().toISOString() }).eq("id", ticket.id)
   if (isAdmin && ticket.account_id !== loaded.session.user.id && (status === "resolved" || status === "closed")) {
     await notifyAccount(supabase, ticket.account_id, ticket.workspace_id, {

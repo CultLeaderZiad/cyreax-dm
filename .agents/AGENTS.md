@@ -4,6 +4,17 @@
 
 ---
 
+# State machines
+
+Every `status` column is declared in `lib/state/machines.ts` (states, allowed
+transitions, labels, writers); `docs/STATE_MACHINES.md` is generated from it.
+Before writing a status, check the machine; use `transition()` / `canTransition()`
+for new writers. After changing a machine run `pnpm state:docs` and update the
+SQL CHECK constraint with an additive migration; `tests/state-machines.test.mts`
+fails on drift.
+
+---
+
 # Lightweight UI Stack
 
 ## Allowed Animation Libraries

@@ -101,4 +101,15 @@ describe("support tickets", () => {
     fakeDb().rpc = { take_inbound_rate_slot: () => ({ data: false, error: null }) }
     assert.equal((await list.POST(new NextRequest("https://app.test/api/support/tickets", json({ subject: "abc", body: "x" })))).status, 429)
   })
+
+  it("admin status changes follow the ticket state machine", async () => {
+    const id = await openTicketAsA()
+    as(ADMIN)
+    const patch = (status: string) => one.PATCH(new NextRequest("https://app.test/x", json({ status }, "PATCH")), ctx(id))
+    assert.equal((await patch("closed")).status, 200)
+    const illegal = await patch("resolved")
+    assert.equal(illegal.status, 409, "closed -> resolved is not a move; reopen first")
+    assert.deepEqual(await illegal.json().then((b: any) => [b.from, b.to]), ["closed", "resolved"])
+    assert.equal((await patch("open")).status, 200, "admins can reopen")
+  })
 })

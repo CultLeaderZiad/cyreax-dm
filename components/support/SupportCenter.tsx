@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Loader2, Plus, Send } from "lucide-react"
 import { toast } from "sonner"
+import { MACHINES, stateLabel } from "@/lib/state/machines"
 
 interface Ticket {
   id: string
@@ -21,12 +22,9 @@ interface Message {
   created_at: string
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  open: "Open",
-  waiting_customer: "Awaiting your reply",
-  resolved: "Resolved",
-  closed: "Closed",
-}
+const STATUS_LABEL: Record<string, string> = Object.fromEntries(
+  Object.keys(MACHINES.supportTicket.transitions).map((s) => [s, stateLabel("supportTicket", s)]),
+)
 const STATUS_LABEL_ADMIN: Record<string, string> = { ...STATUS_LABEL, waiting_customer: "Waiting on customer" }
 const STATUS_CLS: Record<string, string> = {
   open: "text-[#e5a93c] border-[#e5a93c]/30",
