@@ -1,8 +1,34 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { isPlatformHost, normalizeHost } from "@/lib/agency/tenant"
+import { checkRequest, MemoryLimiter, takeDbSlot } from "@/lib/security/http-limits"
 
-export async function middleware(request: NextRequest) {
+// One per server instance; survives between requests on a warm instance.
+const memory = new MemoryLimiter()
+
+export async function proxy(request: NextRequest) {
+  // Rate and size limits for every API route, before any other work
+  // (including the Supabase session lookup below).
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    const decision = await checkRequest(
+      { pathname: request.nextUrl.pathname, method: request.method, headers: request.headers },
+      { memory, db: (key, limit, windowSeconds) => takeDbSlot(key, limit, windowSeconds) },
+    )
+    if (!decision.allowed) {
+      const message =
+        decision.status === 413 ? "Request body too large" :
+        decision.status === 503 ? "Temporarily unavailable, try again shortly" :
+        "Too many requests, slow down"
+      return NextResponse.json(
+        { error: message, code: decision.status === 413 ? "payload_too_large" : "rate_limited" },
+        {
+          status: decision.status,
+          headers: decision.retryAfter ? { "Retry-After": String(decision.retryAfter) } : undefined,
+        },
+      )
+    }
+  }
+
   const requestHeaders = new Headers(request.headers)
   const agencyId = await agencyForHost(request.headers.get("x-forwarded-host") || request.headers.get("host"))
   if (agencyId) {
