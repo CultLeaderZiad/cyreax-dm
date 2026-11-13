@@ -16,6 +16,7 @@ import {
   LogOut,
   ChevronRight,
   Bell,
+  Crown,
 } from "lucide-react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
@@ -134,7 +135,7 @@ export function AccountMenu({
             ) : null}
           </DropdownMenu.Item>
 
-          {/* Theme Toggle (Light / Dark / System) */}
+          {/* Theme Toggle (Light / Dark / Gold / System) */}
           <div className="px-2 py-1.5 rounded-[12px] my-0.5">
             <div className="flex items-center justify-between px-1 mb-1.5 text-xs text-[var(--t2)] font-medium">
               <span>Theme</span>
@@ -142,7 +143,7 @@ export function AccountMenu({
                 {mounted ? theme : "system"}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-1 p-0.5 rounded-[8px] bg-[var(--s2)] border border-[var(--line)]">
+            <div className="grid grid-cols-4 gap-1 p-0.5 rounded-[8px] bg-[var(--s2)] border border-[var(--line)]">
               <button
                 type="button"
                 onClick={() => setTheme("light")}
@@ -172,6 +173,21 @@ export function AccountMenu({
               >
                 <Moon className="size-3.5" />
                 <span className="text-[11px]">Dark</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme("gold")}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 py-1 px-1.5 rounded-[6px] text-xs font-medium transition-colors cursor-pointer",
+                  mounted && theme === "gold"
+                    ? "bg-[var(--gold)] text-black font-semibold shadow-xs"
+                    : "text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--s3)]"
+                )}
+                title="Gold premium theme"
+                aria-label="Gold premium theme"
+              >
+                <Crown className="size-3.5" />
+                <span className="text-[11px]">Gold</span>
               </button>
               <button
                 type="button"
