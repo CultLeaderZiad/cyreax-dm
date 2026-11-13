@@ -43,6 +43,15 @@ export async function GET(request: NextRequest) {
       void captureException(error, { route: "cron/process-inbound-events" })
       summary.errors.push(error?.message || "webhook drain failed")
     }
+    // Rate-limit counters: one row per client key, so without this the table
+    // grows with every new IP that ever called us. The longest window in use is
+    // one day; anything idle for two days is safe to drop.
+    await supabase
+      .from("inbound_rate_buckets")
+      .delete()
+      .like("account_key", "abuse:%")
+      .lt("window_start", new Date(Date.now() - 2 * 86_400_000).toISOString())
+      .then(() => undefined, () => undefined)
     // Send-once claims older than 30 days can never be retried against.
     await supabase
       .from("outbound_sends")
