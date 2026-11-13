@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
 
+import { captureException } from "@/lib/monitoring"
 import { type NextRequest, NextResponse } from "next/server"
 import { unauthorizedCronResponse } from "@/lib/cron-auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
@@ -30,6 +31,7 @@ export async function GET(request: NextRequest) {
       flows = await drainFlowJobs(supabase)
     } catch (error: any) {
       console.error("[inbound] flow drain failed:", error)
+      void captureException(error, { route: "cron/process-inbound-events" })
       summary.errors.push(error?.message || "flow drain failed")
     }
     let webhooks = { done: 0, retried: 0, dead: 0 }
@@ -38,6 +40,7 @@ export async function GET(request: NextRequest) {
       webhooks = await drainOutgoingWebhooks(supabase)
     } catch (error: any) {
       console.error("[inbound] webhook drain failed:", error)
+      void captureException(error, { route: "cron/process-inbound-events" })
       summary.errors.push(error?.message || "webhook drain failed")
     }
     // Send-once claims older than 30 days can never be retried against.
@@ -49,6 +52,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ...summary, flows, webhooks })
   } catch (error: any) {
     console.error("[cron/process-inbound-events]", error)
+    void captureException(error, { route: "cron/process-inbound-events" })
     return NextResponse.json({ error: error?.message || "Drain failed" }, { status: 500 })
   }
 }

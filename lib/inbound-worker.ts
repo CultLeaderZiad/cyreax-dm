@@ -1,3 +1,4 @@
+import { captureException } from "@/lib/monitoring"
 import {
   failurePlan,
   inboundRateLimit,
@@ -76,8 +77,11 @@ export async function drainInboundEvents(supabase: any): Promise<DrainSummary> {
             last_error: message.slice(0, 500),
           })
           .eq("id", row.id)
-        if (plan.status === "dead") summary.dead += 1
-        else summary.retried += 1
+        if (plan.status === "dead") {
+          summary.dead += 1
+          // A message we gave up on is a customer who never got a reply: alert.
+          void captureException(error, { area: "inbound-worker", outcome: "dead", platform: String(row.platform || "") })
+        } else summary.retried += 1
         summary.errors.push(message)
       }
     }
@@ -88,6 +92,7 @@ export async function drainInboundEvents(supabase: any): Promise<DrainSummary> {
     await drainFlowJobs(supabase)
   } catch (error) {
     console.error("[inbound] flow drain failed:", error)
+    void captureException(error, { area: "flow-drain" })
   }
 
   return summary

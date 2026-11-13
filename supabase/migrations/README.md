@@ -270,3 +270,15 @@ every environment variable and the Meta callback URLs, is in `docs/DEPLOY.md`.
 48-hour, 10-message cap. Run it after phase 7. It was not applied to a live
 database. Missing the table does not stop webhooks; the cap is still counted
 in the running process until restart.
+
+## Scheduler (pg_cron)
+
+`20261113120000_pg_cron_scheduler.sql` makes Supabase call the cron routes
+itself: the inbound queue, flow delays and outgoing webhooks every minute,
+campaigns every 5 minutes, and Meta token health every 6 hours. GitHub
+Actions schedules can run many minutes late and pause after 60 days without
+repo activity. After running it, store two Vault secrets as the file header
+shows (the site URL, and the same `CRON_SECRET` as Vercel). Until both exist,
+the jobs do nothing. The rollback is in the file header. Check that it works with
+`select * from cron.job_run_details order by start_time desc limit 10;` and
+`GET /api/health` (`checks.queue` should be `ok`).

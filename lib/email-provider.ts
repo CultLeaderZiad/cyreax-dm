@@ -1,3 +1,4 @@
+import { captureException } from "./monitoring";
 import { getSupabaseBypassClient } from "./supabase-server";
 import nodemailer from "nodemailer";
 import { BRAND } from "./brand";
@@ -36,6 +37,8 @@ export async function sendEmail({
 
     if (error || !data || !data.value) {
       console.error("[email-provider] Missing SMTP configuration in app_settings.");
+      // Login, receipt and reset emails all depend on this: alert, don't just log.
+      void captureException(new Error("SMTP is not configured; email not sent"), { area: "email" });
       return { success: false, error: "Missing SMTP configuration. Please configure it in the Admin Dashboard." };
     }
 
@@ -43,6 +46,7 @@ export async function sendEmail({
     const pass = openSmtpPassword(data.value);
 
     if (!host || !port || !user || !pass) {
+      void captureException(new Error("SMTP configuration is incomplete; email not sent"), { area: "email" });
       return { success: false, error: "Incomplete SMTP configuration." };
     }
 

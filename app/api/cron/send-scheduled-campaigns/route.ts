@@ -1,4 +1,6 @@
+export const maxDuration = 60
 export const dynamic = 'force-dynamic'
+import { captureException } from "@/lib/monitoring"
 import { type NextRequest, NextResponse } from "next/server"
 import { unauthorizedCronResponse } from "@/lib/cron-auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
@@ -25,6 +27,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("[cron/send-scheduled-campaigns] Supabase query error:", error)
+      void captureException(error, { route: "cron/send-scheduled-campaigns" })
       return NextResponse.json({ error: "Failed to fetch scheduled campaigns" }, { status: 500 })
     }
 
@@ -42,6 +45,7 @@ export async function GET(request: NextRequest) {
         results.push({ id: campaign.id, name: campaign.name, success: true, ...result })
       } catch (err: any) {
         console.error(`[cron/send-scheduled-campaigns] Failed to send campaign ${campaign.id}:`, err)
+        void captureException(err, { route: "cron/send-scheduled-campaigns" })
         results.push({ id: campaign.id, name: campaign.name, success: false, error: err.message || "Unknown error" })
       }
     }
@@ -49,6 +53,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, processed: campaigns.length, results })
   } catch (err: any) {
     console.error("[cron/send-scheduled-campaigns] Server error:", err)
+    void captureException(err, { route: "cron/send-scheduled-campaigns" })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

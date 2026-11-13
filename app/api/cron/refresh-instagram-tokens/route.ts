@@ -1,5 +1,7 @@
 export const dynamic = "force-dynamic"
+export const maxDuration = 60
 
+import { captureException } from "@/lib/monitoring"
 import { type NextRequest, NextResponse } from "next/server"
 import { unauthorizedCronResponse } from "@/lib/cron-auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
@@ -102,6 +104,7 @@ export async function GET(request: NextRequest) {
       plain = openAccessToken(row.access_token)
     } catch (error) {
       console.error("[cron/refresh-instagram-tokens] decrypt failed for user", row.id, error)
+      void captureException(error, { route: "cron/refresh-instagram-tokens" })
       await markInstagramReconnect(supabase, row.id)
       summary.reconnect++
       continue
@@ -142,6 +145,7 @@ export async function GET(request: NextRequest) {
         continue
       } catch (error) {
         console.error("[cron/refresh-instagram-tokens] refresh request failed:", error)
+        void captureException(error, { route: "cron/refresh-instagram-tokens" })
         summary.errors++
         continue
       }
@@ -198,6 +202,7 @@ export async function GET(request: NextRequest) {
     tiktok = await refreshTikTokTokens(supabase)
   } catch (error) {
     console.error("[cron/refresh-instagram-tokens] tiktok refresh error:", error)
+    void captureException(error, { route: "cron/refresh-instagram-tokens" })
     tiktok = { ok: false, error: "tiktok_refresh_failed" }
   }
 

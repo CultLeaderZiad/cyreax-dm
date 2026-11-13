@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic"
+export const maxDuration = 60
 
 import { type NextRequest, NextResponse } from "next/server"
 import { unauthorizedCronResponse } from "@/lib/cron-auth"

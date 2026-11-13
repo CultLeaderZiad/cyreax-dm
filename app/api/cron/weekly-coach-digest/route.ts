@@ -1,5 +1,7 @@
+export const maxDuration = 60
 export const dynamic = 'force-dynamic'
 
+import { captureException } from "@/lib/monitoring"
 import { type NextRequest, NextResponse } from "next/server"
 import { unauthorizedCronResponse } from "@/lib/cron-auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
@@ -161,6 +163,7 @@ Rules:
     return NextResponse.json({ ok: true, week_start: weekStart, generated, skipped })
   } catch (error: any) {
     console.error("[weekly-digest] Error:", error)
+    void captureException(error, { route: "cron/weekly-coach-digest" })
     return NextResponse.json({ error: error.message || "Failed to generate digests" }, { status: 500 })
   }
 }
