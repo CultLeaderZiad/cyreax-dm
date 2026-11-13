@@ -39,10 +39,10 @@ async function matchingProfiles(supabase: any, externalUserId: string): Promise<
   return [...found.values()]
 }
 
-async function matchingConnections(supabase: any, externalUserId: string): Promise<Array<{ id: string }>> {
-  const found = new Map<string, { id: string }>()
+async function matchingConnections(supabase: any, externalUserId: string): Promise<Array<{ id: string; metadata?: Record<string, unknown> | null }>> {
+  const found = new Map<string, { id: string; metadata?: Record<string, unknown> | null }>()
   for (const column of ["page_id", "external_account_id"]) {
-    const { data, error } = await supabase.from("platform_connections").select("id").eq(column, externalUserId)
+    const { data, error } = await supabase.from("platform_connections").select("id, metadata").eq(column, externalUserId)
     if (error) continue
     for (const row of data || []) found.set(String(row.id), row)
   }
@@ -64,7 +64,13 @@ export async function applyMetaCallback(supabase: any, externalUserId: string, m
     }
   }
   for (const connection of connections) {
-    await supabase.from("platform_connections").update({ access_token: REVOKED, reconnect_required: true }).eq("id", connection.id)
+    // platform_connections has no reconnect_required column (only users does):
+    // writing one made this whole update fail, leaving the token in place.
+    // The flag lives in metadata, which /api/user/connections surfaces.
+    await supabase
+      .from("platform_connections")
+      .update({ access_token: REVOKED, metadata: { ...(connection.metadata || {}), reconnect_required: true } })
+      .eq("id", connection.id)
     if (mode === "delete") {
       const dropped = await supabase.from("platform_connections").delete().eq("id", connection.id)
       if (dropped?.error) {

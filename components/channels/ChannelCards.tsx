@@ -174,7 +174,7 @@ export function ChannelCards({
             }
           },
           {
-            config_id: process.env.NEXT_PUBLIC_META_WHATSAPP_CONFIG_ID || "",
+            config_id: process.env.NEXT_PUBLIC_WHATSAPP_CONFIG_ID || process.env.NEXT_PUBLIC_META_WHATSAPP_CONFIG_ID || "",
             response_type: "code",
             override_default_response_type: true,
           }
@@ -439,6 +439,9 @@ export function ChannelCards({
                             <span className="text-[11.5px] font-medium text-[var(--t1)] truncate">
                               {page.metadata?.name || `Facebook ${page.page_id}`}
                             </span>
+                            {page.reconnect_required && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--redbg)] text-[var(--red)] font-medium shrink-0" title="Meta rejected this token. Disconnect and connect again.">Reconnect required</span>
+                            )}
                             {isPending && (
                               <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-medium shrink-0">
                                 Pending
@@ -538,6 +541,9 @@ export function ChannelCards({
                       <span className="text-[11.5px] font-medium text-[var(--t1)] truncate font-mono">
                         {wa.metadata?.display_phone_number || wa.page_id}
                       </span>
+                      {wa.reconnect_required && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--redbg)] text-[var(--red)] font-medium shrink-0" title="Meta rejected this token. Disconnect and connect again.">Reconnect required</span>
+                      )}
                     </div>
                     <button
                       onClick={() => handleDisconnect(wa.id, wa.page_id || "WhatsApp number")}
@@ -623,8 +629,13 @@ export function ChannelCards({
               <div className="flex items-center gap-2.5">
                 <ChannelBadge channel="tiktok" size="md" />
                 <div>
-                  <h3 className="text-[14px] font-semibold text-[var(--t1)]">TikTok</h3>
-                  <p className="text-[11.5px] text-[var(--t3)]">Comment replies, comment-to-DM</p>
+                  <h3 className="text-[14px] font-semibold text-[var(--t1)] flex items-center gap-1.5">
+                    TikTok
+                    <span className="text-[9.5px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--goldbg)] text-[var(--gold)] border border-[var(--goldline)]">Beta</span>
+                  </h3>
+                  <p className="text-[11.5px] text-[var(--t3)]" title="TikTok only allows comment-to-DM in Vietnam, Indonesia and Thailand, and blocks DMs for EEA, Swiss and UK accounts.">
+                    Comment replies · DMs limited by region
+                  </p>
                 </div>
               </div>
               {tiktokConnection ? (

@@ -309,3 +309,35 @@ function mapPhoneNumber(row: any, fallbackId: string, wabaId: string | null): Wh
     platformType: row?.platform_type ? String(row.platform_type) : null,
   }
 }
+
+/**
+ * Rejects short-lived tokens pasted into the manual connect form. A
+ * temporary token from the WhatsApp "API Setup" page dies in ~24h and every
+ * reply after that silently fails; a System User token does not expire.
+ * Returns null when the token is fine (or cannot be checked).
+ */
+export async function shortLivedTokenError(
+  token: string,
+  fetchImpl: FetchLike = defaultFetch(),
+  nowSec = Math.floor(Date.now() / 1000),
+): Promise<string | null> {
+  const creds = appCredentials()
+  if (!creds) return null
+  try {
+    const url = new URL(`${FACEBOOK_GRAPH_BASE}/debug_token`)
+    url.searchParams.set("input_token", token)
+    url.searchParams.set("access_token", `${creds.appId}|${creds.secret}`)
+    const res = await fetchImpl(url.toString())
+    const json: any = await res.json().catch(() => null)
+    const data = json?.data
+    if (!data) return null
+    if (data.is_valid === false) return "That WhatsApp token is invalid or expired."
+    const expires = Number(data.expires_at || 0)
+    if (expires > 0 && expires - nowSec < 7 * 86_400) {
+      return "That is a temporary token that expires soon. Create a permanent System User token in Meta Business Settings and paste that instead."
+    }
+    return null
+  } catch {
+    return null
+  }
+}

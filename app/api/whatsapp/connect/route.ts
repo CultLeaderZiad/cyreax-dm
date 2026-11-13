@@ -7,6 +7,7 @@ import { ensureTenantProfile } from "@/lib/tenant-user"
 import { sealAccessToken } from "@/lib/token-crypto"
 import { assertChannelConnect, limitPayload, PlanLimitError } from "@/lib/billing/enforce"
 import {
+  shortLivedTokenError,
   debugTokenWabaIds,
   exchangeEmbeddedSignupCode,
   fetchPhoneNumber,
@@ -54,6 +55,10 @@ export async function POST(request: NextRequest) {
   }
 
   let accessToken = body.access_token || ""
+  if (manual) {
+    const tokenProblem = await shortLivedTokenError(accessToken)
+    if (tokenProblem) return NextResponse.json({ error: tokenProblem }, { status: 400 })
+  }
   if (!manual) {
     const exchanged = await exchangeEmbeddedSignupCode(String(body.code))
     if (!exchanged.ok) return NextResponse.json({ error: exchanged.error }, { status: 502 })
