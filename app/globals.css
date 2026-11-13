@@ -1,9 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./light-compat.css";
 
-@custom-variant dark (&:is(.dark, .dark *));
+/* Gold is a dark theme: every dark: style also applies under .gold. */
+@custom-variant dark (&:is(.dark, .dark *, .gold, .gold *));
 
-:root:not(.dark) {
+:root:not(.dark):not(.gold) {
   /* ─── Light, Restrained-Gold WCAG AA Tokens ─── */
   --bg: #F8F9FA;
   --s1: #FFFFFF;
@@ -100,7 +102,8 @@
   --surface-3: var(--s3);
 }
 
-.dark {
+.dark,
+.gold {
   /* ─── Dark, Restrained-Gold Redesign Tokens ─── */
   --bg: #09090B;
   --s1: #101013;
@@ -390,7 +393,8 @@ html[dir="rtl"] .font-mono-ui {
    Raised from oklch(0.55) to oklch(0.66) ≈ #a3a3a3 to keep secondary text
    at ≥ 4.5:1 against the near-black app background (WCAG AA for body text). */
 :root,
-.dark {
+.dark,
+.gold {
   --muted-foreground: oklch(0.66 0 0);
 }
 
@@ -452,4 +456,40 @@ html[dir="rtl"] .font-mono-ui {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ─── Gold (premium) theme ───
+   Built on the dark theme: warm onyx surfaces, champagne text and a richer
+   gold accent. Text pairs keep WCAG AA contrast (t1 on bg ≈ 15:1, t2 ≈ 8:1,
+   t3 ≈ 4.8:1, gold on s1 ≈ 8:1). */
+.gold {
+  --bg: #0C0A06;
+  --s1: #15120B;
+  --s2: #1C1810;
+  --s3: #241F15;
+  --s4: #2E271A;
+
+  --line: #2A2418;
+  --line2: #3A321F;
+  --line3: #54482B;
+
+  --t1: #F7EBD0;
+  --t2: #D9C8A2;
+  --t3: #A8976F;
+  --t4: #7A6B4A;
+
+  --gold: #E8B84A;
+  --gold2: #F6D27A;
+  --goldbg: rgba(232, 184, 74, 0.12);
+  --goldline: rgba(232, 184, 74, 0.38);
+
+  --bubble-out: #2A2212;
+  --ring: #E8B84A;
+  --primary: #E8B84A;
+  --primary-foreground: #1A1408;
+}
+
+.gold ::selection {
+  background: rgba(232, 184, 74, 0.35);
+  color: #FFF8E6;
 }

@@ -655,6 +655,7 @@ export function TeamSettingsSection() {
               <div className="rounded-[8px] bg-white text-neutral-900 border border-neutral-200 overflow-hidden shadow-xs p-3 space-y-2.5">
                 {/* Banner */}
                 <div
+                  data-keep-dark
                   className="text-white text-[10px] font-semibold py-1 px-2 rounded-[3px] flex items-center justify-between"
                   style={{ backgroundColor: selectedColor === "#0B0B0D" ? "#0B2E24" : selectedColor }}
                 >
