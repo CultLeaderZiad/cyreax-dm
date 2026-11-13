@@ -58,8 +58,8 @@ export function MobileDrawer({
 
   // Real workspace usage
   const { usage } = useWorkspaceUsage()
-  const workspaceName = usage?.workspace.name || "Workspace"
-  const planName = usage?.plan.name || "Pro plan"
+  const workspaceName = usage?.workspace?.name || "Workspace"
+  const planName = usage?.plan?.name || "Pro plan"
 
   // Unread count
   const { data: inboxData } = useSWR<{ unreadCount?: number }>(
@@ -139,8 +139,8 @@ export function MobileDrawer({
       .join("") || "WO"
 
   // Usage progress
-  const aiUsed = usage?.used.aiReplies ?? 8240
-  const aiLimit = usage?.limits.aiReplies ?? 10000
+  const aiUsed = usage?.used?.aiReplies ?? 8240
+  const aiLimit = usage?.limits?.aiReplies ?? 10000
   const aiRatio = aiLimit > 0 ? aiUsed / aiLimit : 0
   const formattedAiUsed = new Intl.NumberFormat("en-US").format(aiUsed)
   const formattedAiLimit = aiLimit === -1 ? "Unlimited" : new Intl.NumberFormat("en-US").format(aiLimit)

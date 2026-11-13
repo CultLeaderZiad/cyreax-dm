@@ -11,17 +11,28 @@ export const revalidate = 0;
 export const dynamic = 'force-dynamic';
 
 export default async function PricingPage() {
-  const supabase = await getSupabaseBypassClient()
-  const { data: dbPlans, error } = await supabase
-    .from("plans")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: true })
-
-  const { data: planAgents } = await supabase
-    .from("plan_agents")
-    .select("plan_id, is_enabled, agents(name)")
-    .eq("is_enabled", true)
+  // A data hiccup must never blank the pricing page: fall back to the default plans.
+  let dbPlans: any[] | null = null
+  let error: unknown = null
+  let planAgents: any[] | null = null
+  try {
+    const supabase = await getSupabaseBypassClient()
+    const plansResult = await supabase
+      .from("plans")
+      .select("*")
+      .eq("is_active", true)
+      .order("created_at", { ascending: true })
+    dbPlans = plansResult.data
+    error = plansResult.error
+    const agentsResult = await supabase
+      .from("plan_agents")
+      .select("plan_id, is_enabled, agents(name)")
+      .eq("is_enabled", true)
+    planAgents = agentsResult.data
+  } catch (err) {
+    console.error("[pricing] could not load plans:", err instanceof Error ? err.message : err)
+    error = err
+  }
 
   const plans = (!error && dbPlans && dbPlans.length > 0) ? dbPlans.map((p: any) => {
     const agentsForPlan = planAgents

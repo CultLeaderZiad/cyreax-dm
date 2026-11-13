@@ -167,7 +167,7 @@ export default function DashboardOverviewPage() {
   const leadsCaptured = stats?.metrics?.messagesSent ?? stats?.metrics?.leadsCount ?? 318
   const aiResolutionRate =
     stats?.metrics?.aiResolutionRate !== undefined
-      ? stats?.metrics.aiResolutionRate.toFixed(1)
+      ? stats?.metrics?.aiResolutionRate.toFixed(1)
       : totalConvs > 0
       ? ((leadsCaptured / totalConvs) * 100).toFixed(1)
       : "71.4"

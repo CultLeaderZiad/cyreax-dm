@@ -203,7 +203,7 @@ function BillingPageContent() {
             <span>Billing</span>
           </Link>
           <div className="flex items-center gap-1 text-[13px] text-[var(--t2)] font-medium">
-            <span>{usage?.workspace.name || "Workspace"}</span>
+            <span>{usage?.workspace?.name || "Workspace"}</span>
             <ChevronDown className="w-3.5 h-3.5 text-[var(--t3)]" />
           </div>
         </header>

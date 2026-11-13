@@ -69,27 +69,27 @@ export function PlanCard({
   const { usage, isLoading } = useWorkspaceUsage()
 
   // Use props if provided, otherwise real usage data from single source of truth
-  const displayPlanName = planName || usage?.plan.name || "Pro"
-  const displayRenews = renewsText || usage?.plan.renewsFormatted || "Renews 12 Nov"
-  const displayPrice = priceText || usage?.plan.priceFormatted || "EGP 1,450/mo"
-  const displayStatus = status || usage?.plan.status || "Active"
+  const displayPlanName = planName || usage?.plan?.name || "Pro"
+  const displayRenews = renewsText || usage?.plan?.renewsFormatted || "Renews 12 Nov"
+  const displayPrice = priceText || usage?.plan?.priceFormatted || "EGP 1,450/mo"
+  const displayStatus = status || usage?.plan?.status || "Active"
 
   const displayMeters = meters || {
     aiReplies: {
-      used: usage?.used.aiReplies ?? 8240,
-      limit: usage?.limits.aiReplies ?? 10000,
+      used: usage?.used?.aiReplies ?? 8240,
+      limit: usage?.limits?.aiReplies ?? 10000,
     },
     channels: {
-      used: usage?.used.channels ?? 3,
-      limit: usage?.limits.channels ?? 3,
+      used: usage?.used?.channels ?? 3,
+      limit: usage?.limits?.channels ?? 3,
     },
     contacts: {
-      used: usage?.used.contacts ?? 1912,
-      limit: usage?.limits.contacts ?? 5000,
+      used: usage?.used?.contacts ?? 1912,
+      limit: usage?.limits?.contacts ?? 5000,
     },
     seats: {
-      used: usage?.used.seats ?? 2,
-      limit: usage?.limits.seats ?? 5,
+      used: usage?.used?.seats ?? 2,
+      limit: usage?.limits?.seats ?? 5,
     },
   }
 
