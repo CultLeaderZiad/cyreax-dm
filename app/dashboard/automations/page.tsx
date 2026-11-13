@@ -53,95 +53,9 @@ function AutomationsPageContent() {
   )
   const rawAutomations = Array.isArray(automationsData) ? automationsData : []
 
-  // Default fallback items to ensure the UI matches the design when no rules exist yet
-  const automations: Automation[] = useMemo(() => {
-    if (rawAutomations.length > 0) return rawAutomations
-    return [
-      {
-        id: "demo-1",
-        user_id: userId || "demo",
-        name: "Glow kit — Reel comment to DM",
-        trigger_source: "comment",
-        keywords: "price, بكام, link",
-        platform: "instagram",
-        is_active: true,
-        public_reply_content: "بعتنالك التفاصيل في الرسايل 💌",
-        response_content: {
-          message: "أهلاً! السيروم بـ ٤٥٠ جنيه، والـ Glow Kit بـ ١٣٥٠. تحبي أبعتلك لينك الطلب؟",
-          buttons: [{ title: "أيوة ابعتي اللينك", payload: "SEND_LINK" }],
-        },
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: "demo-2",
-        user_id: userId || "demo",
-        name: "Reply to every comment",
-        trigger_source: "comment",
-        keywords: "",
-        platform: "instagram",
-        is_active: true,
-        public_reply_content: "شكراً لمرورك الجميل! 🌸",
-        response_content: { message: "شكراً لتواصلك معنا!" },
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: "demo-3",
-        user_id: userId || "demo",
-        name: "Story mention thank-you",
-        trigger_source: "story",
-        keywords: "",
-        platform: "instagram",
-        is_active: true,
-        response_content: { message: "شكراً لمشاركتك الستوري! ده كود خصم 10%: STORY10" },
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: "demo-4",
-        user_id: userId || "demo",
-        name: "Branch hours & locations",
-        trigger_source: "dm",
-        keywords: "فرع, location",
-        platform: "whatsapp",
-        is_active: true,
-        response_content: { message: "فروعنا: التجمع الخامس، الشيخ زايد، ومول مصر. مواعيد العمل من 10 صباحاً حتى 11 مساءً." },
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: "demo-5",
-        user_id: userId || "demo",
-        name: "After-hours AI handoff",
-        trigger_source: "dm",
-        keywords: "",
-        platform: "whatsapp",
-        is_active: false,
-        response_content: { message: "فريق العمل غير متاح حالياً، المساعد الآلي يجيب على استفساراتكم." },
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: "demo-6",
-        user_id: userId || "demo",
-        name: 'TikTok "link" comment',
-        trigger_source: "comment",
-        keywords: "link",
-        platform: "tiktok",
-        is_active: false,
-        public_reply_content: "اللينك في البايو أو ابعتلنا خاص!",
-        response_content: { message: "تفضل رابط الطلب المباشر: https://example.com" },
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: "demo-7",
-        user_id: userId || "demo",
-        name: "Instagram direct ice breaker",
-        trigger_source: "ice_breaker",
-        keywords: "price, branches, catalog",
-        platform: "instagram",
-        is_active: true,
-        response_content: { message: "أهلاً بك! تفضل قائمة بالأسعار والخدمات المتاحة حالياً." },
-        created_at: new Date().toISOString(),
-      },
-    ] as unknown as Automation[]
-  }, [rawAutomations, userId])
+  // Real rules only. Sample rules used to fill this list and fake-succeeded
+  // on toggle/delete; the empty state and Templates cover a new workspace.
+  const automations: Automation[] = rawAutomations
 
   const [selectedChannel, setSelectedChannel] = useState<string>("all")
   const [selectedType, setSelectedType] = useState<string>("all")

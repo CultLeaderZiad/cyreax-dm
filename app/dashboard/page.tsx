@@ -31,7 +31,6 @@ import { OverviewSkeleton } from "@/components/ui/DashboardSkeleton"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import {
   formatEventLabel,
-  DEFAULT_ACTIVITY_EVENTS,
   type ActivityEvent,
 } from "@/lib/ui/eventLabels"
 import { cn } from "@/lib/utils"
@@ -163,18 +162,18 @@ export default function DashboardOverviewPage() {
   }
 
   // Derive metrics
-  const totalConvs = stats?.metrics?.audienceReached ?? stats?.metrics?.conversationsCount ?? 1284
-  const leadsCaptured = stats?.metrics?.messagesSent ?? stats?.metrics?.leadsCount ?? 318
+  const totalConvs = stats?.metrics?.audienceReached ?? stats?.metrics?.conversationsCount ?? 0
+  const leadsCaptured = stats?.metrics?.messagesSent ?? stats?.metrics?.leadsCount ?? 0
   const aiResolutionRate =
     stats?.metrics?.aiResolutionRate !== undefined
       ? stats?.metrics?.aiResolutionRate.toFixed(1)
       : totalConvs > 0
       ? ((leadsCaptured / totalConvs) * 100).toFixed(1)
-      : "71.4"
+      : "0"
   const medianResponse =
     stats?.metrics?.medianResponseSeconds !== undefined
       ? `${stats.metrics.medianResponseSeconds}s`
-      : "38s"
+      : "—"
 
   // Fresh workspace detection: zero conversations and zero automations
   const isTrulyNew =
@@ -186,9 +185,9 @@ export default function DashboardOverviewPage() {
   // Channel health pill
   const channelHealth = stats?.channelsHealth || {
     allHealthy: true,
-    healthyCount: 5,
-    totalCount: 5,
-    lastSyncedAgo: "1m ago",
+    healthyCount: 0,
+    totalCount: 0,
+    lastSyncedAgo: "—",
   }
 
   // Activity events
@@ -203,7 +202,7 @@ export default function DashboardOverviewPage() {
           content: e.content,
           createdAt: e.created_at,
         }))
-      : DEFAULT_ACTIVITY_EVENTS
+      : []
 
   // Filter activity events
   const filteredEvents = activityEvents.filter((event) => {
@@ -215,43 +214,13 @@ export default function DashboardOverviewPage() {
   })
 
   // Channel distribution
-  const channelBreakdown = stats?.conversationsByChannel || [
-    { channel: "instagram" as const, name: "Instagram", count: 592 },
-    { channel: "whatsapp" as const, name: "WhatsApp", count: 371 },
-    { channel: "messenger" as const, name: "Messenger", count: 168 },
-    { channel: "tiktok" as const, name: "TikTok", count: 102 },
-    { channel: "telegram" as const, name: "Telegram", count: 51 },
-  ]
-  const maxChannelCount = Math.max(...channelBreakdown.map((c) => c.count), 600)
+  const channelBreakdown = stats?.conversationsByChannel ?? []
+  const maxChannelCount = Math.max(...channelBreakdown.map((c) => c.count), 1)
 
   // Needs attention items
-  const attentionItems = stats?.needsAttention || [
-    {
-      id: "att-1",
-      channel: "whatsapp" as const,
-      text: isAr ? "٦ محادثات تنتظر لأكثر من ١٥ دقيقة" : "6 chats waiting over 15 min",
-      actionLabel: isAr ? "فتح القائمة" : "Open queue",
-      actionHref: "/dashboard/inbox",
-    },
-    {
-      id: "att-2",
-      channel: "instagram" as const,
-      text: isAr ? "٣ ردود غير مجابة على القصص" : "3 unanswered story replies",
-      actionLabel: isAr ? "مراجعة" : "Review",
-      actionHref: "/dashboard/inbox",
-    },
-    {
-      id: "att-3",
-      channel: "messenger" as const,
-      text: isAr
-        ? 'الذكاء الاصطناعي لم يجب على "الشحن لجدة" ٧ مرات'
-        : 'AI couldn\'t answer "shipping to Jeddah" 7×',
-      actionLabel: isAr ? "إضافة إجابة" : "Add answer",
-      actionHref: "/dashboard/ai-engine",
-    },
-  ]
+  const attentionItems = stats?.needsAttention ?? []
 
-  const workspaceDays = stats?.workspaceAgeDays ?? 14
+  const workspaceDays = stats?.workspaceAgeDays ?? 0
 
   return (
     <div className="p-4 sm:p-6 lg:p-7 space-y-6 max-w-[1400px] mx-auto motion-fade-in select-none">
@@ -724,6 +693,11 @@ export default function DashboardOverviewPage() {
                   <span className="text-[11px] font-mono text-[var(--t3)]">7d</span>
                 </CardHeader>
                 <CardContent className="p-4 space-y-3">
+                  {channelBreakdown.length === 0 && (
+                    <p className="text-[12px] text-[var(--t3)]">
+                      {isAr ? "لا توجد محادثات بعد. اربط قناة لتبدأ." : "No conversations yet. Connect a channel to start."}
+                    </p>
+                  )}
                   {channelBreakdown.map((item) => {
                     const widthPercent = Math.min(
                       Math.round((item.count / maxChannelCount) * 100),

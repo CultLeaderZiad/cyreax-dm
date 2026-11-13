@@ -70,25 +70,25 @@ export function PlanCard({
 
   // Use props if provided, otherwise real usage data from single source of truth
   const displayPlanName = planName || usage?.plan?.name || "Pro"
-  const displayRenews = renewsText || usage?.plan?.renewsFormatted || "Renews 12 Nov"
-  const displayPrice = priceText || usage?.plan?.priceFormatted || "EGP 1,450/mo"
+  const displayRenews = renewsText || usage?.plan?.renewsFormatted || ""
+  const displayPrice = priceText || usage?.plan?.priceFormatted || ""
   const displayStatus = status || usage?.plan?.status || "Active"
 
   const displayMeters = meters || {
     aiReplies: {
-      used: usage?.used?.aiReplies ?? 8240,
+      used: usage?.used?.aiReplies ?? 0,
       limit: usage?.limits?.aiReplies ?? 10000,
     },
     channels: {
-      used: usage?.used?.channels ?? 3,
+      used: usage?.used?.channels ?? 0,
       limit: usage?.limits?.channels ?? 3,
     },
     contacts: {
-      used: usage?.used?.contacts ?? 1912,
+      used: usage?.used?.contacts ?? 0,
       limit: usage?.limits?.contacts ?? 5000,
     },
     seats: {
-      used: usage?.used?.seats ?? 2,
+      used: usage?.used?.seats ?? 0,
       limit: usage?.limits?.seats ?? 5,
     },
   }
@@ -130,7 +130,7 @@ export function PlanCard({
             {displayPlanName}
           </h3>
           <p className="text-[12px] text-[var(--t3)] leading-tight">
-            {displayRenews} · {displayPrice}
+            {[displayRenews, displayPrice].filter(Boolean).join(" · ")}
           </p>
         </div>
 

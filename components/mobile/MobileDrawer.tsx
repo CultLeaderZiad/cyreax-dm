@@ -139,7 +139,7 @@ export function MobileDrawer({
       .join("") || "WO"
 
   // Usage progress
-  const aiUsed = usage?.used?.aiReplies ?? 8240
+  const aiUsed = usage?.used?.aiReplies ?? 0
   const aiLimit = usage?.limits?.aiReplies ?? 10000
   const aiRatio = aiLimit > 0 ? aiUsed / aiLimit : 0
   const formattedAiUsed = new Intl.NumberFormat("en-US").format(aiUsed)
