@@ -4,6 +4,8 @@ import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { forbidBelow, requireSessionUser } from "@/lib/auth"
 import { instagramNeedsReconnect } from "@/lib/instagram-token"
 import { isPlaceholderToken, openAccessToken } from "@/lib/token-crypto"
+import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
+import { unsubscribeInstagramAccount } from "@/lib/meta/subscriptions"
 import { metadataWithoutRegistrationPin } from "@/lib/whatsapp/embedded-signup"
 import {
   releaseWhatsAppConnection,
@@ -93,6 +95,8 @@ export async function GET(request: NextRequest) {
       page_id: c.page_id,
       metadata: metadataWithoutRegistrationPin(c.metadata) || { name: c.page_id },
       created_at: c.connected_at,
+      // Set by /api/cron/meta-token-health (and the deauthorize callback) when Meta rejects the token.
+      reconnect_required: Boolean((c.metadata as any)?.reconnect_required),
     })
   }
 
@@ -200,12 +204,19 @@ export async function DELETE(request: NextRequest) {
       try {
         const token = openAccessToken(row.access_token)
         if (token && !isPlaceholderToken(token) && row.page_id && !(row.metadata as any)?.is_user_profile) {
-          await fetch(`https://graph.facebook.com/v21.0/${row.page_id}/subscribed_apps?access_token=${token}`, {
+          await fetch(`${FACEBOOK_GRAPH_BASE}/${row.page_id}/subscribed_apps?access_token=${encodeURIComponent(token)}`, {
             method: "DELETE",
           }).catch(() => null)
         }
       } catch (fbErr) {
         console.warn("[facebook] unsubscribed_apps cleanup failed:", fbErr)
+      }
+    } else if (row.platform === "instagram") {
+      try {
+        const token = openAccessToken(row.access_token)
+        if (token && !isPlaceholderToken(token)) await unsubscribeInstagramAccount(token)
+      } catch (igErr) {
+        console.warn("[instagram] unsubscribe cleanup failed:", igErr)
       }
     }
 

@@ -5,6 +5,7 @@ import { forbidBelow, requireSessionUser } from "@/lib/auth"
 import { sealAccessToken } from "@/lib/token-crypto"
 import { ensureTenantProfile } from "@/lib/tenant-user"
 import { FACEBOOK_GRAPH_BASE } from "@/lib/graph"
+import { FB_PAGE_SUBSCRIBED_FIELDS } from "@/lib/meta/subscriptions"
 import { assertChannelConnect, limitPayload, PlanLimitError } from "@/lib/billing/enforce"
 import { resolveVerifiedPageToken } from "@/lib/meta/page-connect"
 
@@ -142,7 +143,7 @@ export async function POST(request: NextRequest) {
     let webhookSubscribed = false
     try {
       const subscribeUrl = new URL(`${FACEBOOK_GRAPH_BASE}/${page_id}/subscribed_apps`)
-      subscribeUrl.searchParams.set("subscribed_fields", "messages,messaging_postbacks,feed")
+      subscribeUrl.searchParams.set("subscribed_fields", FB_PAGE_SUBSCRIBED_FIELDS)
       subscribeUrl.searchParams.set("access_token", pageAccessToken)
 
       const subRes = await fetch(subscribeUrl.toString(), { method: "POST" })

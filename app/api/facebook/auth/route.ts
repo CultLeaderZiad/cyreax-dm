@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from "next/server"
 import { createOAuthState, oauthCookieOptions } from "@/lib/instagram-oauth"
+import { GRAPH_API_VERSION } from "@/lib/graph"
 
 const FB_OAUTH_STATE_COOKIE = "fb_oauth_state"
 
@@ -32,11 +33,12 @@ export async function GET(request: Request) {
   let url: string
   if (configId) {
     // Facebook Login for Business uses a Configuration ID instead of manual scope string
-    url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${encodeURIComponent(configId)}&response_type=code&override_default_response_type=true&auth_type=rerequest&state=${state}`
+    url = `https://www.facebook.com/${GRAPH_API_VERSION}/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&config_id=${encodeURIComponent(configId)}&response_type=code&override_default_response_type=true&auth_type=rerequest&state=${state}`
   } else {
     // Standard Facebook Login using scope (public_profile is required)
-    const scope = "public_profile,pages_show_list,pages_read_engagement,pages_manage_metadata,pages_messaging"
-    url = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=code&auth_type=rerequest&state=${state}`
+    // pages_manage_engagement: reply to Page comments (comment-to-DM). business_management: Pages owned via Business Manager.
+    const scope = "public_profile,pages_show_list,pages_read_engagement,pages_manage_metadata,pages_messaging,pages_manage_engagement,business_management"
+    url = `https://www.facebook.com/${GRAPH_API_VERSION}/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=code&auth_type=rerequest&state=${state}`
   }
 
   const response = NextResponse.redirect(url)

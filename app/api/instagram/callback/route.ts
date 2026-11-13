@@ -6,6 +6,7 @@ import { sealAccessToken } from "@/lib/token-crypto"
 import { hasInstagramCredentials, resolveTenantProfile, resolveWorkspaceProfile } from "@/lib/tenant-user"
 import { forbidBelow, loadWorkspaceContext } from "@/lib/auth"
 import { INSTAGRAM_GRAPH_BASE } from "@/lib/graph"
+import { subscribeInstagramAccount } from "@/lib/meta/subscriptions"
 import { assertChannelConnect, PlanLimitError } from "@/lib/billing/enforce"
 import {
   IG_OAUTH_CODE_COOKIE,
@@ -250,6 +251,11 @@ export async function POST(request: NextRequest) {
 
     if (upsertError) throw upsertError
 
+    // Subscribe this account to our webhooks. Without it Meta only delivers
+    // events for app testers, so real customers' DMs/comments never arrive.
+    const webhookSubscribed = await subscribeInstagramAccount(accessToken)
+    if (!webhookSubscribed) console.warn(`[callback] Instagram webhook subscription failed for ${businessAccountId}`)
+
     // Also sync to platform_connections table for multi-channel consistency
     try {
       const igPlatformData: any = {
@@ -259,7 +265,7 @@ export async function POST(request: NextRequest) {
         page_id: businessAccountId,
         external_account_id: businessAccountId,
         access_token: sealAccessToken(accessToken),
-        metadata: { username, profile_pic: profilePic, webhook_subscribed: true },
+        metadata: { username, profile_pic: profilePic, webhook_subscribed: webhookSubscribed },
         workspace_id: workspaceId || null,
       }
       const { data: existingIgConn } = await db.from("platform_connections")
