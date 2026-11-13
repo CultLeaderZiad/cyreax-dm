@@ -74,6 +74,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={fontVariables} suppressHydrationWarning>
+      <head>
+        {/* Applies the saved language direction before first paint, so Arabic
+            users don't see a left-to-right layout flash. Pages stay static. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var l=localStorage.getItem("cyreax-language")||localStorage.getItem("helixa-language");if(l==="ar"||l==="en"){document.documentElement.lang=l;document.documentElement.dir=l==="ar"?"rtl":"ltr"}}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="font-sans antialiased bg-[var(--bg)] text-[var(--t1)]" suppressHydrationWarning>
         <ErrorBoundary>
           <SkipLink />

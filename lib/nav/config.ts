@@ -101,7 +101,7 @@ export const NAV: NavItem[] = [
       { id: "messenger", label: "Messenger", href: "/dashboard/platforms/facebook" },
       { id: "instagram", label: "Instagram", href: "/dashboard/platforms/instagram" },
       { id: "whatsapp", label: "WhatsApp", href: "/dashboard/platforms/whatsapp" },
-      { id: "tiktok", label: "TikTok", href: "/dashboard/platforms/tiktok" },
+      { id: "tiktok", label: "TikTok (beta)", href: "/dashboard/platforms/tiktok" },
       { id: "telegram", label: "Telegram", href: "/dashboard/platforms/telegram" },
     ],
   },
