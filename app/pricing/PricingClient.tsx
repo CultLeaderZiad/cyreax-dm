@@ -1,5 +1,6 @@
 "use client"
 
+import ReflectiveCard from "@/components/reactbits/ReflectiveCard"
 import { useState } from "react"
 import { CheckCircle, Zap, Star } from "lucide-react"
 import Link from "next/link"
@@ -166,7 +167,22 @@ export default function PricingClient({ plans }: { plans: any[] }) {
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#e5a93c] text-black px-4 py-1.5 rounded-full text-[11px] font-mono-ui font-bold uppercase tracking-widest z-30 whitespace-nowrap shadow-xl">
                 {t.bestValue || "BEST VALUE"}
               </div>
-              <div className="p-8 flex flex-col h-full bg-[#101217]/95 border-2 border-[#e5a93c]/50 hover:border-[#e5a93c]/80 rounded-2xl relative backdrop-blur-md transition-all duration-300">
+              {/* Gold-tinted brushed metal card (React Bits ReflectiveCard). data-keep-dark:
+                  the metal is dark in every theme, so the light-mode remap must not darken its text. */}
+              <ReflectiveCard
+                tint="#E8B84A"
+                metalness={1}
+                roughness={0.35}
+                blurStrength={6}
+                shine={1.1}
+                glare={0.55}
+                tiltStrength={6}
+                width="100%"
+                height="100%"
+                radius={18}
+                className="flex-1 min-h-[600px]"
+              >
+                <div className="p-4 flex flex-col h-full [text-shadow:0_1px_2px_rgba(0,0,0,0.45)]" data-keep-dark>
                 <div className="mb-8">
                   <div className="flex items-center gap-2 mb-2">
                     <Star className="w-5 h-5 text-[#e5a93c]" />
@@ -174,7 +190,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
                       {mainPlan.name === "Monthly Plan" || mainPlan.name === "Pro Plan" ? (t.monthlyPlanTitle || mainPlan.name) : mainPlan.name}
                     </h3>
                   </div>
-                  <p className="text-neutral-400 text-sm">
+                  <p className="text-white/80 text-sm">
                     {t.monthlyPlanDesc || mainPlan.description}
                   </p>
                   <div className="mt-4 flex items-baseline gap-1">
@@ -186,7 +202,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
                         return `$${isAnnual ? mainPlan.price_yearly : mainPlan.price_usd}`
                       })()}
                     </span>
-                    <span className="text-neutral-500 text-xs">/{isAnnual ? (isAr ? 'سنة' : 'yr') : (isAr ? 'شهر' : 'mo')}</span>
+                    <span className="text-white/75 text-xs">/{isAnnual ? (isAr ? 'سنة' : 'yr') : (isAr ? 'شهر' : 'mo')}</span>
                   </div>
                 </div>
                 
@@ -194,7 +210,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
                   {(mainPlan.features || [])
                     .filter((f: string) => !f.toLowerCase().includes("only one platform"))
                     .map((f: string) => (
-                    <li key={f} className="flex items-start gap-3 text-sm text-neutral-300">
+                    <li key={f} className="flex items-start gap-3 text-sm text-white/90">
                       <CheckCircle className="w-5 h-5 text-[#e5a93c] shrink-0" />
                       <span>{translateFeature(f)}</span>
                     </li>
@@ -209,7 +225,8 @@ export default function PricingClient({ plans }: { plans: any[] }) {
                 >
                   {t.selectMonthlyPlan || `${t.selectPlan || "Select"} ${mainPlan.name}`}
                 </Link>
-              </div>
+                </div>
+              </ReflectiveCard>
             </div>
           )}
 
