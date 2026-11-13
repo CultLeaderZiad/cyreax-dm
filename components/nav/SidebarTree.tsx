@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useCallback } from "react"
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -38,63 +38,75 @@ export function SidebarTree({
   const pathname = usePathname()
   const router = useRouter()
   const { usage } = useWorkspaceUsage()
-  const items = filterNavByRole(NAV, userRole)
+  const items = useMemo(() => filterNavByRole(NAV, userRole), [userRole])
 
-  // Track expanded parent item ID (persisted in localStorage)
-  const [expandedId, setExpandedId] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("cyreax_nav_open_parent")
-        if (saved) return saved
-      } catch {}
-    }
-    return "automations"
-  })
+  // The parent that owns the current route. Derived from the URL so the server
+  // and the first client render agree (no hydration flash).
+  const activeParentId = useMemo(() => {
+    if (!pathname) return null
+    const hit = items.find((item) =>
+      item.children?.some((child) => {
+        const href = child.href?.split("?")[0]
+        return href && (pathname === href || pathname.startsWith(href + "/"))
+      })
+    )
+    return hit?.id ?? null
+  }, [items, pathname])
 
-  // Auto-expand parent matching active route
+  // Which parent is expanded. Starts from the route; the remembered choice is
+  // applied after mount only.
+  const [expandedId, setExpandedId] = useState<string | null>(activeParentId ?? "automations")
+
+  const remember = (id: string | null) => {
+    try {
+      if (id) localStorage.setItem("cyreax_nav_open_parent", id)
+      else localStorage.removeItem("cyreax_nav_open_parent")
+    } catch {}
+  }
+
   useEffect(() => {
-    if (!pathname) return
-    for (const item of items) {
-      if (item.children) {
-        const isChildActive = item.children.some(
-          (child) => child.href && (pathname === child.href || pathname.startsWith(child.href + "/"))
-        )
-        if (isChildActive) {
-          setExpandedId(item.id)
-          try {
-            localStorage.setItem("cyreax_nav_open_parent", item.id)
-          } catch {}
-          break
-        }
-      }
+    if (activeParentId) return
+    try {
+      const saved = localStorage.getItem("cyreax_nav_open_parent")
+      if (saved) setExpandedId(saved)
+    } catch {}
+    // Only on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Open the section of the page you navigate to, once per navigation, so the
+  // user can still collapse it afterwards.
+  useEffect(() => {
+    if (activeParentId) {
+      setExpandedId(activeParentId)
+      remember(activeParentId)
     }
-  }, [pathname, items])
+  }, [activeParentId])
 
   const toggleExpand = useCallback((id: string) => {
     setExpandedId((prev) => {
       const next = prev === id ? null : id
-      try {
-        if (next) localStorage.setItem("cyreax_nav_open_parent", next)
-        else localStorage.removeItem("cyreax_nav_open_parent")
-      } catch {}
+      remember(next)
       return next
     })
   }, [])
 
-  const handleParentClick = useCallback((item: NavItem) => {
-    if (expandedId !== item.id) {
+  // Parents with their own page: open + go there. Parents without one
+  // (Admin): just toggle. Previously this opened and then toggled shut in the
+  // same click, so Admin flashed and never opened.
+  const handleParentClick = useCallback(
+    (item: NavItem) => {
+      if (!item.href) {
+        toggleExpand(item.id)
+        return
+      }
       setExpandedId(item.id)
-      try {
-        localStorage.setItem("cyreax_nav_open_parent", item.id)
-      } catch {}
-    }
-    if (item.href) {
+      remember(item.id)
       onNavigate?.()
-      router.push(item.href)
-    } else {
-      toggleExpand(item.id)
-    }
-  }, [expandedId, onNavigate, router, toggleExpand])
+      if (pathname !== item.href) router.push(item.href)
+    },
+    [onNavigate, pathname, router, toggleExpand]
+  )
 
   // Keyboard navigation for tree (ARIA compliant)
   const treeRef = useRef<HTMLDivElement>(null)
