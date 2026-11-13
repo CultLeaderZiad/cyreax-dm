@@ -141,8 +141,8 @@ export function SidebarTree({
   )
 
   // Real plan usage calculations from single source of truth
-  const usedReplies = usage?.used?.aiReplies ?? 8240
-  const maxReplies = usage?.limits?.aiReplies ?? 10000
+  const usedReplies = usage?.used?.aiReplies ?? 0
+  const maxReplies = usage?.limits?.aiReplies ?? 0
   const usagePercent = Math.min(Math.round((usedReplies / Math.max(maxReplies, 1)) * 100), 100)
   const planLabel = usage?.plan?.name || (plan ? plan.toUpperCase() : "Pro")
   const workspaceTitle = usage?.workspace?.name || "Workspace"
@@ -279,11 +279,7 @@ export function SidebarTree({
                     )}
                     <span className="text-[13px] truncate">{item.label}</span>
                   </div>
-                  {item.badge === "unread" && (
-                    <span className="px-1.5 py-0.2 rounded-full text-[10.5px] font-semibold bg-[var(--goldbg)] text-[var(--gold)] border border-[var(--goldline)] tabular-nums">
-                      12
-                    </span>
-                  )}
+                  {/* No placeholder counts: the unread badge only renders a real number. */}
                 </Link>
               )}
 
@@ -345,7 +341,8 @@ export function SidebarTree({
 
       {/* Bottom Area: AI Replies Meter + User Profile Row */}
       <div className="p-3 border-t border-[var(--line)] space-y-3 shrink-0">
-        {/* AI Replies Progress Meter */}
+        {/* AI Replies Progress Meter (only real numbers; hidden until usage loads or when unlimited) */}
+        {maxReplies > 0 && (
         <div className="bg-[var(--s2)] border border-[var(--line2)] rounded-[10px] p-2.5 space-y-1.5">
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-[var(--t3)] font-medium">AI replies</span>
@@ -364,6 +361,7 @@ export function SidebarTree({
             />
           </div>
         </div>
+        )}
 
         {/* User Row with Account Popover Trigger */}
         <div className="flex items-center justify-between px-1 py-1">

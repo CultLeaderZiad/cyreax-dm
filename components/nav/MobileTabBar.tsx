@@ -32,7 +32,7 @@ export interface MobileTabBarProps {
 
 export function MobileTabBar({
   className,
-  unreadCount = 12,
+  unreadCount = 0,
   username = "Workspace owner",
   email,
   plan = "Pro",
