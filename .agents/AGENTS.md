@@ -62,3 +62,13 @@ Keep only these Radix packages (pruned from the full shadcn suite):
 4. Never add continuous `requestAnimationFrame` loops for visual effects
 5. Never add WebGL/Canvas for decorative backgrounds
 6. Run `pnpm build` after changes to verify no new heavy deps leak in
+
+## Rate limits (every /api route)
+
+`proxy.ts` runs `lib/security/http-limits.ts` before any route code: a per-IP
+limit (in-memory, then the shared Postgres counter) and a body-size cap, by
+tier. New routes are covered automatically. When you add a route that is a
+login/OAuth/invite step, calls a paid model, accepts uploads, or is a signed
+provider webhook, add it to the matching tier in `classify()` and to
+`tests/http-limits.test.mts`. Per-account limits (AI, webchat visitor, API key)
+stay in the routes on top of this.
