@@ -81,3 +81,20 @@ describe("Whop webhook signatures", () => {
     assert.throws(() => verifyWhopWebhook(body, headers("v2," + good.slice(3)), secret, now), WhopSignatureError)
   })
 })
+
+const { customerCountry, isEgyptianCustomer, normalizeCountry } = await import("../lib/billing/region.ts")
+
+describe("Egypt detection", () => {
+  const h = (country?: string) => new Headers(country ? { "x-vercel-ip-country": country } : {})
+  it("saved account country wins, then Vercel's IP country", () => {
+    assert.deepEqual(customerCountry({ accountCountry: "eg", headers: h("US") }), { country: "EG", source: "account" })
+    assert.deepEqual(customerCountry({ accountCountry: null, headers: h("EG") }), { country: "EG", source: "ip" })
+    assert.deepEqual(customerCountry({ accountCountry: "", headers: h() }), { country: null, source: "unknown" })
+  })
+  it("only EG is Egyptian; junk is ignored", () => {
+    assert.equal(isEgyptianCustomer({ accountCountry: "SA", headers: h("EG") }), false)
+    assert.equal(isEgyptianCustomer({ accountCountry: null, headers: h("EG") }), true)
+    assert.equal(isEgyptianCustomer({ accountCountry: "Egypt", headers: h() }), false)
+    assert.equal(normalizeCountry("EGY"), null)
+  })
+})
