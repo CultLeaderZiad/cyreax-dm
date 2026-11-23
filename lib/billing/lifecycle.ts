@@ -11,6 +11,8 @@ export interface BillingSnapshot {
   dunningStep: number
   cancelAtPeriodEnd: boolean
   scheduledPlanId: string | null
+  /** 'whop' rows follow Whop's membership status (webhook); no local dunning. */
+  paymentProvider?: string | null
 }
 
 export type DunningAction =
@@ -81,6 +83,10 @@ export function startTrial(input: {
 }
 
 export function dunningAction(row: BillingSnapshot, nowMs: number): DunningAction {
+  // Whop runs renewals, retries and cancellations itself and tells us by
+  // webhook; local reminders or status changes would fight its state.
+  // Access still ends at current_period_end via lib/billing/enforce.ts.
+  if (row.paymentProvider === "whop") return { type: "none" }
   if (row.cancelAtPeriodEnd && row.periodEnd && Date.parse(row.periodEnd) <= nowMs) {
     return { type: "cancel" }
   }

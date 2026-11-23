@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
       dunningStep: Number(row.dunning_step || 0),
       cancelAtPeriodEnd: row.cancel_at_period_end === true,
       scheduledPlanId: row.scheduled_plan_id,
+      paymentProvider: row.payment_provider ?? null,
     }
     const action = dunningAction(snapshot, now)
     if (action.type === "none") continue
