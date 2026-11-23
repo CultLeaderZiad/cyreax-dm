@@ -9,12 +9,14 @@ INSERT INTO public.accounts (id, email, role) VALUES
 INSERT INTO public.users (id, account_id, username) VALUES (1001, :A, 'a'), (2002, :B, 'b'), (9009, :ADM, 'admin');
 INSERT INTO public.app_settings (key, value) VALUES
   ('update_banner', '{"isActive":false}'), ('updates_page', '{"isEnabled":true}'), ('smtp_settings', '{"user":"u","pass_encrypted":"x"}');
-INSERT INTO public.payment_submissions (id, user_id, account_id, transaction_reference, amount, amount_egp, payment_method, interval, plan_slug, reference_code, proof_path)
+INSERT INTO public.payment_submissions (id, user_id, account_id, transaction_reference, amount, amount_egp, payment_method, interval, plan_slug, reference_code, proof_path, amount_paid_egp)
 VALUES
-  ('11111111-0000-0000-0000-000000000001', 1001, :A, 'TX-1001', 1450, 1450, 'wallet',   'month', 'creator', 'CX-AAAAA1', :A || '/11111111-0000-0000-0000-000000000001.png'),
-  ('11111111-0000-0000-0000-000000000002', 1001, :A, 'TX-1002', 1450, 1450, 'instapay', 'month', 'creator', 'CX-AAAAA2', NULL),
-  ('11111111-0000-0000-0000-000000000003', 1001, :A, 'TX-1003', 1450, 1450, 'wallet',   'month', 'creator', 'CX-AAAAA3', NULL),
-  ('22222222-0000-0000-0000-000000000001', 2002, :B, 'TX-2001', 1450, 1450, 'wallet',   'year',  'creator_plus', 'CX-BBBBB1', NULL);
+  ('11111111-0000-0000-0000-000000000001', 1001, :A, 'TX-1001', 1450, 1450, 'wallet',   'month', 'creator', 'CX-AAAAA1', :A || '/11111111-0000-0000-0000-000000000001.png', 1450),
+  ('11111111-0000-0000-0000-000000000002', 1001, :A, 'TX-1002', 1450, 1450, 'instapay', 'month', 'creator', 'CX-AAAAA2', NULL, 1450),
+  ('11111111-0000-0000-0000-000000000003', 1001, :A, 'TX-1003', 1450, 1450, 'wallet',   'month', 'creator', 'CX-AAAAA3', NULL, 1450),
+  ('22222222-0000-0000-0000-000000000001', 2002, :B, 'TX-2001', 1450, 1450, 'wallet',   'year',  'creator_plus', 'CX-BBBBB1', NULL, 1450),
+  ('33333333-0000-0000-0000-0000000000a1', 1001, :A, 'TX-1004', 1450, 1450, 'wallet', 'month', 'creator', 'CX-AAAAA4', NULL, 1),
+  ('33333333-0000-0000-0000-0000000000a2', 1001, :A, 'TX-1005', 1450, 1450, 'wallet', 'month', 'creator', 'CX-AAAAA5', NULL, NULL);
 INSERT INTO storage.objects (bucket_id, name) VALUES ('payment-proofs', 'aaaaaaaa-0000-0000-0000-00000000000a/11111111-0000-0000-0000-000000000001.png');
 
 -- 1. The same transaction number cannot be reused for the same method (any case).
@@ -137,7 +139,7 @@ DO $$ BEGIN
 END $$;
 SELECT set_config('request.jwt.claim.sub', 'aaaaaaaa-0000-0000-0000-00000000000a', false);
 DO $$ BEGIN
-  IF (SELECT count(*) FROM public.payment_submissions) <> 3 THEN RAISE EXCEPTION 'FAIL: user A should see their 3 payments'; END IF;
+  IF (SELECT count(*) FROM public.payment_submissions) <> 5 THEN RAISE EXCEPTION 'FAIL: user A should see their 5 payments'; END IF;
   IF (SELECT count(*) FROM storage.objects WHERE bucket_id = 'payment-proofs') <> 1 THEN RAISE EXCEPTION 'FAIL: owner cannot read own proof'; END IF;
 END $$;
 RESET ROLE;
@@ -195,6 +197,33 @@ DO $$ BEGIN
   IF (SELECT count(*) FROM public.support_messages) <> 1 THEN RAISE EXCEPTION 'FAIL: owner cannot read own ticket messages'; END IF;
 END $$;
 RESET ROLE;
+
+-- 9b. Underpayment: 1 EGP against a 1450 quote is refused without an override.
+DO $$
+DECLARE r jsonb; before timestamptz;
+BEGIN
+  SELECT current_period_end INTO before FROM public.billing_accounts WHERE account_id = 'aaaaaaaa-0000-0000-0000-00000000000a';
+  r := public.cyreax_review_payment('33333333-0000-0000-0000-0000000000a1', 'approve', 'dddddddd-0000-0000-0000-00000000000d');
+  IF r->>'result' <> 'underpaid' THEN RAISE EXCEPTION 'FAIL: 1 EGP approved without override: %', r; END IF;
+  IF (SELECT status FROM public.payment_submissions WHERE id = '33333333-0000-0000-0000-0000000000a1') <> 'pending'
+     OR (SELECT current_period_end FROM public.billing_accounts WHERE account_id = 'aaaaaaaa-0000-0000-0000-00000000000a') IS DISTINCT FROM before THEN
+    RAISE EXCEPTION 'FAIL: refused underpayment still changed state';
+  END IF;
+  -- Unknown paid amount counts as underpaid.
+  r := public.cyreax_review_payment('33333333-0000-0000-0000-0000000000a2', 'approve', 'dddddddd-0000-0000-0000-00000000000d');
+  IF r->>'result' <> 'underpaid' THEN RAISE EXCEPTION 'FAIL: unknown paid amount approved: %', r; END IF;
+  -- Override without a note is refused.
+  r := public.cyreax_review_payment('33333333-0000-0000-0000-0000000000a1', 'approve', 'dddddddd-0000-0000-0000-00000000000d', NULL, NULL, true);
+  IF r->>'result' <> 'override_needs_note' THEN RAISE EXCEPTION 'FAIL: override without note: %', r; END IF;
+  -- Override with a note works once and is recorded.
+  r := public.cyreax_review_payment('33333333-0000-0000-0000-0000000000a1', 'approve', 'dddddddd-0000-0000-0000-00000000000d', 'Paid rest in cash', NULL, true);
+  IF r->>'result' <> 'approved' THEN RAISE EXCEPTION 'FAIL: override approve returned %', r; END IF;
+  IF (SELECT note FROM public.payment_events WHERE payment_id = '33333333-0000-0000-0000-0000000000a1' AND action = 'approved') NOT LIKE '[override: paid 1.00 of 1450.00 EGP]%' THEN
+    RAISE EXCEPTION 'FAIL: override not recorded';
+  END IF;
+  r := public.cyreax_review_payment('33333333-0000-0000-0000-0000000000a1', 'approve', 'dddddddd-0000-0000-0000-00000000000d', 'again', NULL, true);
+  IF r->>'result' <> 'already_reviewed' THEN RAISE EXCEPTION 'FAIL: second override approve: %', r; END IF;
+END $$;
 
 -- 10. BYOK RPCs: only the service role may execute them.
 DO $$

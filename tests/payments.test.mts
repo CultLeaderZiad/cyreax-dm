@@ -279,6 +279,57 @@ describe("admin review", () => {
     assert.equal(fakeDb().tables.notifications.filter((n) => n.account_id === A && n.title === "Payment approved").length, 1, "customer notified once")
   })
 
+  it("1 EGP against a 1450 quote is refused without override; override needs a note", async () => {
+    // Fresh submission that reports paying 1 EGP. The fake RPC mirrors the
+    // guard in cyreax_review_payment (tested for real in tests/sql).
+    seed()
+    as(A)
+    await submit({ ...(await validFields()), amountPaid: "1" })
+    const row = fakeDb().tables.payment_submissions[0]
+    assert.equal(row.amount_paid_egp, 1)
+    const calls: any[] = []
+    const rpc = {
+      cyreax_review_payment: (args: any) => {
+        calls.push(args)
+        const pay = fakeDb().tables.payment_submissions.find((r) => r.id === args.p_payment_id)!
+        if (pay.status !== "pending") return { data: { result: "already_reviewed", status: pay.status }, error: null }
+        const short = pay.amount_egp != null && (pay.amount_paid_egp == null || pay.amount_paid_egp < pay.amount_egp)
+        if (short && !args.p_override) return { data: { result: "underpaid", expected_egp: pay.amount_egp, paid_egp: pay.amount_paid_egp }, error: null }
+        if (short && !args.p_note) return { data: { result: "override_needs_note", expected_egp: pay.amount_egp, paid_egp: pay.amount_paid_egp }, error: null }
+        pay.status = "approved"
+        return { data: { result: "approved", account_id: A }, error: null }
+      },
+    }
+    fakeDb().rpc = rpc
+    as(ADMIN)
+    const plain = await review(row.id, { action: "approve" })
+    assert.equal(plain.status, 409)
+    const body = await plain.json()
+    assert.equal(body.code, "underpaid")
+    assert.equal(body.expectedEgp, 1450)
+    assert.equal(body.paidEgp, 1)
+    assert.equal(row.status, "pending")
+    assert.equal(calls[0].p_override, false, "override is never assumed")
+
+    const noNote = await review(row.id, { action: "approve", override: true })
+    assert.equal(noNote.status, 409)
+    assert.equal((await noNote.json()).code, "override_needs_note")
+
+    const ok = await review(row.id, { action: "approve", override: true, note: "Rest paid in cash" })
+    assert.equal(ok.status, 200)
+    assert.equal(row.status, "approved")
+    assert.equal(calls.at(-1).p_override, true)
+
+    // A truthy-but-not-true value is not an override.
+    seed()
+    as(A)
+    await submit({ ...(await validFields()), amountPaid: "1" })
+    fakeDb().rpc = rpc
+    as(ADMIN)
+    await review(fakeDb().tables.payment_submissions[0].id, { action: "approve", override: "yes", note: "x" })
+    assert.equal(calls.at(-1).p_override, false)
+  })
+
   it("reject requires a reason", async () => {
     as(ADMIN)
     const id = fakeDb().tables.payment_submissions[0].id

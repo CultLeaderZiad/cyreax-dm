@@ -66,19 +66,27 @@ export default function AdminPaymentsPage() {
     load()
   }, [load])
 
-  async function review(payment: AdminPayment, action: "approve" | "reject") {
+  async function review(payment: AdminPayment, action: "approve" | "reject", override = false) {
     const note = (notes[payment.id] || "").trim()
     if (action === "reject" && !note) {
       toast.error("Add a reason before rejecting. The customer sees it.")
       return
     }
-    if (action === "approve" && !window.confirm(`Approve ${payment.reference_code || payment.transaction_reference} and activate the plan?`)) return
+    if (override && !note) {
+      toast.error("Write why you are approving less than the quote in the note first.")
+      return
+    }
+    const label = payment.reference_code || payment.transaction_reference
+    const question = override
+      ? `Approve ${label} even though the customer reports paying ${payment.amount_paid_egp ?? "an unknown amount"} of EGP ${payment.amount_egp ?? payment.amount}? This is recorded with your note.`
+      : `Approve ${label} and activate the plan?`
+    if (action === "approve" && !window.confirm(question)) return
     setBusy(payment.id)
     try {
       const res = await fetch(`/api/admin/payments/${payment.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, note: note || undefined }),
+        body: JSON.stringify({ action, note: note || undefined, override: override || undefined }),
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -125,6 +133,8 @@ export default function AdminPaymentsPage() {
               const expected = p.amount_egp ?? p.amount
               const paid = p.amount_paid_egp
               const mismatch = expected != null && paid != null && Number(paid) !== Number(expected)
+              // Mirrors cyreax_review_payment: less than the quote (or unknown) needs an override.
+              const underpaid = p.amount_egp != null && (paid == null || Number(paid) < Number(p.amount_egp))
               return (
                 <li key={p.id} className="border border-white/10 rounded-2xl bg-white/[0.02] overflow-hidden">
                   <div className="grid md:grid-cols-[260px_1fr]">
@@ -175,6 +185,15 @@ export default function AdminPaymentsPage() {
 
                       {status === "pending" && (
                         <div className="space-y-3 border-t border-white/10 pt-4">
+                          {underpaid && (
+                            <p role="alert" className="flex items-start gap-2 text-sm rounded-lg border border-red-500/40 bg-red-500/10 text-red-300 p-3">
+                              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                              <span>
+                                Underpaid: the customer reports {paid != null ? `EGP ${paid}` : "no amount"} against a quote of EGP {p.amount_egp}.
+                                Normal approval is blocked. Reject it, or write the reason in the note and use “Approve anyway”.
+                              </span>
+                            </p>
+                          )}
                           <label className="block">
                             <span className="text-xs text-neutral-500">Note (required to reject, shown to the customer)</span>
                             <textarea rows={2} maxLength={500} value={notes[p.id] || ""}
@@ -182,10 +201,17 @@ export default function AdminPaymentsPage() {
                               className="mt-1 w-full rounded-lg bg-white/5 border border-white/10 p-2.5 text-sm outline-none focus:border-[#e5a93c]/50" />
                           </label>
                           <div className="flex flex-wrap gap-3">
-                            <button disabled={busy === p.id} onClick={() => review(p, "approve")}
-                              className="inline-flex items-center gap-2 bg-green-500/90 hover:bg-green-500 text-black font-semibold text-sm px-4 py-2 rounded-lg disabled:opacity-50">
-                              {busy === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve
-                            </button>
+                            {underpaid ? (
+                              <button disabled={busy === p.id} onClick={() => review(p, "approve", true)}
+                                className="inline-flex items-center gap-2 border border-amber-400/50 text-amber-300 hover:bg-amber-400/10 font-semibold text-sm px-4 py-2 rounded-lg disabled:opacity-50">
+                                {busy === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertTriangle className="w-4 h-4" />} Approve anyway (override)
+                              </button>
+                            ) : (
+                              <button disabled={busy === p.id} onClick={() => review(p, "approve")}
+                                className="inline-flex items-center gap-2 bg-green-500/90 hover:bg-green-500 text-black font-semibold text-sm px-4 py-2 rounded-lg disabled:opacity-50">
+                                {busy === p.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />} Approve
+                              </button>
+                            )}
                             <button disabled={busy === p.id} onClick={() => review(p, "reject")}
                               className="inline-flex items-center gap-2 border border-red-500/40 text-red-300 hover:bg-red-500/10 text-sm px-4 py-2 rounded-lg disabled:opacity-50">
                               <XCircle className="w-4 h-4" /> Reject

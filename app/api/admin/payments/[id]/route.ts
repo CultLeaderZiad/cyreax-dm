@@ -4,7 +4,8 @@
 // retry never extends a plan twice), extends the paid period, writes the
 // billing tables and the audit row, all in one transaction.
 //
-// PATCH /api/admin/payments/[id]  { action: "approve" | "reject", note? }
+// PATCH /api/admin/payments/[id]  { action: "approve" | "reject", note?, override? }
+// Approving less than the quoted amount needs override: true and a note.
 export const dynamic = "force-dynamic"
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
@@ -35,6 +36,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid action" }, { status: 400 })
   }
   const note = String(body?.note ?? body?.rejection_reason ?? "").trim().slice(0, 500) || null
+  const override = body?.override === true
   if (action === "reject" && !note) {
     return NextResponse.json({ error: "Add a reason so the customer knows what to fix." }, { status: 400 })
   }
@@ -64,18 +66,32 @@ export async function PATCH(
     p_admin_account: adminAccount.id,
     p_note: note,
     p_fallback_plan: fallbackPlan,
+    p_override: override,
   })
   if (error) {
     console.error("[admin/payments] review failed:", error.message)
     const missing = /cyreax_review_payment|schema cache|does not exist/i.test(error.message || "")
     return NextResponse.json(
-      { error: missing ? "Run the payments migration (20261107120300) first." : "Could not review the payment." },
+      { error: missing ? "Run the payments migrations (20261107120300 and 20261117120100) first." : "Could not review the payment." },
       { status: missing ? 503 : 500 },
     )
   }
 
   const outcome = review?.result
   if (outcome === "not_found") return NextResponse.json({ error: "Payment not found" }, { status: 404 })
+  if (outcome === "underpaid" || outcome === "override_needs_note") {
+    return NextResponse.json(
+      {
+        error: outcome === "underpaid"
+          ? "The customer paid less than the quote. Approve with override and a note if that is intended."
+          : "An override needs a note explaining why.",
+        code: outcome,
+        expectedEgp: review.expected_egp ?? null,
+        paidEgp: review.paid_egp ?? null,
+      },
+      { status: 409 },
+    )
+  }
   if (outcome === "already_reviewed") {
     return NextResponse.json({ success: true, alreadyReviewed: true, status: review.status })
   }
