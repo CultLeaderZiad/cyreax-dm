@@ -6,7 +6,7 @@ import Link from "next/link"
 import useSWR from "swr"
 import { CurrentPlanCard } from "@/components/billing/CurrentPlanCard"
 import { PaymentMethodCard } from "@/components/billing/PaymentMethodCard"
-import { PlansComparisonRow } from "@/components/billing/PlansComparisonRow"
+import { PlansComparisonRow, formatEgp, type DbPlan } from "@/components/billing/PlansComparisonRow"
 import { RecentPaymentsTable } from "@/components/billing/RecentPaymentsTable"
 import { UsageAlertChip, PlanCard, PaymentMethodList, StickyCTA } from "@/components/mobile"
 import { useWorkspaceUsage } from "@/hooks/use-workspace-usage"
@@ -25,6 +25,16 @@ interface BillingUsageResponse {
     blocked: boolean
     limits: Record<string, number | boolean>
   }
+  /** The plans row that was bought (name and EGP prices from Admin -> Plans). */
+  displayPlan?: {
+    id: string
+    name: string
+    price_egp?: number | null
+    price_yearly_egp?: number | null
+    billing_cycle?: string | null
+  } | null
+  interval?: "month" | "year" | "lifetime" | null
+  provider?: string | null
   status?: "active" | "trialing" | "past_due" | "expired"
   trialEndsAt?: string | null
   periodEnd?: string | null
@@ -58,26 +68,19 @@ function BillingLoadingSkeleton() {
 
 function BillingPageContent() {
   const router = useRouter()
-  const [selectedCurrency, setSelectedCurrency] = useState<"EGP" | "SAR" | "USD">("EGP")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("vodafone_cash")
   const [isUpgrading, setIsUpgrading] = useState(false)
   const { usage } = useWorkspaceUsage()
 
-  // Listen to currency change & invoices event from TopBar
+  // Invoices event from the TopBar
   useEffect(() => {
-    const handleCurrencyChange = (e: CustomEvent<"EGP" | "SAR" | "USD">) => {
-      if (e.detail) setSelectedCurrency(e.detail)
-    }
-
     const handleInvoicesOpen = () => {
       toast.info("Opening Invoices and payment receipts")
     }
 
-    window.addEventListener("cyreax:currency-change", handleCurrencyChange as EventListener)
     window.addEventListener("cyreax:open-invoices", handleInvoicesOpen)
 
     return () => {
-      window.removeEventListener("cyreax:currency-change", handleCurrencyChange as EventListener)
       window.removeEventListener("cyreax:open-invoices", handleInvoicesOpen)
     }
   }, [])
@@ -90,6 +93,9 @@ function BillingPageContent() {
       dedupingInterval: 30000,
     }
   )
+
+  // Real plans for the mobile "upgrade/renew" button.
+  const { data: dbPlans } = useSWR<DbPlan[]>("/api/plans", fetcher, { revalidateOnFocus: false })
 
   if (isLoading) {
     return (
@@ -127,61 +133,56 @@ function BillingPageContent() {
     )
   }
 
-  const rawPlanName = data?.plan?.name
-  // Always use real plan name, never "monthly"
-  const planName =
-    rawPlanName && rawPlanName.toLowerCase() !== "monthly"
-      ? rawPlanName
-      : "Agency Growth"
-
+  // Real plan name: the plans row that was bought, else the entitlement plan.
+  const planName = data?.displayPlan?.name || data?.plan?.name || "No plan"
   const status = data?.status || "active"
+  const interval = data?.interval || null
 
-  // Format renewal date using Cairo time zone
-  let formattedRenewal = "Nov 1"
-  if (data?.periodEnd) {
+  const formatDay = (value: string | null | undefined, withYear = false) => {
+    if (!value) return null
     try {
-      formattedRenewal = new Intl.DateTimeFormat("en-US", {
+      return new Intl.DateTimeFormat("en-US", {
         timeZone: "Africa/Cairo",
         month: "short",
         day: "numeric",
-      }).format(new Date(data.periodEnd))
+        ...(withYear ? { year: "numeric" as const } : {}),
+      }).format(new Date(value))
     } catch {
-      formattedRenewal = "Nov 1"
+      return null
     }
   }
+  const formattedRenewal = formatDay(data?.periodEnd)
+  const formattedTrialEnd = formatDay(data?.trialEndsAt)
 
-  let formattedTrialEnd: string | null = null
-  if (data?.trialEndsAt) {
-    try {
-      formattedTrialEnd = new Intl.DateTimeFormat("en-US", {
-        timeZone: "Africa/Cairo",
-        month: "short",
-        day: "numeric",
-      }).format(new Date(data.trialEndsAt))
-    } catch {
-      formattedTrialEnd = null
-    }
-  }
+  // Prices only from the plans table; no invented amounts.
+  const displayPrice =
+    interval === "year"
+      ? formatEgp(data?.displayPlan?.price_yearly_egp)
+      : formatEgp(data?.displayPlan?.price_egp)
+  const priceText = displayPrice
+    ? `${displayPrice}${interval === "lifetime" ? " once" : interval === "year" ? " / yr" : " / mo"}`
+    : null
+  const renewsText =
+    interval === "lifetime"
+      ? "Lifetime"
+      : formattedRenewal
+      ? `${status === "expired" ? "Ended" : "Renews"} ${formattedRenewal}`
+      : ""
 
-  const renewsPrice =
-    selectedCurrency === "SAR"
-      ? "SAR 920"
-      : selectedCurrency === "USD"
-      ? "$249"
-      : "EGP 11,900"
-
-  const totalChargeAmount =
-    selectedCurrency === "SAR"
-      ? "SAR 1,220"
-      : selectedCurrency === "USD"
-      ? "$329"
-      : "EGP 15,700"
-
-  const renewsText = `Renews ${formattedRenewal} · ${renewsPrice} / mo`
+  // Mobile CTA: renew the plan you have, otherwise the first available plan.
+  const plansList = Array.isArray(dbPlans) ? dbPlans.filter((p) => !p.is_contact_sales) : []
+  const targetPlan =
+    (data?.displayPlan && plansList.find((p) => p.id === data.displayPlan!.id)) || plansList[0] || null
+  const targetPrice = targetPlan ? formatEgp(targetPlan.price_egp) : null
 
   const handleContinuePayment = () => {
+    if (!targetPlan) {
+      router.push("/pricing")
+      return
+    }
     setIsUpgrading(true)
-    router.push(`/checkout/agency?method=${selectedPaymentMethod}`)
+    // Real plan UUID route (was the non-existent /checkout/agency).
+    router.push(`/checkout/${encodeURIComponent(targetPlan.id)}`)
   }
 
   const selectedMethodLabel =
@@ -234,8 +235,14 @@ function BillingPageContent() {
 
         {/* Sticky CTA */}
         <StickyCTA
-          targetPlanTitle="Upgrade to Agency"
-          priceText="EGP 3,900/mo"
+          targetPlanTitle={
+            targetPlan
+              ? data?.displayPlan?.id === targetPlan.id
+                ? `Renew ${targetPlan.name}`
+                : `Choose ${targetPlan.name}`
+              : "See plans"
+          }
+          priceText={targetPrice ? `${targetPrice}/mo` : ""}
           methodName={selectedMethodLabel}
           loading={isUpgrading}
           onClick={handleContinuePayment}
@@ -250,7 +257,7 @@ function BillingPageContent() {
             Billing
           </h1>
           <p className="text-[12.5px] text-[var(--t3)]">
-            One subscription for the agency. Pay by Vodafone Cash or email payment request.
+            Your plan, usage and payments. Pay by Egyptian e-wallet or InstaPay.
           </p>
         </div>
 
@@ -260,25 +267,20 @@ function BillingPageContent() {
             planName={planName}
             status={status}
             renewsText={renewsText}
+            priceText={priceText}
             trialEndsAt={formattedTrialEnd}
-            currency={selectedCurrency}
+            metrics={data?.metrics || []}
+            periodEndLabel={formatDay(data?.periodEnd, true)}
             onCancelSubscription={() => mutate()}
           />
-          <PaymentMethodCard
-            amount={totalChargeAmount}
-            currency={selectedCurrency}
-            currentPlanId={data?.plan?.id || "agency"}
-          />
+          <PaymentMethodCard />
         </div>
 
         {/* Plans Row (Full Width) */}
-        <PlansComparisonRow
-          currency={selectedCurrency}
-          currentPlanId="agency-growth"
-        />
+        <PlansComparisonRow currentPlanId={data?.displayPlan?.id || null} />
 
         {/* Recent Payments Table (Full Width) */}
-        <RecentPaymentsTable currency={selectedCurrency} />
+        <RecentPaymentsTable />
       </div>
     </>
   )
