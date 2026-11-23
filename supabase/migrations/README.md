@@ -282,3 +282,21 @@ shows (the site URL, and the same `CRON_SECRET` as Vercel). Until both exist,
 the jobs do nothing. The rollback is in the file header. Check that it works with
 `select * from cron.job_run_details order by start_time desc limit 10;` and
 `GET /api/health` (`checks.queue` should be `ok`).
+
+## Review fixes (2026-11-17)
+
+Run after the scheduler migrations, in this order. Each has its rollback in
+the file header.
+
+1. `20261117120000_byok_rpc_lockdown.sql` brings `set_agent_byok_key` /
+   `get_agent_byok_key` into the chain and makes them service-role only.
+2. `20261117120100_review_payment_underpay_guard.sql` replaces
+   `cyreax_review_payment` (new `p_override` argument): approving less than
+   the quote needs an override and a note.
+3. `20261117120200_review_payment_plan_and_lifetime.sql` replaces it again so
+   approval grants the plan that was bought, stores lifetime as
+   `interval = 'lifetime'`, adds `billing_accounts.display_plan_id`, and
+   backfills both from approved payments.
+
+Deploy the app code from the same release together with 2 and 3: the admin
+route passes `p_override`, which the old function does not accept.
