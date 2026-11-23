@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { getSessionUser } from "@/lib/auth"
 import { listMemberships } from "@/lib/workspaces"
+import { unlockedAgentIds } from "@/lib/billing/agent-access"
 import { roleAllows, type WorkspaceRole } from "@/lib/workspace-access"
 
 /**
@@ -40,11 +41,9 @@ export async function GET(req: NextRequest) {
     // Fetch base data in parallel
     const [
       { data: agents, error: agentsError },
-      { data: account },
       { data: settings, error: settingsError }
     ] = await Promise.all([
       supabase.from("agents").select("*").eq("is_active", true).order("sort_order"),
-      supabase.from("accounts").select("plan, role").eq("id", accId).maybeSingle(),
       supabase.from("account_agent_settings").select("agent_id, is_enabled, byok_provider, byok_connected_at, last_used_at").eq("account_id", accId)
     ]);
 
@@ -56,24 +55,10 @@ export async function GET(req: NextRequest) {
       throw new Error(agentsError.message)
     }
 
-    // Get user's plan_agents mapping based on plan
-    let planAgents: string[] = []
-    
-    if (account?.role === 'admin') {
-      // Admins get all agents unlocked
-      planAgents = agents?.map((a: any) => a.id) || []
-    } else if (account?.plan) {
-      // Paid users (monthly, one_time, yearly) get ALL agents unlocked by default
-      // Only trial users are restricted to plan_agents table entries
-      const paidPlans = ['monthly', 'one_time', 'yearly']
-      if (paidPlans.includes(account.plan)) {
-        planAgents = agents?.map((a: any) => a.id) || []
-      } else {
-        // Trial/free users: check plan_agents table
-        const { data: pa, error: paError } = await supabase.from("plan_agents").select("agent_id").eq("plan_id", account.plan)
-        if (pa && !paError) planAgents = pa.map((p: any) => p.agent_id)
-      }
-    }
+    // Unlocked agents follow the plan that was actually bought (plan_agents),
+    // not a blanket "paid unlocks everything".
+    const access = await unlockedAgentIds(supabase, accId, (agents || []).map((a: any) => a.id))
+    const planAgents = access.agentIds
 
     const settingsMap = (!settingsError && settings ? settings : []).reduce((acc: any, s: any) => {
       acc[s.agent_id] = s
@@ -90,7 +75,7 @@ export async function GET(req: NextRequest) {
       settings: settingsMap[agent.id] || { is_enabled: true, is_default: true }
     })) || []
 
-    return NextResponse.json({ agents: result, plan_id: account?.plan })
+    return NextResponse.json({ agents: result, plan_id: access.planId })
   } catch (error: any) {
     console.error("[api/agents] GET error:", error)
     return NextResponse.json({ error: "Could not load agents" }, { status: 500 })

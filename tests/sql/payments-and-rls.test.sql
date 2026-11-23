@@ -225,6 +225,50 @@ BEGIN
   IF r->>'result' <> 'already_reviewed' THEN RAISE EXCEPTION 'FAIL: second override approve: %', r; END IF;
 END $$;
 
+-- 9c. Approval grants the plan that was bought: monthly, yearly, lifetime.
+INSERT INTO public.accounts (id, email, role) VALUES
+  ('cccccccc-0000-0000-0000-00000000000c', 'c@test.local', 'customer'),
+  ('eeeeeeee-0000-0000-0000-00000000000e', 'e@test.local', 'customer'),
+  ('ffffffff-0000-0000-0000-00000000000f', 'f@test.local', 'customer');
+INSERT INTO public.users (id, account_id, username) VALUES
+  (3003, 'cccccccc-0000-0000-0000-00000000000c', 'c'), (5005, 'eeeeeeee-0000-0000-0000-00000000000e', 'e'), (6006, 'ffffffff-0000-0000-0000-00000000000f', 'f');
+INSERT INTO public.plans (id, name, price_usd, catalog_plan_id) VALUES
+  ('55555555-0000-0000-0000-000000000001', 'Agency Pro', 99, 'agency_pro');
+INSERT INTO public.payment_submissions (id, user_id, account_id, transaction_reference, amount, amount_egp, amount_paid_egp, payment_method, interval, plan_id, plan_slug, reference_code)
+VALUES
+  ('66666666-0000-0000-0000-000000000001', 3003, 'cccccccc-0000-0000-0000-00000000000c', 'TX-C1', 5000, 5000, 5000, 'wallet', 'month', '55555555-0000-0000-0000-000000000001', 'creator', 'CX-CCCCC1'),
+  ('66666666-0000-0000-0000-000000000002', 5005, 'eeeeeeee-0000-0000-0000-00000000000e', 'TX-E1', 50000, 50000, 50000, 'wallet', 'year', '55555555-0000-0000-0000-000000000001', 'agency_pro', 'CX-EEEEE1'),
+  ('66666666-0000-0000-0000-000000000003', 6006, 'ffffffff-0000-0000-0000-00000000000f', 'TX-F1', 90000, 90000, 90000, 'instapay', 'lifetime', '55555555-0000-0000-0000-000000000001', 'agency_pro', 'CX-FFFFF1');
+DO $$
+DECLARE b public.billing_accounts%ROWTYPE;
+BEGIN
+  PERFORM public.cyreax_review_payment('66666666-0000-0000-0000-000000000001', 'approve', 'dddddddd-0000-0000-0000-00000000000d');
+  SELECT * INTO b FROM public.billing_accounts WHERE account_id = 'cccccccc-0000-0000-0000-00000000000c';
+  IF b.plan_id <> 'agency_pro' THEN RAISE EXCEPTION 'FAIL: monthly got plan % instead of the bought plan', b.plan_id; END IF;
+  IF b.interval <> 'month' OR abs(extract(epoch FROM b.current_period_end - (now() + interval '1 month'))) > 5 THEN
+    RAISE EXCEPTION 'FAIL: monthly interval/end % %', b.interval, b.current_period_end;
+  END IF;
+  IF b.display_plan_id <> '55555555-0000-0000-0000-000000000001' THEN RAISE EXCEPTION 'FAIL: display plan not stored'; END IF;
+
+  PERFORM public.cyreax_review_payment('66666666-0000-0000-0000-000000000002', 'approve', 'dddddddd-0000-0000-0000-00000000000d');
+  SELECT * INTO b FROM public.billing_accounts WHERE account_id = 'eeeeeeee-0000-0000-0000-00000000000e';
+  IF b.interval <> 'year' OR abs(extract(epoch FROM b.current_period_end - (now() + interval '1 year'))) > 5 THEN
+    RAISE EXCEPTION 'FAIL: yearly interval/end % %', b.interval, b.current_period_end;
+  END IF;
+  IF (SELECT plan FROM public.accounts WHERE id = 'eeeeeeee-0000-0000-0000-00000000000e') <> 'monthly' THEN
+    RAISE EXCEPTION 'FAIL: yearly legacy marker';
+  END IF;
+
+  PERFORM public.cyreax_review_payment('66666666-0000-0000-0000-000000000003', 'approve', 'dddddddd-0000-0000-0000-00000000000d');
+  SELECT * INTO b FROM public.billing_accounts WHERE account_id = 'ffffffff-0000-0000-0000-00000000000f';
+  IF b.interval <> 'lifetime' OR b.current_period_end IS NOT NULL OR b.plan_id <> 'agency_pro' THEN
+    RAISE EXCEPTION 'FAIL: lifetime stored as % / % / %', b.interval, b.current_period_end, b.plan_id;
+  END IF;
+  IF (SELECT plan FROM public.accounts WHERE id = 'ffffffff-0000-0000-0000-00000000000f') <> 'one_time' THEN
+    RAISE EXCEPTION 'FAIL: lifetime legacy marker';
+  END IF;
+END $$;
+
 -- 10. BYOK RPCs: only the service role may execute them.
 DO $$
 DECLARE r text;
