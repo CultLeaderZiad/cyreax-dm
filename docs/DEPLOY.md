@@ -55,7 +55,7 @@ WhatsApp:
 
 | Variable | Used for |
 | --- | --- |
-| `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | Falls back to the Instagram verify token |
+| `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | WhatsApp webhook handshake (only this token; no fallback) |
 | `NEXT_PUBLIC_WHATSAPP_CONFIG_ID` | Embedded Signup. Without it, paste a phone number id and system-user token |
 
 TikTok. Leave the flags unset until the app is approved. See `docs/phase4-channels.md`.

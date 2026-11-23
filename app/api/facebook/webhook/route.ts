@@ -6,7 +6,7 @@ import { devWebhookSignatureBypass } from "@/lib/webhooks/signature-guard"
 import { metaVerifyTokenMatches } from "@/lib/webhooks/verify-token"
 
 function isAuthorizedVerifyToken(candidate: string | null): boolean {
-  return metaVerifyTokenMatches(candidate)
+  return metaVerifyTokenMatches("facebook", candidate)
 }
 
 // Meta signs every webhook POST with HMAC-SHA256 of the raw body. Depending on app setup the
