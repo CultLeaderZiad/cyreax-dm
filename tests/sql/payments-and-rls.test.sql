@@ -300,4 +300,20 @@ DO $$ BEGIN
 END $$;
 RESET ROLE;
 
+-- 11. Whop: manual approvals record the provider; Whop tables are service-only.
+DO $$ BEGIN
+  IF (SELECT payment_provider FROM public.billing_accounts WHERE account_id = 'ffffffff-0000-0000-0000-00000000000f') <> 'manual' THEN
+    RAISE EXCEPTION 'FAIL: manual approval did not record payment_provider';
+  END IF;
+  IF has_table_privilege('authenticated', 'public.whop_checkouts', 'SELECT')
+     OR has_table_privilege('anon', 'public.whop_webhook_events', 'INSERT') THEN
+    RAISE EXCEPTION 'FAIL: Whop tables are readable/writable by clients';
+  END IF;
+  BEGIN
+    UPDATE public.accounts SET country = 'egypt' WHERE id = 'aaaaaaaa-0000-0000-0000-00000000000a';
+    RAISE EXCEPTION 'FAIL: invalid country accepted';
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+END $$;
+
 SELECT 'ALL DB CHECKS PASSED' AS result;
