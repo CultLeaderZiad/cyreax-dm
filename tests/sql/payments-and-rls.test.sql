@@ -196,4 +196,35 @@ DO $$ BEGIN
 END $$;
 RESET ROLE;
 
+-- 10. BYOK RPCs: only the service role may execute them.
+DO $$
+DECLARE r text;
+BEGIN
+  FOREACH r IN ARRAY ARRAY['anon', 'authenticated'] LOOP
+    IF has_function_privilege(r, 'public.set_agent_byok_key(uuid, uuid, text, text, text)', 'EXECUTE')
+       OR has_function_privilege(r, 'public.get_agent_byok_key(uuid, uuid, text)', 'EXECUTE') THEN
+      RAISE EXCEPTION 'FAIL: % can execute a BYOK RPC', r;
+    END IF;
+  END LOOP;
+  IF NOT has_function_privilege('service_role', 'public.set_agent_byok_key(uuid, uuid, text, text, text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'FAIL: service_role cannot set BYOK keys';
+  END IF;
+END $$;
+SET ROLE authenticated;
+DO $$ BEGIN
+  PERFORM public.set_agent_byok_key('bbbbbbbb-0000-0000-0000-00000000000b', gen_random_uuid(), 'sk-x', 'openai', 's');
+  RAISE EXCEPTION 'FAIL: authenticated replaced a BYOK key';
+EXCEPTION WHEN insufficient_privilege THEN NULL;
+END $$;
+RESET ROLE;
+-- Round trip still works for the server.
+SET ROLE service_role;
+DO $$ BEGIN
+  PERFORM public.set_agent_byok_key('aaaaaaaa-0000-0000-0000-00000000000a', '44444444-0000-0000-0000-000000000001', 'sk-test', 'openai', 'sec');
+  IF public.get_agent_byok_key('aaaaaaaa-0000-0000-0000-00000000000a', '44444444-0000-0000-0000-000000000001', 'sec') <> 'sk-test' THEN
+    RAISE EXCEPTION 'FAIL: BYOK round trip';
+  END IF;
+END $$;
+RESET ROLE;
+
 SELECT 'ALL DB CHECKS PASSED' AS result;
