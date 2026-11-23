@@ -28,6 +28,12 @@ export interface CurrentPlanCardProps {
   periodEndLabel?: string | null
   onChangePlan?: () => void
   onCancelSubscription?: () => void
+  /** Who collects payment: 'whop' (card) or 'manual' (wallet / InstaPay). */
+  paymentProvider?: "whop" | "manual" | null
+  /** Whop subscription set to end at the period end. */
+  cancelAtPeriodEnd?: boolean
+  /** Where a Whop subscriber manages or cancels (Whop's orders page). */
+  manageUrl?: string | null
 }
 
 const METRIC_LABEL: Record<string, string> = {
@@ -50,6 +56,9 @@ export function CurrentPlanCard({
   periodEndLabel = null,
   onChangePlan,
   onCancelSubscription,
+  paymentProvider = null,
+  cancelAtPeriodEnd = false,
+  manageUrl = null,
 }: CurrentPlanCardProps) {
   const [cancelOpen, setCancelOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
@@ -154,6 +163,20 @@ export function CurrentPlanCard({
           </div>
         )}
 
+        {paymentProvider && (
+          <div className="flex items-center justify-between text-[11.5px]">
+            <span className="text-[var(--t3)]">Paid with</span>
+            <span className="text-[var(--t1)] font-medium">
+              {paymentProvider === "whop" ? "Card (Whop)" : "E-wallet / InstaPay"}
+            </span>
+          </div>
+        )}
+        {paymentProvider === "whop" && cancelAtPeriodEnd && (
+          <p className="text-[11.5px] text-[var(--amber)]">
+            Set to cancel{periodEndLabel ? ` on ${periodEndLabel}` : " at the end of the period"}. Manage it on Whop to keep it.
+          </p>
+        )}
+
         {priceText && (
           <div className="pt-2 border-t border-[var(--line)] flex items-center justify-between text-[11.5px]">
             <span className="text-[var(--t3)]">Plan price</span>
@@ -185,13 +208,25 @@ export function CurrentPlanCard({
 
         </div>
 
-        <button
-          type="button"
-          onClick={() => setCancelOpen(true)}
-          className="text-[11.5px] text-[var(--t3)] hover:text-[var(--red)] transition-colors cursor-pointer"
-        >
-          Cancel subscription
-        </button>
+        {paymentProvider === "whop" && manageUrl ? (
+          // Whop owns the card subscription: renew, update the card or cancel there.
+          <a
+            href={manageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11.5px] font-medium text-[var(--gold2)] hover:underline"
+          >
+            Manage subscription
+          </a>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setCancelOpen(true)}
+            className="text-[11.5px] text-[var(--t3)] hover:text-[var(--red)] transition-colors cursor-pointer"
+          >
+            Cancel subscription
+          </button>
+        )}
       </div>
 
       <ConfirmDialog

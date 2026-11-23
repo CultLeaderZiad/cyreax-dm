@@ -8,7 +8,7 @@ import { CurrentPlanCard } from "@/components/billing/CurrentPlanCard"
 import { PaymentMethodCard } from "@/components/billing/PaymentMethodCard"
 import { PlansComparisonRow, formatEgp, type DbPlan } from "@/components/billing/PlansComparisonRow"
 import { RecentPaymentsTable } from "@/components/billing/RecentPaymentsTable"
-import { UsageAlertChip, PlanCard, PaymentMethodList, StickyCTA } from "@/components/mobile"
+import { UsageAlertChip, PlanCard, StickyCTA } from "@/components/mobile"
 import { useWorkspaceUsage } from "@/hooks/use-workspace-usage"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, Loader2, ChevronLeft, ChevronDown } from "lucide-react"
@@ -35,6 +35,10 @@ interface BillingUsageResponse {
   } | null
   interval?: "month" | "year" | "lifetime" | null
   provider?: string | null
+  paymentProvider?: "whop" | "manual" | null
+  cancelAtPeriodEnd?: boolean
+  manageUrl?: string | null
+  egyptian?: boolean
   status?: "active" | "trialing" | "past_due" | "expired"
   trialEndsAt?: string | null
   periodEnd?: string | null
@@ -68,7 +72,6 @@ function BillingLoadingSkeleton() {
 
 function BillingPageContent() {
   const router = useRouter()
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("vodafone_cash")
   const [isUpgrading, setIsUpgrading] = useState(false)
   const { usage } = useWorkspaceUsage()
 
@@ -185,11 +188,6 @@ function BillingPageContent() {
     router.push(`/checkout/${encodeURIComponent(targetPlan.id)}`)
   }
 
-  const selectedMethodLabel =
-    selectedPaymentMethod === "vodafone_cash"
-      ? "Vodafone Cash"
-      : "Email payment request"
-
   return (
     <>
       {/* Mobile Billing View (<768px) matching 01-billing.png */}
@@ -221,15 +219,29 @@ function BillingPageContent() {
             <PlanCard />
           </div>
 
-          {/* PAY WITH */}
+          {/* PAYMENT: real options only (card everywhere, wallet/InstaPay in Egypt) */}
           <div className="space-y-2">
             <h2 className="text-[11px] font-mono uppercase tracking-[0.06em] text-[var(--t3)] font-semibold">
-              PAY WITH
+              PAYMENT
             </h2>
-            <PaymentMethodList
-              selectedId={selectedPaymentMethod}
-              onSelect={setSelectedPaymentMethod}
-            />
+            <div className="rounded-[12px] border border-[var(--line)] bg-[var(--s1)] p-4 space-y-2 text-[13px] text-[var(--t2)]">
+              {data?.paymentProvider === "whop" ? (
+                <>
+                  <p>Paid by card through Whop.</p>
+                  {data?.manageUrl && (
+                    <a href={data.manageUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--gold2)]">
+                      Manage subscription
+                    </a>
+                  )}
+                </>
+              ) : (
+                <p>
+                  {data?.egyptian
+                    ? "Pay by card, e-wallet or InstaPay at checkout."
+                    : "Pay by card at checkout."}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -243,7 +255,7 @@ function BillingPageContent() {
               : "See plans"
           }
           priceText={targetPrice ? `${targetPrice}/mo` : ""}
-          methodName={selectedMethodLabel}
+          methodName={data?.egyptian ? "Card, e-wallet or InstaPay" : "Card"}
           loading={isUpgrading}
           onClick={handleContinuePayment}
         />
@@ -257,7 +269,7 @@ function BillingPageContent() {
             Billing
           </h1>
           <p className="text-[12.5px] text-[var(--t3)]">
-            Your plan, usage and payments. Pay by Egyptian e-wallet or InstaPay.
+            Your plan, usage and payments.
           </p>
         </div>
 
@@ -272,8 +284,33 @@ function BillingPageContent() {
             metrics={data?.metrics || []}
             periodEndLabel={formatDay(data?.periodEnd, true)}
             onCancelSubscription={() => mutate()}
+            paymentProvider={data?.paymentProvider || null}
+            cancelAtPeriodEnd={Boolean(data?.cancelAtPeriodEnd)}
+            manageUrl={data?.manageUrl || null}
           />
-          <PaymentMethodCard />
+          {data?.egyptian && data?.paymentProvider !== "whop" ? (
+            // Egyptian customers on (or choosing) wallet / InstaPay: renew here.
+            <PaymentMethodCard />
+          ) : (
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-5 space-y-3">
+              <h3 className="text-[14px] font-semibold text-[var(--t1)]">Payment</h3>
+              <p className="text-[12.5px] text-[var(--t2)]">
+                {data?.paymentProvider === "whop"
+                  ? "Your card is billed by Whop. Update the card, see receipts or cancel with Manage subscription."
+                  : "Pay by card at checkout. Choose a plan below to continue."}
+              </p>
+              {data?.paymentProvider === "whop" && data?.manageUrl && (
+                <a
+                  href={data.manageUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center h-[34px] px-4 rounded-[6px] bg-[var(--gold)] text-black font-semibold text-[12px] hover:bg-[var(--gold2)]"
+                >
+                  Manage subscription
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Plans Row (Full Width) */}

@@ -6,6 +6,8 @@ import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { featureEnabled, limitFor, type MeterKey } from "@/lib/billing/plans"
 import { activePeriodValid, measureUsage, resolveAccountPlan } from "@/lib/billing/enforce"
 import { judgeUsage } from "@/lib/billing/usage"
+import { isEgyptianCustomer } from "@/lib/billing/region"
+import { WHOP_MANAGE_URL } from "@/lib/billing/whop"
 
 const METRICS: MeterKey[] = ["workspaces", "channels", "contacts", "aiReplies", "broadcasts", "seats"]
 
@@ -54,6 +56,9 @@ export async function GET(request: NextRequest) {
     // 'whop' | 'manual': decides "Manage subscription" vs "Renew by wallet".
     paymentProvider: (billing.data as any)?.payment_provider || null,
     cancelAtPeriodEnd: Boolean((billing.data as any)?.cancel_at_period_end),
+    manageUrl: (billing.data as any)?.payment_provider === "whop" ? WHOP_MANAGE_URL : null,
+    // Egypt-only manual methods (same rule the manual payment API enforces).
+    egyptian: isEgyptianCustomer({ accountCountry: account.country, headers: request.headers }),
     status: status || (account.plan === "trial" ? "trialing" : plan.blocked ? "expired" : "active"),
     trialEndsAt: billing.data?.trial_ends_at || account.trial_ends_at || null,
     periodEnd: billing.data?.current_period_end || null,
