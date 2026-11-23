@@ -8,11 +8,14 @@ import { beforeEach, describe, it } from "node:test"
 import sharp from "sharp"
 
 process.env.BYOK_ENCRYPTION_SECRET ||= "test-secret-for-token-sealing-0123456789"
+// Test-only payout numbers (the app has no built-in fallback).
+process.env.PAYMENT_WALLET_NUMBER = "01111111111"
+process.env.PAYMENT_INSTAPAY_NUMBER = "01222222222"
 
 const { fakeDb } = await import("./fakes/supabase-server.ts")
 const { NextRequest } = await import("next/server")
 const { signQuote, verifyQuote, checkoutTerms, validateSubmission, detectImageType, customerStatus } = await import("../lib/billing/manual-payments.ts")
-const { paymentDestinations } = await import("../lib/billing/payment-methods.ts")
+const { paymentDestinations, availableMethods } = await import("../lib/billing/payment-methods.ts")
 const manual = await import("../app/api/payments/manual/route.ts")
 const adminList = await import("../app/api/admin/payments/route.ts")
 const adminReview = await import("../app/api/admin/payments/[id]/route.ts")
@@ -93,14 +96,17 @@ const review = (id: string, body: unknown) =>
   )
 
 describe("payment config and pure rules", () => {
-  it("destinations come from env with the documented defaults", () => {
-    const d = paymentDestinations({})
-    assert.equal(d.wallet.local, "01007019031")
-    assert.equal(d.wallet.international, "+201007019031")
-    assert.equal(d.instapay.local, "01069647929")
-    assert.equal(d.instapay.international, "+201069647929")
-    assert.equal(paymentDestinations({ PAYMENT_WALLET_NUMBER: "+201111111111" }).wallet.local, "01111111111")
-    assert.equal(paymentDestinations({ PAYMENT_WALLET_NUMBER: "not-a-number" }).wallet.local, "01007019031")
+  it("payout numbers come only from env and fail closed", () => {
+    const none = paymentDestinations({})
+    assert.equal(none.wallet, null, "no hardcoded fallback number")
+    assert.equal(none.instapay, null)
+    assert.deepEqual(availableMethods({}), [])
+    const d = paymentDestinations({ PAYMENT_WALLET_NUMBER: "+201111111111", PAYMENT_INSTAPAY_NUMBER: "01222222222" })
+    assert.equal(d.wallet!.local, "01111111111")
+    assert.equal(d.wallet!.international, "+201111111111")
+    assert.equal(d.instapay!.local, "01222222222")
+    assert.equal(paymentDestinations({ PAYMENT_WALLET_NUMBER: "not-a-number" }).wallet, null, "invalid hides the method")
+    assert.deepEqual(availableMethods({ PAYMENT_INSTAPAY_NUMBER: "01222222222" }), ["instapay"])
   })
   it("amount is decided on the server from EGP prices, and blocked without one", () => {
     const plan = { id: PLAN, name: "Creator", price_usd: 29, price_yearly: 290, price_egp: 1450, price_yearly_egp: 14500, billing_cycle: "monthly" }
@@ -138,6 +144,18 @@ describe("submitting proof", () => {
   beforeEach(() => {
     seed()
     as(A)
+  })
+
+  it("refuses a method whose payout number is not configured", async () => {
+    const saved = process.env.PAYMENT_WALLET_NUMBER
+    delete process.env.PAYMENT_WALLET_NUMBER
+    try {
+      const res = await submit(await validFields())
+      assert.equal(res.status, 503)
+      assert.equal(fakeDb().tables.payment_submissions?.length ?? 0, 0)
+    } finally {
+      process.env.PAYMENT_WALLET_NUMBER = saved
+    }
   })
 
   it("stores a pending payment with the quoted amount and a sanitized private proof", async () => {

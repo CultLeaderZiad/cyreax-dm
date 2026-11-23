@@ -15,9 +15,14 @@ export interface PaymentMethodCardProps {
 }
 
 type Method = "wallet" | "instapay"
+interface Destination {
+  local: string
+  international: string
+}
+/** null = that method is not configured on the server (temporarily unavailable). */
 interface Destinations {
-  wallet: { local: string; international: string }
-  instapay: { local: string; international: string }
+  wallet: Destination | null
+  instapay: Destination | null
 }
 
 const STEPS: Record<Method, string[]> = {
@@ -50,23 +55,26 @@ export function PaymentMethodCard(_props: PaymentMethodCardProps) {
       .catch(() => setDest(null))
   }, [])
 
-  const current = dest?.[method]
+  const available = dest ? (["wallet", "instapay"] as const).filter((m) => dest[m]) : (["wallet", "instapay"] as const)
+  const activeMethod: Method = available.includes(method) ? method : available[0] ?? method
+  const current = dest?.[activeMethod]
+  const unavailable = dest !== null && available.length === 0
 
   return (
     <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-5 space-y-4">
       <h3 className="text-[14px] font-semibold text-[var(--t1)]">Payment method</h3>
 
       <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Payment method">
-        {(["wallet", "instapay"] as const).map((m) => (
+        {available.map((m) => (
           <button
             key={m}
             type="button"
             role="radio"
-            aria-checked={method === m}
+            aria-checked={activeMethod === m}
             onClick={() => setMethod(m)}
             className={cn(
               "rounded-lg border p-2.5 text-start transition-colors cursor-pointer flex flex-col justify-between h-[68px]",
-              method === m
+              activeMethod === m
                 ? "border-[var(--goldline)] bg-[var(--goldbg)]"
                 : "border-[var(--line)] bg-[var(--s2)] hover:border-[var(--line2)]",
             )}
@@ -82,9 +90,14 @@ export function PaymentMethodCard(_props: PaymentMethodCardProps) {
         ))}
       </div>
 
+      {unavailable ? (
+        <p role="alert" className="rounded-xl border border-[var(--line)] bg-[var(--s2)] p-4 text-[12px] text-[var(--t2)]">
+          Payment temporarily unavailable. Please try again later or contact support.
+        </p>
+      ) : (
       <div className="rounded-xl border border-[var(--line)] bg-[var(--s2)] p-4 space-y-3">
         <span className="text-[10.5px] text-[var(--t3)] font-mono block">
-          {method === "wallet" ? "Send to e-wallet number" : "Send to InstaPay number"}
+          {activeMethod === "wallet" ? "Send to e-wallet number" : "Send to InstaPay number"}
         </span>
         <div className="flex items-center justify-between gap-3" dir="ltr">
           <div>
@@ -93,10 +106,10 @@ export function PaymentMethodCard(_props: PaymentMethodCardProps) {
             </p>
             <p className="font-mono text-[11px] text-[var(--t3)] select-all">{current?.international || ""}</p>
           </div>
-          <CopyButton value={current?.local || ""} label={method === "wallet" ? "wallet number" : "InstaPay number"} />
+          <CopyButton value={current?.local || ""} label={activeMethod === "wallet" ? "wallet number" : "InstaPay number"} />
         </div>
         <ol className="list-decimal ps-5 space-y-1 text-[11.5px] text-[var(--t2)]">
-          {STEPS[method].map((step) => (
+          {STEPS[activeMethod].map((step) => (
             <li key={step}>{step}</li>
           ))}
         </ol>
@@ -110,6 +123,7 @@ export function PaymentMethodCard(_props: PaymentMethodCardProps) {
           Your plan activates after an admin reviews the transfer, usually within 24 hours.
         </p>
       </div>
+      )}
 
       <MyPayments />
     </div>

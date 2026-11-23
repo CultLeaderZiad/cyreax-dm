@@ -12,10 +12,11 @@ export interface CheckoutData {
   amountEgp: number | null
   referenceCode: string | null
   quote: string | null
-  walletNumber: string
-  walletInternational: string
-  instapayNumber: string
-  instapayInternational: string
+  /** null = not configured on the server: that method is hidden. */
+  walletNumber: string | null
+  walletInternational: string | null
+  instapayNumber: string | null
+  instapayInternational: string | null
   supportEmail: string
   supportWhatsapp: string | null
 }
@@ -34,6 +35,8 @@ const COPY = {
     reference: "Your payment reference",
     referenceHint: "Write this in the transfer note if your wallet or bank app allows it.",
     chooseMethod: "How will you pay?",
+    unavailableTitle: "Payment temporarily unavailable",
+    unavailableBody: "Wallet and InstaPay payments are paused right now. Please try again later or contact support.",
     wallet: "Any e-wallet",
     walletSub: "Vodafone Cash, Etisalat Cash, Orange Cash, WE Pay, bank wallets",
     instapay: "InstaPay",
@@ -92,6 +95,8 @@ const COPY = {
     reference: "الرقم المرجعي للدفع",
     referenceHint: "اكتبه في ملاحظة التحويل إذا سمح تطبيق المحفظة أو البنك بذلك.",
     chooseMethod: "طريقة الدفع",
+    unavailableTitle: "الدفع غير متاح مؤقتاً",
+    unavailableBody: "الدفع بالمحفظة وإنستاباي متوقف حالياً. حاول لاحقاً أو تواصل مع الدعم.",
     wallet: "أي محفظة إلكترونية",
     walletSub: "فودافون كاش، اتصالات كاش، أورنج كاش، WE Pay، محافظ البنوك",
     instapay: "إنستاباي",
@@ -161,7 +166,12 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
     [data.amountEgp],
   )
 
-  const [method, setMethod] = useState<Method>("wallet")
+  // Only methods whose payout number the server has configured.
+  const available = useMemo(
+    () => (["wallet", "instapay"] as const).filter((m) => (m === "wallet" ? data.walletNumber : data.instapayNumber)),
+    [data.walletNumber, data.instapayNumber],
+  )
+  const [method, setMethod] = useState<Method>(available[0] ?? "wallet")
   const [senderRef, setSenderRef] = useState("")
   const [amountPaid, setAmountPaid] = useState(data.amountEgp ? String(data.amountEgp) : "")
   const [transactionRef, setTransactionRef] = useState("")
@@ -242,9 +252,20 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
     )
   }
 
+  if (available.length === 0) {
+    return (
+      <div dir={dir} role="alert" className="p-8 border border-white/10 rounded-2xl bg-white/[0.02] text-center space-y-4">
+        <Clock className="w-8 h-8 text-[#e5a93c] mx-auto" />
+        <h1 className="text-xl font-bold">{t.unavailableTitle}</h1>
+        <p className="text-neutral-300 text-sm leading-relaxed">{t.unavailableBody}</p>
+        <SupportLinks reference={data.referenceCode || ""} />
+      </div>
+    )
+  }
+
   const destination = method === "wallet"
-    ? { local: data.walletNumber, intl: data.walletInternational }
-    : { local: data.instapayNumber, intl: data.instapayInternational }
+    ? { local: data.walletNumber ?? "", intl: data.walletInternational ?? "" }
+    : { local: data.instapayNumber ?? "", intl: data.instapayInternational ?? "" }
 
   const onFile = (next: File | null) => {
     setError(null)
@@ -316,8 +337,8 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
 
       <section className="space-y-3">
         <h2 className="text-lg font-bold">{t.chooseMethod}</h2>
-        <div className="grid sm:grid-cols-2 gap-3" role="radiogroup">
-          {(["wallet", "instapay"] as const).map((m) => (
+        <div className={`grid gap-3 ${available.length > 1 ? "sm:grid-cols-2" : ""}`} role="radiogroup">
+          {available.map((m) => (
             <button
               key={m}
               type="button"
