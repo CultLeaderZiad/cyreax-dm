@@ -71,6 +71,13 @@ const ROLE_COLORS: Record<string, string> = {
   user: "text-neutral-400 bg-neutral-400/10 border-neutral-400/20",
 }
 
+/** Days until a trial ends (negative once it has ended). Reads the clock, so it lives outside render code. */
+function trialDaysLeft(endsAt: string | null) {
+  if (!endsAt) return null
+  const diff = new Date(endsAt).getTime() - Date.now()
+  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+}
+
 export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [users, setUsers] = useState<User[]>([])
@@ -410,12 +417,6 @@ export default function AdminPage() {
     }
   }
 
-  const trialDaysLeft = (endsAt: string | null) => {
-    if (!endsAt) return null
-    const diff = new Date(endsAt).getTime() - Date.now()
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
-    return days
-  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">

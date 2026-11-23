@@ -19,31 +19,29 @@ export default function UpdatePasswordPage() {
   
   const router = useRouter()
 
-  let supabase: ReturnType<typeof getSupabaseBrowserClient>
-  try {
-    supabase = getSupabaseBrowserClient()
-  } catch (e) {
-    console.error("[update-password] Failed to initialize Supabase client:", e)
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#03010A]">
-        <div className="text-center space-y-4 max-w-md p-8">
-          <h1 className="text-2xl font-bold text-red-500">Application Configuration Error</h1>
-          <p className="text-neutral-400">This application is not properly configured. Please contact the administrator.</p>
-        </div>
-      </div>
-    )
-  }
+  // Create the client once; a missing config is reported after all hooks run
+  // (hooks must not sit behind an early return).
+  const [client] = useState<{ supabase: ReturnType<typeof getSupabaseBrowserClient> | null }>(() => {
+    try {
+      return { supabase: getSupabaseBrowserClient() }
+    } catch (e) {
+      console.error("[update-password] Failed to initialize Supabase client:", e)
+      return { supabase: null }
+    }
+  })
 
   useEffect(() => {
+    const supabase = client.supabase
+    if (!supabase) return
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       setIsValidSession(!!session)
     }
-    
+
     checkSession()
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event) => {
         if (event === "PASSWORD_RECOVERY") {
           setIsValidSession(true)
         } else if (event === "SIGNED_IN") {
@@ -55,7 +53,19 @@ export default function UpdatePasswordPage() {
     return () => {
       authListener.subscription.unsubscribe()
     }
-  }, [supabase.auth])
+  }, [client])
+
+  if (!client.supabase) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#03010A]">
+        <div className="text-center space-y-4 max-w-md p-8">
+          <h1 className="text-2xl font-bold text-red-500">Application Configuration Error</h1>
+          <p className="text-neutral-400">This application is not properly configured. Please contact the administrator.</p>
+        </div>
+      </div>
+    )
+  }
+  const supabase = client.supabase
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault()

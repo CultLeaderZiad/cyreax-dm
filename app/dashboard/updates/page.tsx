@@ -40,7 +40,7 @@ export default async function UpdatesPage() {
   return (
     <div className="p-6 md:p-10 max-w-5xl mx-auto">
       <div className="mb-10 text-center">
-        <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">What's New in {BRAND.name}</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">What&apos;s New in {BRAND.name}</h1>
         <p className="text-neutral-400">Latest features and platform updates</p>
       </div>
 

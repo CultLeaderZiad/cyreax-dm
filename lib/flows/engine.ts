@@ -346,7 +346,7 @@ function walk(
   delivered: Set<string>,
   fromStart: boolean,
 ): EngineResult {
-  let inboundJustNow = fromStart && input.signal.inboundJustNow !== false && input.signal.kind === "start"
+  const inboundJustNow = fromStart && input.signal.inboundJustNow !== false && input.signal.kind === "start"
   let guard = 0
   while (run.status === "active") {
     guard += 1

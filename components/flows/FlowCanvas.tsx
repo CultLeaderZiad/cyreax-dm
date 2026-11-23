@@ -1,4 +1,5 @@
 "use client"
+import Link from "next/link"
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import {
@@ -91,6 +92,11 @@ export function graphFrom(nodes: Node[], edges: Edge[]): FlowGraph {
   }
 }
 
+/** Random node id; generated in event handlers only, never during render. */
+function newNodeId(type: string) {
+  return `${type}_${Math.random().toString(36).slice(2, 7)}`
+}
+
 export default function FlowCanvas({
   flowId,
   name,
@@ -131,7 +137,7 @@ export default function FlowCanvas({
   }, [setEdges])
 
   function addNode(type: FlowNodeType) {
-    const id = `${type}_${Math.random().toString(36).slice(2, 7)}`
+    const id = newNodeId(type)
     const data = defaultData(type)
     setNodes((current) => [
       ...current,
@@ -192,7 +198,7 @@ export default function FlowCanvas({
     <div className="h-[calc(100vh-4rem)] flex flex-col bg-[#f4f5f7] text-slate-800">
       <header className="h-14 shrink-0 border-b border-slate-200 bg-white/90 backdrop-blur flex items-center justify-between px-4 gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <a href="/dashboard/flows" className="text-xs text-slate-400 hover:text-slate-700">Flows</a>
+          <Link href="/dashboard/flows" className="text-xs text-slate-400 hover:text-slate-700">Flows</Link>
           <input value={title} onChange={(event) => setTitle(event.target.value)} className="text-sm font-semibold bg-transparent outline-none min-w-0" />
           <span className="text-[11px] uppercase tracking-wide text-slate-400">{channel}</span>
           <span className={`text-[11px] px-2 py-0.5 rounded-full ${live ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{live ? "Live" : status}</span>

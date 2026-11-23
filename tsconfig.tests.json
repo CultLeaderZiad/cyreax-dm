@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "ES2022"
+  },
+  "include": ["next-env.d.ts", "tests/**/*.mts", "tests/**/*.ts", "app/**/*.ts", "app/**/*.tsx", "lib/**/*.ts", "components/**/*.tsx", "hooks/**/*.ts"],
+  "exclude": ["node_modules"]
+}

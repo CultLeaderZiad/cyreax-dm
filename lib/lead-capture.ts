@@ -64,9 +64,9 @@ export async function processLeadCapture(
   }
 
   // 2. Process current step if user replied
-  let stateData = { ...currentState.data }
+  const stateData = { ...currentState.data }
   let currentStep = currentState.current_step
-  let justStarted = !leadState // If we just created the state, don't process their triggerValue as the answer
+  const justStarted = !leadState // If we just created the state, don't process their triggerValue as the answer
 
   if (!justStarted) {
     // Process their answer

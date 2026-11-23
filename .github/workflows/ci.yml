@@ -21,6 +21,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc --noEmit
+      - name: Typecheck tests
+        run: pnpm exec tsc -p tsconfig.tests.json
+      - name: Lint
+        run: pnpm lint
       - run: pnpm test
       - name: Production build without Supabase env
         run: pnpm build

@@ -46,7 +46,7 @@ export default function DashboardAdminAgentsPage() {
     fetchAgents()
   }, [])
 
-  const fetchAgents = async () => {
+  async function fetchAgents() {
     try {
       setError("")
       const res = await fetch("/api/admin/agents")

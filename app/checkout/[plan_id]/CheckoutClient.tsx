@@ -176,6 +176,8 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
   const [amountPaid, setAmountPaid] = useState(data.amountEgp ? String(data.amountEgp) : "")
   const [transactionRef, setTransactionRef] = useState("")
   const [transferredAt, setTransferredAt] = useState(() => localDateTime(new Date()))
+  // Latest allowed transfer time, fixed when the page opens (a few minutes of clock skew allowed).
+  const [maxTransferTime] = useState(() => localDateTime(new Date(Date.now() + 5 * 60_000)))
   const [file, setFile] = useState<File | null>(null)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -185,7 +187,9 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
   const supportHref = (ref: string | null) =>
     `mailto:${data.supportEmail}?subject=${encodeURIComponent(`Payment ${ref || ""}`.trim())}`
 
-  const SupportLinks = ({ reference }: { reference: string | null }) => (
+  // A render helper, not a component: defining a component inside render
+  // would remount it on every render.
+  const supportLinks = (reference: string | null) => (
     <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
       <span className="text-neutral-400">{t.support}:</span>
       <Link href={`/dashboard/support${reference ? `?ref=${reference}` : ""}`} className="text-[#e5a93c] hover:underline">
@@ -225,7 +229,7 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
           <AlertTriangle className="w-8 h-8 text-[#e5a93c] mx-auto" />
           <h1 className="text-xl font-bold">{t.noPriceTitle}</h1>
           <p className="text-sm text-neutral-400">{t.noPriceBody}</p>
-          <SupportLinks reference={null} />
+          {supportLinks(null)}
         </div>
       </div>
     )
@@ -244,7 +248,7 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
             <CopyButton value={done} label="payment reference" />
           </div>
         </div>
-        <SupportLinks reference={done} />
+        {supportLinks(done)}
         <Link href="/billing" className="inline-block bg-[#e5a93c] hover:bg-[#d4952b] text-black font-bold py-2.5 px-6 rounded-xl text-sm">
           {t.billing}
         </Link>
@@ -258,7 +262,7 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
         <Clock className="w-8 h-8 text-[#e5a93c] mx-auto" />
         <h1 className="text-xl font-bold">{t.unavailableTitle}</h1>
         <p className="text-neutral-300 text-sm leading-relaxed">{t.unavailableBody}</p>
-        <SupportLinks reference={data.referenceCode || ""} />
+        {supportLinks(data.referenceCode || "")}
       </div>
     )
   }
@@ -400,7 +404,7 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
           <div>
             <label htmlFor="pay-time" className="block text-sm text-neutral-300 mb-2">{t.transferredAt}</label>
             <input id="pay-time" dir="ltr" type="datetime-local" className={field} value={transferredAt}
-              max={localDateTime(new Date(Date.now() + 5 * 60_000))} onChange={(e) => setTransferredAt(e.target.value)} required />
+              max={maxTransferTime} onChange={(e) => setTransferredAt(e.target.value)} required />
             {fieldError("transferredAt")}
           </div>
         </div>
@@ -445,7 +449,7 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{t.submit}<ArrowRight className="w-5 h-5 rtl:rotate-180" /></>}
       </button>
 
-      <SupportLinks reference={data.referenceCode} />
+      {supportLinks(data.referenceCode)}
     </form>
   )
 }

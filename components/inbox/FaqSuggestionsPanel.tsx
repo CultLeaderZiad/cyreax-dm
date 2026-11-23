@@ -65,7 +65,7 @@ export function FaqSuggestionsPanel({ userId }: { userId: string }) {
                                     </h4>
                                     <span className="text-[9px] font-mono-ui bg-white/10 px-1.5 py-0.5 rounded text-neutral-300">{faq.count}x</span>
                                 </div>
-                                <p className="text-[11px] text-neutral-400 italic line-clamp-2">"{faq.examples}"</p>
+                                <p className="text-[11px] text-neutral-400 italic line-clamp-2">&quot;{faq.examples}&quot;</p>
                             </div>
                             
                             <div className="flex flex-col gap-1.5 mt-1">

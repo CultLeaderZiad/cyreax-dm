@@ -34,25 +34,7 @@ export default async function CheckoutPage(props: {
   // Amount, plan and reference are decided here and signed, so the browser
   // can't change them before submitting the proof.
   const terms = checkoutTerms(plan, cycle)
-  let quote: string | null = null
-  let referenceCode: string | null = null
-  if (terms.amountEgp) {
-    referenceCode = newReferenceCode()
-    try {
-      quote = signQuote({
-        v: 1,
-        account: user.id,
-        plan: plan.id,
-        catalog: terms.catalogPlanId,
-        interval: terms.interval,
-        amountEgp: terms.amountEgp,
-        ref: referenceCode,
-        exp: Date.now() + QUOTE_TTL_MS,
-      })
-    } catch {
-      quote = null
-    }
-  }
+  const { quote, referenceCode } = issueQuote(user.id, plan.id, terms)
 
   const destinations = paymentDestinations()
   const data: CheckoutData = {
@@ -78,4 +60,32 @@ export default async function CheckoutPage(props: {
       </div>
     </div>
   )
+}
+
+/**
+ * Signs the checkout quote (amount, plan, reference, expiry). Kept outside the
+ * page component: it reads the clock and randomness, which render code should not.
+ */
+function issueQuote(
+  accountId: string,
+  planId: string,
+  terms: ReturnType<typeof checkoutTerms>,
+): { quote: string | null; referenceCode: string | null } {
+  if (!terms.amountEgp) return { quote: null, referenceCode: null }
+  const referenceCode = newReferenceCode()
+  try {
+    const quote = signQuote({
+      v: 1,
+      account: accountId,
+      plan: planId,
+      catalog: terms.catalogPlanId,
+      interval: terms.interval,
+      amountEgp: terms.amountEgp,
+      ref: referenceCode,
+      exp: Date.now() + QUOTE_TTL_MS,
+    })
+    return { quote, referenceCode }
+  } catch {
+    return { quote: null, referenceCode: null }
+  }
 }
