@@ -34,8 +34,11 @@ export async function unlockedAgentIds(
   }
   if (displayPlanIds.length === 0) return { planId: plan.id, agentIds: [] }
 
-  const { data, error } = await supabase.from("plan_agents").select("agent_id").in("plan_id", displayPlanIds)
+  let { data, error } = await supabase.from("plan_agents").select("agent_id, is_enabled").in("plan_id", displayPlanIds)
+  if (error) ({ data, error } = await supabase.from("plan_agents").select("agent_id").in("plan_id", displayPlanIds))
   if (error) return { planId: plan.id, agentIds: [] }
+  // Admin -> Plans can switch an agent off for a plan without deleting the row.
+  data = (data || []).filter((row: any) => row.is_enabled !== false)
   const allowed = new Set(allAgentIds)
   const granted = new Set<string>((data || []).map((row: any) => String(row.agent_id)))
   return { planId: plan.id, agentIds: [...granted].filter((id) => allowed.has(id)) }

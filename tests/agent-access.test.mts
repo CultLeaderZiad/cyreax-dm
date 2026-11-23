@@ -70,6 +70,12 @@ describe("agents unlock from the purchased plan", () => {
     assert.ok((await access()).agentIds.length < ALL.length)
   })
 
+  it("an agent switched off for the plan in Admin -> Plans stays locked", async () => {
+    seed({ plan_id: "agency_pro", status: "active", interval: "year", current_period_end: later, display_plan_id: PRO })
+    fakeDb().tables.plan_agents.find((r) => r.plan_id === PRO && r.agent_id === A3)!.is_enabled = false
+    assert.deepEqual((await access()).agentIds.sort(), [A1, A2])
+  })
+
   it("admins see every agent", async () => {
     seed(null, { role: "admin" })
     assert.deepEqual((await access()).agentIds, ALL)
