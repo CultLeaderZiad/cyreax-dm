@@ -6,7 +6,8 @@
 * **Telegram bot automation:** Connect unlimited bots via bot token, keyword DM rules per bot.
 * **Unified dashboard:** Live inbox across Instagram, Facebook Messenger, and Telegram.
 * **AI Engine:** Groq-powered auto-replies, sentiment/topic detection, agents, funnels, and growth insights.
-* **Billing:** Egyptian **e-wallet** (Vodafone Cash, Etisalat Cash, Orange Cash, WE Pay…) and **InstaPay** transfers with screenshot proof and admin approval. Monthly, yearly and lifetime plans; access ends at the paid period end. Requires `PAYMENT_WALLET_NUMBER`, `PAYMENT_INSTAPAY_NUMBER` (optional `PAYMENT_EGP_PER_USD`) and `CRON_SECRET`. Stripe platform billing has been removed.
+* **Card payments (Whop):** every customer can pay by card through Whop. Plans are mapped to Whop plan IDs in Admin → Plans; the signed Whop webhook activates, renews, cancels and refunds. Whop subscribers manage their subscription on Whop. Requires `WHOP_API_KEY` and `WHOP_WEBHOOK_SECRET`.
+* **Billing (Egypt):** Egyptian **e-wallet** (Vodafone Cash, Etisalat Cash, Orange Cash, WE Pay…) and **InstaPay** transfers with screenshot proof and admin approval, offered only to Egyptian customers (saved country, else IP country). Monthly, yearly and lifetime plans; access ends at the paid period end. Requires `PAYMENT_WALLET_NUMBER`, `PAYMENT_INSTAPAY_NUMBER` (optional `PAYMENT_EGP_PER_USD`) and `CRON_SECRET`. Stripe platform billing has been removed.
 * **Admin suite:** Users & stats, plan management, payment submission review, agent configuration, email campaigns.
 
 ## v1.0.0 — Original base (InstaAuto)
