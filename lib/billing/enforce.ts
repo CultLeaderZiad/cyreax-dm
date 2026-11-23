@@ -42,8 +42,37 @@ export async function accountIdForProfile(supabase: any, userId: string | number
   return String(data.account_id)
 }
 
-async function billingRow(supabase: any, accountId: string): Promise<{ plan_id?: string; status?: string; trial_ends_at?: string | null } | null> {
-  const { data, error } = await supabase.from("billing_accounts").select("plan_id, status, trial_ends_at").eq("account_id", accountId).maybeSingle()
+export interface BillingRow {
+  plan_id?: string
+  status?: string
+  interval?: string | null
+  current_period_end?: string | null
+  trial_ends_at?: string | null
+}
+
+/** Marker for a one-time purchase that never renews (billing_accounts.interval). */
+export const LIFETIME_INTERVAL = "lifetime"
+
+/**
+ * Is a paid ("active") billing row still inside what was paid for?
+ * Checked on every request, so access ends on time even when the dunning
+ * cron that flips status to expired runs late or not at all.
+ * Lifetime is only the explicit interval marker; a missing end date is not
+ * "forever".
+ */
+export function activePeriodValid(billing: BillingRow, nowMs = Date.now()): boolean {
+  if (billing.interval === LIFETIME_INTERVAL) return true
+  if (!billing.current_period_end) return false
+  const end = Date.parse(billing.current_period_end)
+  return Number.isFinite(end) && end > nowMs
+}
+
+async function billingRow(supabase: any, accountId: string): Promise<BillingRow | null> {
+  const { data, error } = await supabase
+    .from("billing_accounts")
+    .select("plan_id, status, interval, current_period_end, trial_ends_at")
+    .eq("account_id", accountId)
+    .maybeSingle()
   if (error) {
     if (missing(error)) return null
     return null
@@ -59,6 +88,11 @@ export async function resolveAccountPlan(supabase: any, account: AccountGate, no
   }
   const billing = await billingRow(supabase, account.id)
   if (billing?.status === "expired" || billing?.status === "canceled") return resolvePlan("expired")
+  // Paid access ends at the period end. past_due is the dunning reminder
+  // stage, not extra paid time, so it gets the same check.
+  if ((billing?.status === "active" || billing?.status === "past_due") && !activePeriodValid(billing, nowMs)) {
+    return resolvePlan("expired")
+  }
   if (billing?.status === "trialing" && billing.trial_ends_at && Date.parse(billing.trial_ends_at) <= nowMs) {
     return resolvePlan("creator_free")
   }
