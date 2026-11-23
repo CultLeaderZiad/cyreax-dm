@@ -52,6 +52,8 @@ describe("every API route has a limit", () => {
     assert.equal(classify("/api/payments/manual", "GET").tier, "read")
     assert.equal(classify("/api/instagram/webhook", "POST").tier, "webhook")
     assert.equal(classify("/api/telegram/webhook/abc", "POST").tier, "webhook")
+    assert.equal(classify("/api/webhooks/whop", "POST").tier, "webhook")
+    assert.equal(classify("/api/billing/whop/checkout", "POST").tier, "write")
     assert.equal(classify("/api/cron/dunning", "GET").tier, "cron")
     assert.equal(classify("/api/plans", "GET").tier, "public")
     assert.equal(classify("/api/contacts", "POST").tier, "write")
