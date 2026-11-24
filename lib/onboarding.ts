@@ -6,7 +6,7 @@
 
 import { isPlaceholderToken } from "@/lib/token-crypto"
 
-export type OnboardingStatus = "submitted" | "approved" | "link_sent" | "connected"
+export type OnboardingStatus = "awaiting_access" | "access_granted" | "submitted" | "approved" | "link_sent" | "connected"
 
 export interface OnboardingInput {
   fullName: string
@@ -64,23 +64,33 @@ export function maskToken(token: string | null | undefined): string | null {
 }
 
 /**
- * Does this customer still owe the form? Admins, invited team members, anyone
- * who already submitted it and accounts that already have a connected channel
- * (customers connected before this form existed) do not.
+ * Where a PAYING customer is in onboarding. Onboarding starts only after
+ * payment: a paid customer without a row gets one in "awaiting_access" (the
+ * admin approves access first), and only after that approval do they see the
+ * details form. Admins, invited team members, customers who are not paying
+ * (trial) and customers who already have a connected channel are not part of
+ * this and get null.
  */
-export async function onboardingRequired(
+export async function resolveOnboarding(
   supabase: any,
   account: { id: string; role?: string | null; is_team_member?: boolean | null },
-): Promise<boolean> {
-  if (account.role === "admin" || account.is_team_member) return false
-  const row = await supabase.from("account_onboarding").select("account_id").eq("account_id", account.id).maybeSingle()
+  paid: boolean,
+): Promise<{ status: OnboardingStatus | null; created: boolean }> {
+  if (account.role === "admin" || account.is_team_member) return { status: null, created: false }
+  const row = await supabase.from("account_onboarding").select("status").eq("account_id", account.id).maybeSingle()
   // Before the migration the table does not exist: never lock customers out because of that.
-  if (row.error) return false
-  if (row.data) return false
+  if (row.error) return { status: null, created: false }
+  if (row.data) return { status: row.data.status as OnboardingStatus, created: false }
+  if (!paid) return { status: null, created: false }
+
+  // Customers connected before this process existed are not asked to go through it.
   const profiles = await supabase.from("users").select("id, access_token").eq("account_id", account.id)
   const hasToken = (profiles.data || []).some((p: any) => !isPlaceholderToken(p.access_token) && p.access_token !== "pending")
-  if (hasToken) return false
+  if (hasToken) return { status: null, created: false }
   const conn = await supabase.from("platform_connections").select("id", { count: "exact", head: true }).eq("account_id", account.id)
-  if ((conn.count ?? 0) > 0) return false
-  return true
+  if ((conn.count ?? 0) > 0) return { status: null, created: false }
+
+  const { error } = await supabase.from("account_onboarding").upsert({ account_id: account.id, status: "awaiting_access" }, { onConflict: "account_id", ignoreDuplicates: true })
+  if (error) return { status: null, created: false }
+  return { status: "awaiting_access", created: true }
 }

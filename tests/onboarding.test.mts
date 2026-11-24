@@ -11,7 +11,7 @@ process.env.BYOK_ENCRYPTION_SECRET = process.env.BYOK_ENCRYPTION_SECRET || "test
 const { fakeDb } = await import("./fakes/supabase-server.ts")
 const { getSupabaseBypassClient } = await import("../lib/supabase-server.ts")
 const { NextRequest } = await import("next/server")
-const { parseOnboarding, onboardingRequired, maskToken } = await import("../lib/onboarding.ts")
+const { parseOnboarding, resolveOnboarding, maskToken } = await import("../lib/onboarding.ts")
 const mine = await import("../app/api/onboarding/route.ts")
 const adminList = await import("../app/api/admin/onboarding/route.ts")
 const adminOne = await import("../app/api/admin/onboarding/[accountId]/route.ts")
@@ -80,26 +80,50 @@ describe("onboarding validation", () => {
   it("masks a token", () => assert.equal(maskToken(TOKEN), "123456789:••••••••"))
 })
 
-describe("who owes the form", () => {
+const grant = (status = "access_granted") => fakeDb().tables.account_onboarding.push({ account_id: USER, status })
+
+describe("who goes through onboarding", () => {
   beforeEach(seed)
-  it("a new customer does; admins, team members, submitters and already-connected customers do not", async () => {
+  it("only a PAYING customer does: a paid one gets a row waiting for access, an unpaid one gets nothing", async () => {
     const db = await getSupabaseBypassClient()
-    assert.equal(await onboardingRequired(db, { id: USER, role: "customer" }), true)
-    assert.equal(await onboardingRequired(db, { id: ADMIN, role: "admin" }), false)
-    assert.equal(await onboardingRequired(db, { id: USER, role: "customer", is_team_member: true }), false)
+    assert.deepEqual(await resolveOnboarding(db, { id: USER, role: "customer" }, false), { status: null, created: false })
+    assert.equal(fakeDb().tables.account_onboarding.length, 0)
+    assert.deepEqual(await resolveOnboarding(db, { id: USER, role: "customer" }, true), { status: "awaiting_access", created: true })
+    assert.equal(fakeDb().tables.account_onboarding[0].status, "awaiting_access")
+    // asking again does not create a second row or change the status
+    assert.deepEqual(await resolveOnboarding(db, { id: USER, role: "customer" }, true), { status: "awaiting_access", created: false })
+    assert.equal(fakeDb().tables.account_onboarding.length, 1)
+  })
+  it("admins, team members and customers already connected are left alone", async () => {
+    const db = await getSupabaseBypassClient()
+    assert.equal((await resolveOnboarding(db, { id: ADMIN, role: "admin" }, true)).status, null)
+    assert.equal((await resolveOnboarding(db, { id: USER, role: "customer", is_team_member: true }, true)).status, null)
     fakeDb().tables.users[1].access_token = "real-token"
-    assert.equal(await onboardingRequired(db, { id: USER, role: "customer" }), false)
+    assert.equal((await resolveOnboarding(db, { id: USER, role: "customer" }, true)).status, null)
     fakeDb().tables.users[1].access_token = "workspace_managed"
     fakeDb().tables.platform_connections.push({ id: 1, account_id: USER })
-    assert.equal(await onboardingRequired(db, { id: USER, role: "customer" }), false)
-    fakeDb().tables.platform_connections = []
-    fakeDb().tables.account_onboarding.push({ account_id: USER, full_name: "x", status: "submitted" })
-    assert.equal(await onboardingRequired(db, { id: USER, role: "customer" }), false)
+    assert.equal((await resolveOnboarding(db, { id: USER, role: "customer" }, true)).status, null)
+    assert.equal(fakeDb().tables.account_onboarding.length, 0)
+  })
+  it("an existing row wins, paid or not", async () => {
+    const db = await getSupabaseBypassClient()
+    grant("submitted")
+    assert.equal((await resolveOnboarding(db, { id: USER, role: "customer" }, false)).status, "submitted")
   })
 })
 
 describe("the customer's own onboarding", () => {
-  beforeEach(seed)
+  beforeEach(() => { seed(); grant() })
+
+  it("the form is closed until the admin approved access", async () => {
+    for (const status of ["awaiting_access"]) {
+      fakeDb().tables.account_onboarding[0].status = status
+      assert.equal((await put(form)).status, 403)
+    }
+    fakeDb().tables.account_onboarding.length = 0
+    assert.equal((await put(form)).status, 403, "no row at all (never paid)")
+    assert.equal(fakeDb().tables.account_onboarding.length, 0)
+  })
 
   it("saves the details, seals the Telegram token and never returns it", async () => {
     assert.equal((await put(form)).status, 200)
@@ -118,7 +142,8 @@ describe("the customer's own onboarding", () => {
     const res = await put({ fullName: "S", telegramBotToken: "zzz" })
     assert.equal(res.status, 400)
     assert.ok((await res.json()).errors.telegramBotToken)
-    assert.equal(fakeDb().tables.account_onboarding.length, 0)
+    assert.equal(fakeDb().tables.account_onboarding[0].status, "access_granted")
+    assert.equal(fakeDb().tables.account_onboarding[0].full_name, undefined)
   })
 
   it("while the details wait for review the customer can correct them; the stored token is kept when the masked value is sent back", async () => {
@@ -147,21 +172,28 @@ describe("the customer's own onboarding", () => {
   })
 })
 
-describe("what the admin sees", () => {
-  beforeEach(seed)
+describe("what the admin sees and does", () => {
+  beforeEach(() => { seed(); grant() })
 
-  it("lists submissions and recent signups that have not sent the form", async () => {
+  it("lists every stage, and the badge counts what needs the admin", async () => {
+    fakeDb().tables.account_onboarding[0].status = "awaiting_access"
+    as(ADMIN)
+    let body = await (await adminList.GET()).json()
+    const byAccount = () => Object.fromEntries(body.items.map((i: any) => [i.accountId, i]))
+    assert.equal(byAccount()[USER].state, "awaiting_access")
+    assert.equal(byAccount()[OTHER].state, "awaiting_form")
+    assert.equal((await (await adminCount.GET()).json()).count, 1)
+    fakeDb().tables.account_onboarding[0].status = "access_granted"
+    assert.equal((await (await adminCount.GET()).json()).count, 0, "nothing to do until they send details")
+    as(USER)
     await put(form)
     as(ADMIN)
-    const body = await (await adminList.GET()).json()
-    const byAccount = Object.fromEntries(body.items.map((i: any) => [i.accountId, i]))
-    assert.equal(byAccount[USER].state, "submitted")
-    assert.equal(byAccount[USER].instagramUsername, "sara.shop")
-    assert.equal(byAccount[USER].telegramToken, "123456789:••••••••")
-    assert.equal(byAccount[OTHER].state, "awaiting_form")
+    body = await (await adminList.GET()).json()
+    assert.equal(byAccount()[USER].state, "submitted")
+    assert.equal(byAccount()[USER].instagramUsername, "sara.shop")
+    assert.equal(byAccount()[USER].telegramToken, "123456789:••••••••")
     assert.ok(!JSON.stringify(body).includes(TOKEN))
-    assert.ok(body.attention >= 2)
-    assert.ok((await (await adminCount.GET()).json()).count >= 2)
+    assert.equal((await (await adminCount.GET()).json()).count, 1)
   })
 
   it("only an admin can list, update or reveal", async () => {
@@ -172,17 +204,29 @@ describe("what the admin sees", () => {
     assert.equal((await adminCount.GET()).status, 403)
   })
 
-  it("the admin moves the status, leaves a message and can reveal the token", async () => {
-    await put(form)
+  it("the whole path: paid, access approved, details sent, details approved, invitation, connected", async () => {
+    fakeDb().tables.account_onboarding[0].status = "awaiting_access"
+    assert.equal((await put(form)).status, 403)
+    as(ADMIN)
+    assert.equal((await adminOne.PATCH(req({ status: "access_granted" }), ctx(USER))).status, 200)
+    assert.ok(fakeDb().tables.account_onboarding[0].access_approved_at)
+    as(USER)
+    assert.equal((await put(form)).status, 200)
+    assert.equal(fakeDb().tables.account_onboarding[0].status, "submitted")
     as(ADMIN)
     assert.equal((await adminOne.PATCH(req({ status: "approved" }), ctx(USER))).status, 200)
-    assert.equal(fakeDb().tables.account_onboarding[0].status, "approved")
     assert.ok(fakeDb().tables.account_onboarding[0].approved_at)
     assert.equal((await adminOne.PATCH(req({ status: "link_sent", note: "Accept the invite on Instagram" }), ctx(USER))).status, 200)
     const row = fakeDb().tables.account_onboarding[0]
     assert.equal(row.status, "link_sent")
     assert.equal(row.admin_note, "Accept the invite on Instagram")
+    assert.equal((await adminOne.PATCH(req({ status: "connected" }), ctx(USER))).status, 200)
     assert.equal((await adminOne.PATCH(req({ status: "hacked" }), ctx(USER))).status, 400)
+  })
+
+  it("the admin can reveal the token and mark a request seen", async () => {
+    await put(form)
+    as(ADMIN)
     const revealed = await (await adminReveal.POST(req(), ctx(USER))).json()
     assert.equal(revealed.token, TOKEN)
     assert.equal((await adminOne.PATCH(req({ seen: true }), ctx(USER))).status, 200)

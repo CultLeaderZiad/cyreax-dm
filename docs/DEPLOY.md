@@ -124,6 +124,7 @@ Phase files, in this order. Each is idempotent and does not delete tenant rows.
 22. Prices follow Whop (2026-11-28): `20261128120000_whop_price_sync.sql`
 23. Customer onboarding (2026-11-29): `20261129120000_account_onboarding.sql`
 24. Onboarding review step (2026-11-30): `20261130120000_onboarding_review.sql`
+25. Onboarding after payment (2026-12-01): `20261201120000_onboarding_access_step.sql`
 
 Every file from step 14 on has a commented rollback at the top.
 
@@ -255,11 +256,13 @@ submission (falls back to the support address); the email contains no secrets.
 **From plan to working account:** choosing a plan sends the customer straight to the
 card payment page (the checkout is created on the server for their account and plan;
 wallet / InstaPay for Egypt stay at `/checkout/<plan>?method=manual`). After paying they
-land on a confirmation screen that shows what the plan includes, then fill the
-onboarding form, then wait on a "pending review" screen. In **Admin -> Onboarding**,
-**Approve** opens the dashboard for them; they connect channels, you send the activation
-invitation ("I sent the invitation") and finally mark "Connected". Customers can correct
-their details only while pending review.
+land on a confirmation screen that shows what the plan includes. Onboarding starts only
+after payment: the customer sees "Payment received" until you press **Approve access** in
+**Admin -> Onboarding** (you also get an email to `ADMIN_NOTIFY_EMAIL`). Then they fill in
+their details and wait on a "pending review" screen; **Approve details** opens the
+dashboard. They connect channels, you send the activation invitation ("I sent the
+invitation") and finally mark "Connected". Trial and unpaid accounts never see the form.
+Customers can correct their details only while pending review.
 
 **Announcements:** **Settings -> Announcements** (admin only) has separate switches
 for the top bar and for the "Latest updates" block on the home page. The block is
