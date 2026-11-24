@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ArrowLeft, Loader2, Send, Activity, Users, Mail, AlertTriangle } from "lucide-react"
-import { toast } from "react-hot-toast"
+import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
@@ -199,11 +199,11 @@ export default function CampaignDetailsPage() {
   }
 
   if (loading) {
-    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-brand-500" /></div>
+    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-[var(--gold)]" /></div>
   }
 
   if (!campaign) {
-    return <div className="text-center p-12 text-zinc-400">{t.campaignNotFound}</div>
+    return <div className="text-center p-12 text-[var(--t2)]">{t.campaignNotFound}</div>
   }
 
   const isDraft = campaign.status === "draft" || campaign.status === "failed" || campaign.status === "scheduled"
@@ -217,7 +217,7 @@ export default function CampaignDetailsPage() {
             variant="ghost" 
             size="icon" 
             onClick={() => router.push("/dashboard/admin/campaigns")}
-            className="text-zinc-400 hover:text-white"
+            className="text-[var(--t2)] hover:text-[var(--t1)]"
           >
             <ArrowLeft className={`w-5 h-5 ${isRtl ? 'rotate-180' : ''}`} />
           </Button>
@@ -226,21 +226,21 @@ export default function CampaignDetailsPage() {
               {campaign.name}
               <span className={`text-xs px-2 py-0.5 rounded-full border ${
                 campaign.status === "draft" 
-                  ? 'bg-zinc-800 text-zinc-300 border-zinc-700' 
+                  ? 'bg-[var(--s2)] text-[var(--t2)] border-[var(--line)]' 
                   : campaign.status === "scheduled"
                     ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                    : 'bg-brand-500/10 text-brand-400 border-brand-500/20'
+                    : 'bg-[var(--gold)]/10 text-[var(--gold)] border-[var(--gold)]/30'
               }`}>
                 {campaign.status.toUpperCase()}
               </span>
             </h2>
-            <p className="text-zinc-400 text-sm mt-1">{t.subjectLabel} {campaign.subject}</p>
+            <p className="text-[var(--t2)] text-sm mt-1">{t.subjectLabel} {campaign.subject}</p>
           </div>
         </div>
         
         {campaign.status === "scheduled" && (
           <div className="flex items-center gap-3">
-            <span className="text-zinc-400 text-xs font-mono">
+            <span className="text-[var(--t2)] text-xs font-mono">
               Scheduled: {campaign.scheduled_at ? new Date(campaign.scheduled_at).toLocaleString() : "N/A"}
             </span>
             <Button 
@@ -258,7 +258,7 @@ export default function CampaignDetailsPage() {
               variant="outline"
               onClick={handleSendTest}
               disabled={sendingTest || sendingReal}
-              className="border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-[var(--t1)]"
+              className="border-[var(--line)] bg-[var(--s2)] hover:bg-[var(--s3)] text-[var(--t1)]"
             >
               {sendingTest ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'} animate-spin`} /> : <Mail className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'}`} />}
               {t.sendTestEmail}
@@ -266,17 +266,17 @@ export default function CampaignDetailsPage() {
             <Button 
               onClick={handleSendReal}
               disabled={sendingTest || sendingReal || selectedCustomerIds.size === 0}
-              className="bg-brand-500 hover:bg-brand-600 text-black font-semibold"
+              className="bg-[var(--gold)] hover:bg-[var(--gold2)] text-black font-semibold"
             >
               {sendingReal ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'} animate-spin`} /> : <Send className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'}`} />}
               {t.sendToCustomers.replace('{{count}}', selectedCustomerIds.size.toString())}
             </Button>
-            <div className="flex items-center gap-2 border border-zinc-800 bg-zinc-900/50 p-1 rounded-lg">
+            <div className="flex items-center gap-2 border border-[var(--line)] bg-[var(--s2)] p-1 rounded-lg">
               <input 
                 type="datetime-local" 
                 value={scheduleTime}
                 onChange={e => setScheduleTime(e.target.value)}
-                className="bg-black text-[var(--t1)] border border-zinc-800 rounded px-2 py-1 text-xs outline-none font-mono"
+                className="bg-[var(--s2)] text-[var(--t1)] border border-[var(--line)] rounded px-2 py-1 text-xs outline-none font-mono"
               />
               <Button 
                 onClick={handleScheduleCampaign}
@@ -294,12 +294,12 @@ export default function CampaignDetailsPage() {
         
         {/* Left Col - Audience Preview */}
         <div className="lg:col-span-2 space-y-6">
-          <Card className="bg-[#0a0a0a] border-zinc-800">
-            <CardHeader className="border-b border-zinc-800 bg-zinc-900/50">
+          <Card className="bg-[var(--s1)] border-[var(--line)]">
+            <CardHeader className="border-b border-[var(--line)] bg-[var(--s2)]">
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Users className="w-5 h-5 text-brand-400" />
+                    <Users className="w-5 h-5 text-[var(--gold)]" />
                     {t.audiencePreview}
                   </CardTitle>
                   <CardDescription>
@@ -310,7 +310,7 @@ export default function CampaignDetailsPage() {
             </CardHeader>
             <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
               <table className="w-full text-sm text-start">
-                <thead className="text-xs text-zinc-400 uppercase bg-zinc-900/80 sticky top-0 border-b border-zinc-800">
+                <thead className="text-xs text-[var(--t2)] uppercase bg-[var(--s2)] sticky top-0 border-b border-[var(--line)]">
                   <tr>
                     <th className="px-4 py-3 w-[50px] text-center">
                       <Checkbox 
@@ -324,16 +324,16 @@ export default function CampaignDetailsPage() {
                     <th className={`px-4 py-3 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.plan}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-800">
+                <tbody className="divide-y divide-[var(--line)]">
                   {audience.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-zinc-500">
+                      <td colSpan={4} className="px-6 py-8 text-center text-[var(--t3)]">
                         {t.noCustomersMatch}
                       </td>
                     </tr>
                   ) : (
                     audience.map(c => (
-                      <tr key={c.id} className="hover:bg-zinc-900/30">
+                      <tr key={c.id} className="hover:bg-[var(--s2)]">
                         <td className="px-4 py-3 text-center">
                           <Checkbox 
                             checked={selectedCustomerIds.has(c.id)}
@@ -342,8 +342,8 @@ export default function CampaignDetailsPage() {
                           />
                         </td>
                         <td className="px-4 py-3 text-[var(--t1)] font-medium">{c.full_name || 'N/A'}</td>
-                        <td className="px-4 py-3 text-zinc-300">{c.email}</td>
-                        <td className="px-4 py-3 text-zinc-400">{c.plan}</td>
+                        <td className="px-4 py-3 text-[var(--t2)]">{c.email}</td>
+                        <td className="px-4 py-3 text-[var(--t2)]">{c.plan}</td>
                       </tr>
                     ))
                   )}
@@ -355,19 +355,19 @@ export default function CampaignDetailsPage() {
 
         {/* Right Col - Checklist & Status */}
         <div className="space-y-6">
-          <Card className="bg-[#0a0a0a] border-zinc-800">
-            <CardHeader className="border-b border-zinc-800">
+          <Card className="bg-[var(--s1)] border-[var(--line)]">
+            <CardHeader className="border-b border-[var(--line)]">
               <CardTitle className="text-lg">{t.preFlightChecklist}</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <ul className="divide-y divide-zinc-800">
+              <ul className="divide-y divide-[var(--line)]">
                 <li className="p-4 flex items-start gap-3">
                   <div className={`mt-0.5 rounded-full p-1 ${campaign.subject ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
                     {campaign.subject ? <Send className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-[var(--t1)]">{t.subjectLine}</p>
-                    <p className="text-xs text-zinc-500">{campaign.subject || t.missing}</p>
+                    <p className="text-xs text-[var(--t3)]">{campaign.subject || t.missing}</p>
                   </div>
                 </li>
                 <li className="p-4 flex items-start gap-3">
@@ -376,7 +376,7 @@ export default function CampaignDetailsPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-[var(--t1)]">{t.validAudience}</p>
-                    <p className="text-xs text-zinc-500">{t.recipientsFound.replace('{{count}}', audience.length.toString())}</p>
+                    <p className="text-xs text-[var(--t3)]">{t.recipientsFound.replace('{{count}}', audience.length.toString())}</p>
                   </div>
                 </li>
               </ul>
@@ -384,14 +384,14 @@ export default function CampaignDetailsPage() {
           </Card>
 
           {!isDraft && (
-            <Card className="bg-[#0a0a0a] border-zinc-800">
-              <CardHeader className="border-b border-zinc-800">
+            <Card className="bg-[var(--s1)] border-[var(--line)]">
+              <CardHeader className="border-b border-[var(--line)]">
                 <CardTitle className="text-lg">{t.deliveryStatus}</CardTitle>
               </CardHeader>
               <CardContent className="p-6 text-center">
-                <Activity className="w-8 h-8 text-brand-400 mx-auto mb-3" />
+                <Activity className="w-8 h-8 text-[var(--gold)] mx-auto mb-3" />
                 <h3 className="text-2xl font-bold text-[var(--t1)]">{campaign.recipient_count}</h3>
-                <p className="text-sm text-zinc-400">{t.totalRecipientsProcessed}</p>
+                <p className="text-sm text-[var(--t2)]">{t.totalRecipientsProcessed}</p>
               </CardContent>
             </Card>
           )}

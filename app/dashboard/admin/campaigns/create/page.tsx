@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Loader2, Save } from "lucide-react"
-import { toast } from "react-hot-toast"
+import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 export default function CreateCampaignPage() {
@@ -79,22 +79,22 @@ export default function CreateCampaignPage() {
           variant="ghost" 
           size="icon" 
           onClick={() => router.push("/dashboard/admin/campaigns")}
-          className="text-zinc-400 hover:text-white"
+          className="text-[var(--t2)] hover:text-[var(--t1)]"
         >
           <ArrowLeft className={`w-5 h-5 ${isRtl ? 'rotate-180' : ''}`} />
         </Button>
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-[var(--t1)]">{t.newCampaign}</h2>
-          <p className="text-zinc-400 text-sm mt-1">{t.configureEmail}</p>
+          <p className="text-[var(--t2)] text-sm mt-1">{t.configureEmail}</p>
         </div>
       </div>
 
-      <Card className="bg-[#0a0a0a] border-zinc-800">
+      <Card className="bg-[var(--s1)] border-[var(--line)]">
         <CardContent className="p-6 space-y-8">
           
           {/* Section 1: Meta */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-[var(--t1)] border-b border-zinc-800 pb-2">{t.campaignSettings}</h3>
+            <h3 className="text-lg font-medium text-[var(--t1)] border-b border-[var(--line)] pb-2">{t.campaignSettings}</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -103,16 +103,16 @@ export default function CreateCampaignPage() {
                   id="name" name="name" 
                   placeholder={t.egQ3Launch} 
                   value={formData.name} onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-800"
+                  className="bg-[var(--s2)] border-[var(--line)]"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="audience_filter">{t.targetAudience}</Label>
                 <Select value={formData.audience_filter} onValueChange={(val) => handleSelectChange('audience_filter', val)}>
-                  <SelectTrigger className="bg-zinc-900 border-zinc-800">
+                  <SelectTrigger className="bg-[var(--s2)] border-[var(--line)]">
                     <SelectValue placeholder={t.selectAudience} />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-zinc-800">
+                  <SelectContent className="bg-[var(--s2)] border-[var(--line)]">
                     <SelectItem value="all">{t.allCustomers}</SelectItem>
                     <SelectItem value="paid">{t.allPaidFull}</SelectItem>
                     <SelectItem value="trial">{t.freeTrialOnly}</SelectItem>
@@ -134,7 +134,7 @@ export default function CreateCampaignPage() {
                 id="subject" name="subject" 
                 placeholder={t.egExciting} 
                 value={formData.subject} onChange={handleChange}
-                className="bg-zinc-900 border-zinc-800"
+                className="bg-[var(--s2)] border-[var(--line)]"
               />
             </div>
             
@@ -144,23 +144,23 @@ export default function CreateCampaignPage() {
                 id="preview_text" name="preview_text" 
                 placeholder={t.showsUpInInbox} 
                 value={formData.preview_text} onChange={handleChange}
-                className="bg-zinc-900 border-zinc-800"
+                className="bg-[var(--s2)] border-[var(--line)]"
               />
             </div>
           </div>
 
           {/* Section 2: Content */}
           <div className="space-y-4 pt-4">
-            <h3 className="text-lg font-medium text-[var(--t1)] border-b border-zinc-800 pb-2">{t.emailContent}</h3>
+            <h3 className="text-lg font-medium text-[var(--t1)] border-b border-[var(--line)] pb-2">{t.emailContent}</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="template">{t.designTemplate}</Label>
                 <Select value={formData.template} onValueChange={(val) => handleSelectChange('template', val)}>
-                  <SelectTrigger className="bg-zinc-900 border-zinc-800">
+                  <SelectTrigger className="bg-[var(--s2)] border-[var(--line)]">
                     <SelectValue placeholder={t.selectTemplate} />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-900 border-zinc-800">
+                  <SelectContent className="bg-[var(--s2)] border-[var(--line)]">
                     <SelectItem value="product_update">{t.productUpdate}</SelectItem>
                     <SelectItem value="new_feature">{t.newFeature}</SelectItem>
                     <SelectItem value="announcement">{t.generalAnnouncement}</SelectItem>
@@ -175,7 +175,7 @@ export default function CreateCampaignPage() {
                   id="hero_image" name="hero_image" 
                   placeholder="https://..." 
                   value={formData.hero_image} onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-800"
+                  className="bg-[var(--s2)] border-[var(--line)]"
                 />
               </div>
             </div>
@@ -186,9 +186,9 @@ export default function CreateCampaignPage() {
                 id="heading" name="heading" 
                 placeholder={t.egIntroducing} 
                 value={formData.heading} onChange={handleChange}
-                className="bg-zinc-900 border-zinc-800"
+                className="bg-[var(--s2)] border-[var(--line)]"
               />
-              <p className="text-xs text-zinc-500">{t.supportsVar}</p>
+              <p className="text-xs text-[var(--t3)]">{t.supportsVar}</p>
             </div>
 
             <div className="space-y-2">
@@ -197,7 +197,7 @@ export default function CreateCampaignPage() {
                 id="subheading" name="subheading" 
                 placeholder={t.egAutomate} 
                 value={formData.subheading} onChange={handleChange}
-                className="bg-zinc-900 border-zinc-800"
+                className="bg-[var(--s2)] border-[var(--line)]"
               />
             </div>
 
@@ -208,7 +208,7 @@ export default function CreateCampaignPage() {
                 placeholder={t.mainMessage} 
                 rows={6}
                 value={formData.body_text} onChange={handleChange}
-                className="bg-zinc-900 border-zinc-800"
+                className="bg-[var(--s2)] border-[var(--line)]"
               />
             </div>
 
@@ -219,7 +219,7 @@ export default function CreateCampaignPage() {
                   id="cta_text" name="cta_text" 
                   placeholder={t.egTryNow} 
                   value={formData.cta_text} onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-800"
+                  className="bg-[var(--s2)] border-[var(--line)]"
                 />
               </div>
               <div className="space-y-2">
@@ -228,19 +228,19 @@ export default function CreateCampaignPage() {
                   id="cta_url" name="cta_url" 
                   placeholder="https://..." 
                   value={formData.cta_url} onChange={handleChange}
-                  className="bg-zinc-900 border-zinc-800"
+                  className="bg-[var(--s2)] border-[var(--line)]"
                 />
               </div>
             </div>
 
           </div>
 
-          <div className={`flex justify-end pt-4 border-t border-zinc-800 gap-3 ${isRtl ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex justify-end pt-4 border-t border-[var(--line)] gap-3 ${isRtl ? 'flex-row-reverse' : ''}`}>
             <Button 
               onClick={() => handleSaveDraft('draft')} 
               disabled={loading}
               variant="outline"
-              className="bg-transparent border-zinc-700 text-[var(--t1)] hover:bg-zinc-800"
+              className="bg-transparent border-[var(--line)] text-[var(--t1)] hover:bg-[var(--s2)]"
             >
               {loading ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'} animate-spin`} /> : <Save className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'}`} />}
               Save to drafts page
