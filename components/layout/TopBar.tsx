@@ -1,5 +1,7 @@
 "use client"
 
+import { useDateRange } from "@/hooks/use-date-range"
+import { parseRange } from "@/lib/analytics/period"
 import * as React from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
@@ -74,7 +76,7 @@ export function TopBar({
 }: TopBarProps) {
   const pathname = usePathname()
   const { t } = useLanguage()
-  const [range, setRange] = React.useState("7d")
+  const [range, setRange] = useDateRange()
   const [currency, setCurrency] = React.useState<"EGP" | "SAR" | "USD">("EGP")
 
   const isSettings = pathname.startsWith("/dashboard/settings")
@@ -175,12 +177,12 @@ export function TopBar({
           </div>
         ) : (
           <>
-            {/* Standard date range filter (only shown on overview/analytics) */}
-            {(pathname === "/dashboard" || pathname === "/dashboard/analytics") && (
+            {/* Date range of the overview cards (the analytics page has its own) */}
+            {pathname === "/dashboard" && (
               <SegmentedControl
                 size="sm"
                 value={range}
-                onChange={setRange}
+                onChange={(value) => setRange(parseRange(value))}
                 options={[
                   { value: "today", label: "Today" },
                   { value: "7d", label: "7 days" },
