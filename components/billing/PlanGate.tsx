@@ -5,7 +5,8 @@ import { LogOut, RefreshCw } from "lucide-react"
 import { fetcher } from "@/lib/fetcher"
 import { formatEgp, type DbPlan } from "@/components/billing/PlansComparisonRow"
 import { Button } from "@/components/ui/button"
-import { PlanCardBody } from "@/components/billing/PlanCardBody"
+import { PlansGrid, normalizeApiPlans } from "@/components/pricing/PlansGrid"
+import { TRIAL_PLAN_ID } from "@/lib/billing/plans"
 
 /**
  * Shown instead of the dashboard when the free trial (or a paid period) has
@@ -48,21 +49,7 @@ export function PlanGate({
             Plans could not be loaded. Refresh in a moment, or contact support.
           </p>
         ) : (
-          <div className={`grid gap-6 ${plans.length >= 3 ? "md:grid-cols-3" : plans.length === 2 ? "md:grid-cols-2" : ""}`}>
-            {plans.map((plan) => (
-              <div key={plan.id} className="flex flex-col rounded-2xl border border-white/[0.12] bg-[#0d0e13] p-7 transition-all duration-300 hover:-translate-y-1 hover:border-white/[0.25]">
-                <PlanCardBody
-                  name={plan.name}
-                  description={plan.description}
-                  usd={plan.price_usd}
-                  egp={formatEgp(plan.price_egp)}
-                  period={plan.billing_cycle === "lifetime" ? "once" : "/mo"}
-                  lines={[...new Set([...(plan.feature_lines || []), ...(plan.features || [])])]}
-                  cta={{ label: `Choose ${plan.name}`, href: `/checkout/${encodeURIComponent(plan.id)}` }}
-                />
-              </div>
-            ))}
-          </div>
+          <PlansGrid plans={normalizeApiPlans(data)} featuredId={(plans.find((p) => (p as any).catalog_plan_id === TRIAL_PLAN_ID) || plans[Math.floor(plans.length / 2)])?.id} isAr={false} t={{}} mode="dashboard" />
         )}
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

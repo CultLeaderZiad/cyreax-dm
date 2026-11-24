@@ -29,7 +29,8 @@ export function LandingPage() {
     fetch("/api/settings/banner")
       .then(res => res.json())
       .then(data => {
-        if (data && data.content) {
+        // The admin decides in Settings -> Announcements whether this section shows.
+        if (data && data.showUpdates === true && data.content) {
           setUpdatesContent(data.content)
         }
       })

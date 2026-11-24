@@ -50,7 +50,8 @@ export default async function PricingPage() {
         const tier = PLAN_CATALOG.find((c) => c.id === p.catalog_plan_id) || PLAN_CATALOG.find((c) => c.id === (p.billing_cycle === "monthly" ? "creator" : "creator_plus"))!
         const generated = p.is_contact_sales ? [] : describeEntitlements(applyEntitlements(tier, p.entitlements).limits)
         const features = [...generated, ...(p.features || []), ...agentsForPlan]
-        return { ...p, features: [...new Set(features)] }
+        const effective = applyEntitlements(tier, p.entitlements)
+        return { ...p, features: [...new Set(features)], effective_limits: p.is_contact_sales ? null : effective.limits }
       })
     : []
 
