@@ -41,7 +41,7 @@ export async function GET() {
       email: byId.get(r.account_id)?.email || null,
       accountCreatedAt: byId.get(r.account_id)?.created_at || null,
       state: r.status,
-      fullName: r.full_name,
+      fullName: r.full_name || null,
       company: r.company,
       instagramUsername: r.instagram_username,
       facebookId: r.facebook_id,
@@ -55,5 +55,5 @@ export async function GET() {
     .filter((a: any) => a.role !== "admin" && !a.is_team_member && !submittedIds.has(a.id))
     .map((a: any) => ({ accountId: a.id, email: a.email, accountCreatedAt: a.created_at, state: "awaiting_form" as const }))
 
-  return NextResponse.json({ items: [...submitted, ...awaiting], attention: submitted.filter((s: any) => !s.seen).length + awaiting.length })
+  return NextResponse.json({ items: [...submitted, ...awaiting], attention: submitted.filter((s: any) => s.state === "awaiting_access" || s.state === "submitted").length })
 }

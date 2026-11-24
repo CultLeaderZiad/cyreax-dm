@@ -1,4 +1,5 @@
-import { onboardingRequired } from "@/lib/onboarding";
+import { resolveOnboarding } from "@/lib/onboarding";
+import { notifyAdminOfAccessRequest } from "@/lib/onboarding-notify";
 import { TRIAL_GRACE_MS, trialPhase } from "@/lib/billing/plans"
 import { activePeriodValid } from "@/lib/billing/enforce";
 export const dynamic = 'force-dynamic'
@@ -117,16 +118,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // New customers owe the onboarding form (the admin connects their accounts by hand).
+    // Onboarding starts after payment: access approval, then the details form, then review.
     let needsOnboarding = false;
     let onboardingStatus: string | null = null;
     try {
       const onboardingDb = await getSupabaseBypassClient();
-      needsOnboarding = await onboardingRequired(onboardingDb, account as any);
-      if (!needsOnboarding && userRole !== "admin") {
-        const { data: ob } = await onboardingDb.from("account_onboarding").select("status").eq("account_id", account.id).maybeSingle();
-        onboardingStatus = ob?.status ?? null;
-      }
+      const paid = hasValidPayment && Boolean(effectivePlan) && effectivePlan !== "trial";
+      const onboarding = await resolveOnboarding(onboardingDb, account as any, paid);
+      onboardingStatus = onboarding.status;
+      needsOnboarding = onboarding.status === "access_granted";
+      if (onboarding.created) void notifyAdminOfAccessRequest({ email: account.email || null });
     } catch {
       // Never block the session because of this lookup.
     }

@@ -306,14 +306,18 @@ stateDiagram-v2
 
 ## accountOnboarding — `account_onboarding.status`
 
-Initial: `submitted`. Terminal: `connected`.
+Initial: `awaiting_access`. Terminal: `connected`.
 
-Written by: `app/api/onboarding/route.ts`, `app/api/admin/onboarding/[accountId]/route.ts`
+Written by: `app/api/auth/me/route.ts`, `app/api/onboarding/route.ts`, `app/api/admin/onboarding/[accountId]/route.ts`
 
 ```mermaid
 stateDiagram-v2
-  [*] --> submitted
+  [*] --> awaiting_access
+  awaiting_access --> access_granted
+  access_granted --> submitted
+  access_granted --> awaiting_access
   submitted --> approved
+  submitted --> access_granted
   submitted --> link_sent
   submitted --> connected
   approved --> submitted

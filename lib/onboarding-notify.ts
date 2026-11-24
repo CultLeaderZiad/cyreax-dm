@@ -22,3 +22,18 @@ export async function notifyAdminOfOnboarding(input: { name: string; company: st
     // ignored on purpose, see above
   }
 }
+
+/** A customer has paid and waits for the admin to approve access. Best effort, no secrets. */
+export async function notifyAdminOfAccessRequest(input: { email: string | null }): Promise<void> {
+  const to = process.env.ADMIN_NOTIFY_EMAIL || BRAND.emails.support
+  if (!to) return
+  try {
+    await sendEmail({
+      to,
+      subject: `A customer paid and needs access approval${input.email ? `: ${input.email.slice(0, 80)}` : ""}`,
+      html: `<p>${input.email ? `<strong>${esc(input.email)}</strong> ` : "A customer "}paid and is waiting for you to approve access.</p><p>Open <strong>Admin &rarr; Onboarding</strong> and press <strong>Approve access</strong>. They can then send their account details.</p>`,
+    })
+  } catch {
+    // ignored on purpose
+  }
+}

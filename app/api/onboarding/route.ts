@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     status: data.status,
     message: data.admin_note || null,
     values: {
-      fullName: data.full_name,
+      fullName: data.full_name || "",
       company: data.company || "",
       instagramUsername: data.instagram_username || "",
       facebookId: data.facebook_id || "",
@@ -37,8 +37,11 @@ export async function PUT(request: NextRequest) {
   const body = await request.json().catch(() => null)
   const supabase = await getSupabaseBypassClient()
   const existing = await supabase.from("account_onboarding").select("*").eq("account_id", session.user.id).maybeSingle()
-  // The details can be corrected while they wait for review; once approved, changes go through support.
-  if (existing.data && existing.data.status !== "submitted") return NextResponse.json({ error: "Your details were already reviewed. Contact support to change them." }, { status: 409 })
+  // The form only opens after payment and the admin's access approval. Details can be
+  // corrected while they wait for review; after that changes go through support.
+  const status = existing.data?.status
+  if (!status || status === "awaiting_access") return NextResponse.json({ error: "Your account is waiting for access approval." }, { status: 403 })
+  if (status !== "access_granted" && status !== "submitted") return NextResponse.json({ error: "Your details were already reviewed. Contact support to change them." }, { status: 409 })
 
   // A masked token echoed back by the form means "keep the one on file". It is
   // swapped for a well-formed placeholder only while validating the other fields.
@@ -61,13 +64,13 @@ export async function PUT(request: NextRequest) {
     status: "submitted" as const,
     updated_at: now,
     admin_seen_at: null,
-    ...(existing.data ? {} : { submitted_at: now }),
+    ...(status === "access_granted" ? { submitted_at: now } : {}),
   }
   const { error } = await supabase.from("account_onboarding").upsert(row, { onConflict: "account_id" })
   if (error) {
     console.error("[onboarding] save failed:", error.message)
     return NextResponse.json({ error: "Could not save. Please try again." }, { status: 500 })
   }
-  if (!existing.data) void notifyAdminOfOnboarding({ name: clean.fullName, company: clean.company, email: session.user.email || null })
+  if (status === "access_granted") void notifyAdminOfOnboarding({ name: clean.fullName, company: clean.company, email: session.user.email || null })
   return NextResponse.json({ ok: true })
 }
