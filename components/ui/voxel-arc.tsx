@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import { usePathname } from "next/navigation"
 
 /**
  * A curved horizon of square voxels rolling like a calm sea.
@@ -98,9 +99,11 @@ export function VoxelArc({ className = "", intensity = 0.4 }: { className?: stri
 
 /** Fixed, click-through backdrop for the whole app (marketing pages and dashboards). */
 export function VoxelArcBackdrop() {
+  // Calmer inside the dashboard, where people work; full strength on public pages.
+  const inDashboard = usePathname()?.startsWith("/dashboard")
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-      <VoxelArc />
+      <VoxelArc intensity={inDashboard ? 0.16 : 0.4} />
       <div className="absolute inset-0 bg-gradient-to-b from-[var(--bg)] via-transparent to-transparent opacity-80" />
     </div>
   )

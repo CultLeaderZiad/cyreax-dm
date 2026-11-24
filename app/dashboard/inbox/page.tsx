@@ -191,7 +191,8 @@ function InboxContent() {
       </div>
 
       {/* Column 3: Customer Copilot Rail (desktop >=1024px fixed 300px column) */}
-      <div className="hidden lg:flex w-[300px] h-full shrink-0 border-s border-[var(--line)]">
+      {/* Only with a conversation open: an empty rail would show placeholder contact details. */}
+      <div className={cn("w-[300px] h-full shrink-0 border-s border-[var(--line)]", selectedConversationId ? "hidden lg:flex" : "hidden")}>
         <CustomerCopilotRail
           recipientName={selectedRecipientName}
           recipientId={selectedRecipientId || undefined}

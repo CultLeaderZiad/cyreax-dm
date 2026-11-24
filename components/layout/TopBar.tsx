@@ -30,6 +30,22 @@ const routeTitleMap: Record<string, string> = {
   "/dashboard/updates": "Updates",
   "/dashboard/admin": "Admin",
   "/dashboard/admin/plans": "Plans",
+  "/dashboard/admin/onboarding": "Onboarding",
+  "/dashboard/admin/payments": "Payments",
+  "/dashboard/admin/support": "Support inbox",
+  "/dashboard/admin/enterprise": "Trials",
+  "/dashboard/growth": "Growth",
+  "/dashboard/growth-agent": "Growth Agent",
+  "/dashboard/usage": "Usage",
+  "/dashboard/flows": "Flows",
+  "/dashboard/agents": "Agents",
+  "/dashboard/agency": "Agency",
+  "/dashboard/ai": "AI logs",
+  "/dashboard/catalog": "Catalog",
+  "/dashboard/ice-breakers": "Ice breakers",
+  "/dashboard/integrations": "Integrations",
+  "/dashboard/platforms": "Channels",
+  "/dashboard/support": "Support",
 }
 
 const settingsSectionMap: Record<string, string> = {
@@ -44,6 +60,8 @@ const settingsSectionMap: Record<string, string> = {
   "api-keys": "API keys",
   "webhooks": "Webhooks",
   "audit-log": "Audit log",
+  "announcements": "Announcements",
+  "appearance": "Appearance",
 }
 
 export function TopBar({
