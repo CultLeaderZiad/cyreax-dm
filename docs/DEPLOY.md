@@ -123,6 +123,7 @@ Phase files, in this order. Each is idempotent and does not delete tenant rows.
 21. AI Growth Agent (2026-11-27): `20261127120000_ai_agent_proposals.sql`
 22. Prices follow Whop (2026-11-28): `20261128120000_whop_price_sync.sql`
 23. Customer onboarding (2026-11-29): `20261129120000_account_onboarding.sql`
+24. Onboarding review step (2026-11-30): `20261130120000_onboarding_review.sql`
 
 Every file from step 14 on has a commented rollback at the top.
 
@@ -250,6 +251,15 @@ the requests and recent signups, with a badge on the sidebar; connect the accoun
 send the invitation, then mark "I sent the invitation" and "Connected". The customer
 sees the status in a banner. Set `ADMIN_NOTIFY_EMAIL` to be emailed on each new
 submission (falls back to the support address); the email contains no secrets.
+
+**From plan to working account:** choosing a plan sends the customer straight to the
+card payment page (the checkout is created on the server for their account and plan;
+wallet / InstaPay for Egypt stay at `/checkout/<plan>?method=manual`). After paying they
+land on a confirmation screen that shows what the plan includes, then fill the
+onboarding form, then wait on a "pending review" screen. In **Admin -> Onboarding**,
+**Approve** opens the dashboard for them; they connect channels, you send the activation
+invitation ("I sent the invitation") and finally mark "Connected". Customers can correct
+their details only while pending review.
 
 **Announcements:** **Settings -> Announcements** (admin only) has separate switches
 for the top bar and for the "Latest updates" block on the home page. The block is

@@ -30,6 +30,8 @@ export interface PlansComparisonRowProps {
   /** plans.id of the plan the account bought, if any. */
   currentPlanId?: string | null
   onSelectPlan?: (planId: string) => void
+  /** Offer "pay by e-wallet / InstaPay" under each plan (Egyptian customers). */
+  manualOption?: boolean
 }
 
 export function formatEgp(value: number | null | undefined): string | null {
@@ -41,7 +43,7 @@ export function formatEgp(value: number | null | undefined): string | null {
  * Plans and prices straight from the plans table (Admin -> Plans). Nothing
  * here is invented.
  */
-export function PlansComparisonRow({ currentPlanId = null, onSelectPlan }: PlansComparisonRowProps) {
+export function PlansComparisonRow({ currentPlanId = null, onSelectPlan, manualOption = false }: PlansComparisonRowProps) {
   const [isAnnual, setIsAnnual] = useState(false)
   const router = useRouter()
   const { data, error, isLoading } = useSWR<DbPlan[]>("/api/plans", fetcher, { revalidateOnFocus: false })
@@ -94,6 +96,7 @@ export function PlansComparisonRow({ currentPlanId = null, onSelectPlan }: Plans
           t={{}}
           mode="dashboard"
           currentPlanId={currentPlanId}
+          manualOption={manualOption}
         />
       )}
     </section>

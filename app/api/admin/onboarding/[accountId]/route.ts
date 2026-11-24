@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 
-const STATUSES = ["submitted", "link_sent", "connected"] as const
+const STATUSES = ["submitted", "approved", "link_sent", "connected"] as const
 
 /** Admin updates where a customer is in the manual connection process, or marks the request as seen. */
 export async function PATCH(request: NextRequest, ctx: { params: Promise<{ accountId: string }> }) {
@@ -17,6 +17,7 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<{ accou
   if (body?.status !== undefined) {
     if (!STATUSES.includes(body.status)) return NextResponse.json({ error: "Unknown status" }, { status: 400 })
     patch.status = body.status
+    if (body.status === "approved") patch.approved_at = new Date().toISOString()
   }
   if (body?.note !== undefined) patch.admin_note = typeof body.note === "string" ? body.note.trim().slice(0, 500) || null : null
   if (body?.seen === true) patch.admin_seen_at = new Date().toISOString()

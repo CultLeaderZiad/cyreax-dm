@@ -314,7 +314,7 @@ function BillingPageContent() {
         </div>
 
         {/* Plans Row (Full Width) */}
-        <PlansComparisonRow currentPlanId={data?.displayPlan?.id || null} />
+        <PlansComparisonRow currentPlanId={data?.displayPlan?.id || null} manualOption={Boolean(data?.egyptian)} />
 
         {/* Recent Payments Table (Full Width) */}
         <RecentPaymentsTable />

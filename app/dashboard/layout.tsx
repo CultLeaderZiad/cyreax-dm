@@ -15,6 +15,7 @@ import { PlanGate } from "@/components/billing/PlanGate"
 import { PlanActivation } from "@/components/billing/PlanActivation"
 import { OnboardingForm } from "@/components/onboarding/OnboardingForm"
 import { OnboardingBanner } from "@/components/onboarding/OnboardingBanner"
+import { PendingReview } from "@/components/onboarding/PendingReview"
 import { gateReason as gateReasonFor } from "@/lib/billing/gate"
 
 function MobileTabBarWrapper({
@@ -122,6 +123,11 @@ export default function DashboardLayout({
 
     if (onboardingRequired) {
         return <OnboardingForm />
+    }
+
+    // Details sent, waiting for the admin to approve: nothing else opens until then.
+    if (onboardingStatus === 'submitted' && role !== 'admin') {
+        return <PendingReview onLogout={logout} email={email} />
     }
 
     if (gateReason) {

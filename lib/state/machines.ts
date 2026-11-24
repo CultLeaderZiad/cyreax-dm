@@ -235,8 +235,8 @@ export const MACHINES = {
     table: "account_onboarding",
     column: "status",
     initial: "submitted",
-    // The admin moves it forward by hand; a customer re-submitting resets it to submitted until connected.
-    transitions: { submitted: ["link_sent", "connected"], link_sent: ["submitted", "connected"], connected: [] },
+    // submitted = pending review. The admin approves, then sends the invitation, then marks connected; a customer may correct the details only while it is still submitted.
+    transitions: { submitted: ["approved", "link_sent", "connected"], approved: ["submitted", "link_sent", "connected"], link_sent: ["submitted", "connected"], connected: [] },
     writers: ["app/api/onboarding/route.ts", "app/api/admin/onboarding/[accountId]/route.ts"],
   }),
   aiAgentProposal: machine({

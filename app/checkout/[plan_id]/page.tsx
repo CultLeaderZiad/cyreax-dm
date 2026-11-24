@@ -10,17 +10,20 @@ import { brand } from "@/lib/brand"
 import { headers } from "next/headers"
 import { isEgyptianCustomer } from "@/lib/billing/region"
 import { variantForPlan, whopConfig } from "@/lib/billing/whop"
+import { createCardCheckout } from "@/lib/billing/whop-checkout"
+import { forbidBelow } from "@/lib/auth"
 import WhopCardOption from "./WhopCardOption"
 
 export const dynamic = "force-dynamic"
 
 export default async function CheckoutPage(props: {
   params: Promise<{ plan_id: string }>
-  searchParams: Promise<{ cycle?: string }>
+  searchParams: Promise<{ cycle?: string; method?: string }>
 }) {
   const params = await props.params
   const searchParams = await props.searchParams
   const cycle = searchParams.cycle === "yearly" ? "yearly" : undefined
+  const wantsManual = searchParams.method === "manual"
   const user = await getSessionUser()
   if (!user) {
     redirect(`/signup?plan_id=${encodeURIComponent(params.plan_id)}${cycle ? "&cycle=yearly" : ""}`)
@@ -42,6 +45,22 @@ export default async function CheckoutPage(props: {
   // (the manual payment API enforces the same rule).
   const egyptian = isEgyptianCustomer({ accountCountry: user.country, headers: await headers() })
   const whopAvailable = Boolean(whopConfig() && variantForPlan(plan, cycle))
+  // Choosing a plan goes straight to the payment page: the card checkout is
+  // created here, on the server, for THIS account and plan, and the browser is
+  // sent to it at once. Nothing is granted by this page; the signed payment
+  // event does that. Wallet / InstaPay stay at ?method=manual.
+  let directError: string | null = null
+  if (whopAvailable && !wantsManual) {
+    if (forbidBelow((user as any).workspace_role, "owner")) {
+      directError = "Only the workspace owner can pay for a plan."
+    } else {
+      const h = await headers()
+      const origin = process.env.NEXT_PUBLIC_APP_URL || `${h.get("x-forwarded-proto") || "https"}://${h.get("host")}`
+      const result = await createCardCheckout(supabase, { accountId: String(user.id), planId: plan.id, cycle, origin })
+      if (result.ok) redirect(result.url)
+      directError = result.error
+    }
+  }
   const usd = cycle === "yearly" ? plan.price_yearly : plan.price_usd
   const cardPrice = usd != null && Number(usd) > 0 ? `$${Number(usd).toLocaleString("en-US")}` : null
   const { quote, referenceCode } = egyptian ? issueQuote(user.id, plan.id, terms) : { quote: null, referenceCode: null }
@@ -66,14 +85,26 @@ export default async function CheckoutPage(props: {
       <FrontBackground />
       <BackToHome />
       <div className="max-w-xl mx-auto space-y-8 relative z-10">
-        <WhopCardOption
-          planId={plan.id}
-          cycle={cycle}
-          planName={plan.name}
-          priceText={cardPrice}
-          available={whopAvailable}
-        />
-        {egyptian && (quote || !whopAvailable) && (
+        {directError && (
+          <p role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
+            {directError}
+          </p>
+        )}
+        {!wantsManual && (
+          <WhopCardOption
+            planId={plan.id}
+            cycle={cycle}
+            planName={plan.name}
+            priceText={cardPrice}
+            available={whopAvailable}
+          />
+        )}
+        {wantsManual && whopAvailable && (
+          <p className="text-center text-sm text-neutral-300">
+            <a className="text-[#e5a93c] underline" href={`/checkout/${plan.id}${cycle ? "?cycle=yearly" : ""}`}>Pay by card instead</a>
+          </p>
+        )}
+        {egyptian && (wantsManual || quote || !whopAvailable) && (
           <>
             <div className="flex items-center gap-3 text-xs uppercase tracking-wider text-neutral-500">
               <span className="h-px flex-1 bg-white/10" />
