@@ -1,3 +1,4 @@
+import { TRIAL_GRACE_MS, trialPhase } from "@/lib/billing/plans"
 import { activePeriodValid } from "@/lib/billing/enforce";
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
@@ -39,8 +40,8 @@ export async function GET(request: NextRequest) {
       const now = new Date();
       if (trialDate < now) {
         isTrialExpired = true;
-        // No grace period: the account is paused the moment the trial ends.
-        isPastDeadline = true;
+        // Paused only after the grace window (TRIAL_GRACE_HOURS) has passed.
+        isPastDeadline = trialPhase(trialDate.getTime(), now.getTime()) === "over";
       }
     }
 
@@ -80,7 +81,7 @@ export async function GET(request: NextRequest) {
             const now = new Date();
             if (trialDate < now) {
               isTrialExpired = true;
-              isPastDeadline = true;
+              isPastDeadline = trialPhase(trialDate.getTime(), now.getTime()) === "over";
             } else {
               isTrialExpired = false;
               isPastDeadline = false;
@@ -136,6 +137,7 @@ export async function GET(request: NextRequest) {
       has_valid_payment: hasValidPayment,
       is_trial_expired: isTrialExpired,
       is_past_deadline: isPastDeadline,
+      trial_grace_ends_at: effectiveTrialEnds ? new Date(new Date(effectiveTrialEnds).getTime() + TRIAL_GRACE_MS).toISOString() : null,
       is_banned: account.is_banned || false,
       banned_reason: account.banned_reason || null,
       instagram_reconnect_required: instagramNeedsReconnect(igUser),

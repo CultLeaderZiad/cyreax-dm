@@ -114,14 +114,31 @@ describe("free trial", () => {
     assert.equal(plan.limits.aiAgent, true)
   })
 
-  it("a finished trial pauses the account instead of dropping to a free tier", async () => {
-    const account = { id: "a1", plan: "trial", role: "customer", trial_ends_at: iso(NOW - 1000) }
-    const plan = await resolveAccountPlan(db({ billing_accounts: null, plans: [] }), account, NOW)
+  it("after the trial there are 12 hours of grace on Pro, then the account is paused", async () => {
+    const hour = 3_600_000
+    const inGrace = { id: "a1", plan: "trial", role: "customer", trial_ends_at: iso(NOW - 11 * hour) }
+    const during = await resolveAccountPlan(db({ billing_accounts: null, plans: [] }), inGrace, NOW)
+    assert.equal(during.blocked, false)
+    assert.equal(during.id, "creator_plus")
+
+    const over = { id: "a1", plan: "trial", role: "customer", trial_ends_at: iso(NOW - 13 * hour) }
+    const plan = await resolveAccountPlan(db({ billing_accounts: null, plans: [] }), over, NOW)
     assert.equal(plan.id, "expired")
     assert.equal(plan.blocked, true)
     assert.equal(featureEnabled(plan, "aiAgent"), false)
-    const viaBilling = await resolveAccountPlan(db({ billing_accounts: { plan_id: "creator_plus", status: "trialing", trial_ends_at: iso(NOW - 1000) }, plans: [] }), { id: "a1", plan: "trial", role: "customer" }, NOW)
+
+    const viaBilling = await resolveAccountPlan(db({ billing_accounts: { plan_id: "creator_plus", status: "trialing", trial_ends_at: iso(NOW - 13 * hour) }, plans: [] }), { id: "a1", plan: "trial", role: "customer" }, NOW)
     assert.equal(viaBilling.blocked, true)
+    const billingGrace = await resolveAccountPlan(db({ billing_accounts: { plan_id: "creator_plus", status: "trialing", trial_ends_at: iso(NOW - hour) }, plans: [] }), { id: "a1", plan: "trial", role: "customer" }, NOW)
+    assert.equal(billingGrace.blocked, false)
+  })
+
+  it("trialPhase names the three phases", () => {
+    const { trialPhase, TRIAL_GRACE_HOURS } = plans
+    assert.equal(TRIAL_GRACE_HOURS, 12)
+    assert.equal(trialPhase(NOW + 1, NOW), "running")
+    assert.equal(trialPhase(NOW - 1, NOW), "grace")
+    assert.equal(trialPhase(NOW - 12 * 3_600_000, NOW), "over")
   })
 
   it("an admin-exempt trial keeps running", async () => {
@@ -133,7 +150,7 @@ describe("free trial", () => {
 
 describe("the choose-a-plan-or-log-out screen", () => {
   const ended = { plan: "trial", isTrialExpired: true, isPastDeadline: true }
-  it("appears the moment the trial ends, with no grace period", () => {
+  it("appears once the grace window has passed", () => {
     assert.equal(gateReason({ ...ended }), "trial")
   })
   it("appears for a paid account whose subscription is no longer valid", () => {

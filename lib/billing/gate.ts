@@ -3,7 +3,7 @@
  * screen? Pure so it can be tested; the dashboard layout calls it.
  *
  * - admins and trial-exempt accounts are never gated;
- * - a finished free trial is gated at once (no grace period);
+ * - a finished free trial is gated once its 12-hour grace window (TRIAL_GRACE_HOURS) has passed;
  * - a paid account whose subscription is no longer valid is gated.
  */
 export function gateReason(input: {
