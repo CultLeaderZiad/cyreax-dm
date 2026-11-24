@@ -79,14 +79,16 @@ function db(tables: Record<string, any[]>, rpc?: (name: string, args: any) => an
 describe("plan catalog", () => {
   it("resolves creator and agency tiers, including legacy slugs", () => {
     assert.equal(resolvePlan("monthly").id, "creator")
-    assert.equal(resolvePlan("trial").id, "creator")
+    assert.equal(resolvePlan("trial").id, "creator_plus", "a running trial uses Pro")
+    assert.equal(resolvePlan("starter").id, "creator")
+    assert.equal(resolvePlan("pro").id, "creator_plus")
     assert.equal(resolvePlan("one_time").id, "creator_plus")
     assert.equal(resolvePlan("free").id, "creator_free")
     assert.equal(resolvePlan("agency").limits.whiteLabel, true)
     assert.equal(resolvePlan("agency_pro").limits.channels, -1)
     assert.equal(resolvePlan("expired").blocked, true)
     assert.equal(resolvePlan("expired").id, "expired")
-    assert.equal(planPriceCents("creator", "year"), 29000)
+    assert.equal(planPriceCents("creator", "year"), 19990)
     assert.equal(PLAN_CATALOG.length, 5)
     assert.equal(meterPeriod("aiReplies", new Date("2026-09-03T00:00:00Z")), "2026-09")
     assert.equal(meterPeriod("contacts", new Date("2026-09-03T00:00:00Z")), "lifetime")

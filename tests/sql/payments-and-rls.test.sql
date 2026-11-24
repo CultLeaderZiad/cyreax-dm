@@ -316,4 +316,14 @@ DO $$ BEGIN
   END;
 END $$;
 
+-- 12. Plan entitlements are a jsonb object (or NULL), nothing else.
+DO $$ BEGIN
+  INSERT INTO public.plans (id, name, price_usd, entitlements) VALUES ('77777777-0000-0000-0000-000000000001', 'E', 1, '{"channels": 3}');
+  BEGIN
+    INSERT INTO public.plans (id, name, price_usd, entitlements) VALUES ('77777777-0000-0000-0000-000000000002', 'E2', 1, '"channels"');
+    RAISE EXCEPTION 'FAIL: non-object entitlements accepted';
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+END $$;
+
 SELECT 'ALL DB CHECKS PASSED' AS result;

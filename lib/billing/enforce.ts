@@ -1,4 +1,4 @@
-import { featureEnabled, limitFor, meterPeriod, resolvePlan, type FeatureKey, type MeterKey, type ResolvedPlan } from "@/lib/billing/plans"
+import { applyEntitlements, featureEnabled, limitFor, meterPeriod, resolvePlan, type FeatureKey, type MeterKey, type ResolvedPlan } from "@/lib/billing/plans"
 import { channelSlots, judgeUsage, slotsAfterConnect, type ChannelConnection, type ChannelProfile, type UsageJudgement } from "@/lib/billing/usage"
 
 export class PlanLimitError extends Error {
@@ -80,8 +80,28 @@ async function billingRow(supabase: any, accountId: string): Promise<BillingRow 
   return data
 }
 
-/** The plan that limits apply to right now, including an ended trial. */
+/**
+ * The plan that limits and features apply to right now, including an ended
+ * trial and any overrides the admin set in Admin -> Plans.
+ */
 export async function resolveAccountPlan(supabase: any, account: AccountGate, nowMs = Date.now()): Promise<ResolvedPlan> {
+  const base = await resolveBasePlan(supabase, account, nowMs)
+  if (base.blocked || account.role === "admin") return base
+  try {
+    const { data, error } = await supabase
+      .from("plans")
+      .select("entitlements")
+      .eq("catalog_plan_id", base.id)
+      .not("entitlements", "is", null)
+      .limit(1)
+    if (!error && data?.[0]?.entitlements) return { ...applyEntitlements(base, data[0].entitlements), blocked: false }
+  } catch {
+    // Before the migration there is no entitlements column: catalog defaults apply.
+  }
+  return base
+}
+
+async function resolveBasePlan(supabase: any, account: AccountGate, nowMs: number): Promise<ResolvedPlan> {
   if (account.role === "admin") {
     const pro = resolvePlan("agency_pro")
     return { ...pro, limits: { ...pro.limits, workspaces: -1, channels: -1, contacts: -1, aiReplies: -1, broadcasts: -1, seats: -1 } }
@@ -93,14 +113,15 @@ export async function resolveAccountPlan(supabase: any, account: AccountGate, no
   if ((billing?.status === "active" || billing?.status === "past_due") && !activePeriodValid(billing, nowMs)) {
     return resolvePlan("expired")
   }
+  // A finished trial is not a free tier: access is paused until a plan is paid.
   if (billing?.status === "trialing" && billing.trial_ends_at && Date.parse(billing.trial_ends_at) <= nowMs) {
-    return resolvePlan("creator_free")
+    return resolvePlan("expired")
   }
   if (billing?.status === "active" || billing?.status === "past_due" || billing?.status === "trialing") {
     if (billing.plan_id) return resolvePlan(billing.plan_id)
   }
   if (account.plan === "trial" && account.trial_ends_at && !account.trial_exempt && Date.parse(account.trial_ends_at) <= nowMs) {
-    return resolvePlan("creator_free")
+    return resolvePlan("expired")
   }
   return resolvePlan(account.plan)
 }
