@@ -4,6 +4,7 @@ import React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useInstagramSession } from "@/hooks/use-instagram-session"
 
 interface SubNavItem {
   id: string
@@ -12,6 +13,7 @@ interface SubNavItem {
 }
 
 interface SubNavGroup {
+  adminOnly?: boolean
   title: string
   items: SubNavItem[]
 }
@@ -35,6 +37,11 @@ const navGroups: SubNavGroup[] = [
     ],
   },
   {
+    adminOnly: true,
+    title: "PLATFORM",
+    items: [{ id: "announcements", label: "Announcements", href: "/dashboard/settings/announcements" }],
+  },
+  {
     title: "DEVELOPERS",
     items: [
       { id: "api-keys", label: "API keys", href: "/dashboard/settings/api-keys" },
@@ -46,6 +53,7 @@ const navGroups: SubNavGroup[] = [
 
 export function SettingsSubNav() {
   const pathname = usePathname()
+  const { role } = useInstagramSession()
 
   // Determine current active section
   const currentSection = pathname === "/dashboard/settings"
@@ -57,7 +65,7 @@ export function SettingsSubNav() {
       aria-label="Settings"
       className="w-full md:w-[210px] shrink-0 border-b md:border-b-0 md:border-r border-[var(--line)] py-5 px-3 select-none space-y-5 overflow-y-auto"
     >
-      {navGroups.map((group) => (
+      {navGroups.filter((group) => !group.adminOnly || role === "admin").map((group) => (
         <div key={group.title} className="space-y-1">
           <span className="block px-2.5 text-[10.5px] font-mono uppercase tracking-wider text-[var(--t3)] font-medium">
             {group.title}

@@ -12,10 +12,10 @@ export async function GET() {
       .single()
 
     if (error || !data) {
-      return NextResponse.json({ isActive: false, message: "", link: "" })
+      return NextResponse.json({ isActive: false, message: "", link: "", showUpdates: false })
     }
 
-    const bannerVal = data.value || {}
+    const bannerVal = { ...(data.value || {}), showUpdates: data.value?.showUpdates === true }
     if (typeof bannerVal.message === "string") {
       bannerVal.message = bannerVal.message.replace(/Helixa/gi, "CYREAX DM")
     }
@@ -27,7 +27,7 @@ export async function GET() {
     })
   } catch (error) {
     console.error("[api/settings/banner] GET error:", error)
-    return NextResponse.json({ isActive: false, message: "", link: "" })
+    return NextResponse.json({ isActive: false, message: "", link: "", showUpdates: false })
   }
 }
 

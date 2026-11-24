@@ -304,6 +304,22 @@ stateDiagram-v2
   active --> [*]
 ```
 
+## accountOnboarding — `account_onboarding.status`
+
+Initial: `submitted`. Terminal: `connected`.
+
+Written by: `app/api/onboarding/route.ts`, `app/api/admin/onboarding/[accountId]/route.ts`
+
+```mermaid
+stateDiagram-v2
+  [*] --> submitted
+  submitted --> link_sent
+  submitted --> connected
+  link_sent --> submitted
+  link_sent --> connected
+  connected --> [*]
+```
+
 ## aiAgentProposal — `ai_agent_proposals.status`
 
 Initial: `pending`. Terminal: `dismissed`, `failed`.

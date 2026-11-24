@@ -16,12 +16,15 @@ export async function PATCH(req: NextRequest) {
     }
 
     const supabase = await getSupabaseBypassClient()
+    // Older callers (the Banner tab on the Users page) do not send showUpdates: keep what is stored.
+    const existing = await supabase.from("app_settings").select("value").eq("key", "update_banner").maybeSingle()
+    const showUpdates = typeof body.showUpdates === "boolean" ? body.showUpdates : Boolean(existing.data?.value?.showUpdates)
     const { error } = await supabase
       .from("app_settings")
       .upsert(
         { 
           key: "update_banner", 
-          value: { isActive, message, link: link || "", type, content },
+          value: { isActive, message: message.slice(0, 300), link: typeof link === "string" ? link.slice(0, 300) : "", type, content: typeof content === "string" ? content.slice(0, 20000) : "", showUpdates },
           updated_at: new Date().toISOString()
         },
         { onConflict: "key" }

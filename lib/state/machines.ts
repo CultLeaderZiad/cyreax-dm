@@ -231,6 +231,14 @@ export const MACHINES = {
     transitions: { invited: ["active"], active: [] },
     writers: ["app/api/team/route.ts", "app/api/team/accept/route.ts"],
   }),
+  accountOnboarding: machine({
+    table: "account_onboarding",
+    column: "status",
+    initial: "submitted",
+    // The admin moves it forward by hand; a customer re-submitting resets it to submitted until connected.
+    transitions: { submitted: ["link_sent", "connected"], link_sent: ["submitted", "connected"], connected: [] },
+    writers: ["app/api/onboarding/route.ts", "app/api/admin/onboarding/[accountId]/route.ts"],
+  }),
   aiAgentProposal: machine({
     table: "ai_agent_proposals",
     column: "status",

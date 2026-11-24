@@ -13,6 +13,8 @@ import { BrandLogo } from "@/components/ui/BrandLogo"
 import { BRAND } from "@/lib/brand"
 import { PlanGate } from "@/components/billing/PlanGate"
 import { PlanActivation } from "@/components/billing/PlanActivation"
+import { OnboardingForm } from "@/components/onboarding/OnboardingForm"
+import { OnboardingBanner } from "@/components/onboarding/OnboardingBanner"
 import { gateReason as gateReasonFor } from "@/lib/billing/gate"
 
 function MobileTabBarWrapper({
@@ -60,6 +62,8 @@ export default function DashboardLayout({
         hasValidPayment,
         isTrialExpired,
         isPastDeadline,
+        onboardingRequired,
+        onboardingStatus,
         isBanned,
         bannedReason,
         instagramReconnectRequired
@@ -114,6 +118,10 @@ export default function DashboardLayout({
 
     if (activating && role !== 'admin') {
         return <PlanActivation />
+    }
+
+    if (onboardingRequired) {
+        return <OnboardingForm />
     }
 
     if (gateReason) {
@@ -223,6 +231,7 @@ export default function DashboardLayout({
                     }`}
                 >
                     {!trialExempt && <TrialBanner plan={plan || ""} trialEndsAt={trialEndsAt} />}
+                    <OnboardingBanner status={onboardingStatus} />
                     <UsageNotice />
                     {instagramReconnectRequired && (
                         <div className="mx-4 mt-4 md:mx-6 rounded-[8px] border border-[rgba(245,165,36,0.30)] bg-[var(--amberbg)] px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
