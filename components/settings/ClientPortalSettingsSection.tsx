@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { ExternalLink, ShieldCheck } from "lucide-react"
 import { Pill } from "@/components/ui/Pill"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,17 @@ export function ClientPortalSettingsSection() {
   const [allowApprovals, setAllowApprovals] = useState(true)
   const [showLiveMetrics, setShowLiveMetrics] = useState(true)
   const [allowExports, setAllowExports] = useState(false)
+  // The portal address comes from the agency's own domain; nothing is assumed.
+  const [portalUrl, setPortalUrl] = useState("")
+  useEffect(() => {
+    fetch("/api/agency")
+      .then((res) => res.json())
+      .then((data) => {
+        const domain = data?.agency?.custom_domain
+        setPortalUrl(domain ? `https://${domain}/login` : "Set a custom domain under White-label to get your portal address.")
+      })
+      .catch(() => setPortalUrl("Set a custom domain under White-label to get your portal address."))
+  }, [])
 
   return (
     <div className="space-y-8 select-none">
@@ -38,7 +49,7 @@ export function ClientPortalSettingsSection() {
             <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-4 flex items-center justify-between">
               <div className="space-y-0.5">
                 <span className="text-[12px] font-mono text-[var(--t1)] font-medium">
-                  https://portal.mirage.agency/login
+                  {portalUrl}
                 </span>
                 <span className="text-[11px] text-[var(--t3)] block">
                   Protected with client magic-link and OTP verification.
