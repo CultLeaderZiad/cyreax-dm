@@ -1,6 +1,6 @@
 "use client"
 
-import { checkoutNext } from "@/lib/auth-redirect"
+import { checkoutNext, trialNext } from "@/lib/auth-redirect"
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
@@ -23,8 +23,9 @@ function SignupForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const planId = searchParams.get("plan_id")
-  const next = checkoutNext(planId, searchParams.get("cycle"))
-  const carry = planId && next ? `?plan_id=${planId}${searchParams.get("cycle") === "yearly" ? "&cycle=yearly" : ""}` : ""
+  const wantsTrial = searchParams.get("trial") === "1"
+  const next = wantsTrial ? trialNext(planId) : checkoutNext(planId, searchParams.get("cycle"))
+  const carry = planId && next ? `?plan_id=${planId}${wantsTrial ? "&trial=1" : searchParams.get("cycle") === "yearly" ? "&cycle=yearly" : ""}` : ""
   
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

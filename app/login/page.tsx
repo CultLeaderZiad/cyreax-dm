@@ -1,6 +1,6 @@
 "use client"
 
-import { checkoutNext } from "@/lib/auth-redirect"
+import { checkoutNext, trialNext } from "@/lib/auth-redirect"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -24,7 +24,8 @@ export default function LoginPage() {
   const [carry, setCarry] = useState("")
   useEffect(() => {
     const q = new URLSearchParams(window.location.search)
-    if (checkoutNext(q.get("plan_id"), q.get("cycle"))) setCarry(`?plan_id=${q.get("plan_id")}${q.get("cycle") === "yearly" ? "&cycle=yearly" : ""}`)
+    const target = q.get("trial") === "1" ? trialNext(q.get("plan_id")) : checkoutNext(q.get("plan_id"), q.get("cycle"))
+    if (target) setCarry(`?plan_id=${q.get("plan_id")}${q.get("trial") === "1" ? "&trial=1" : q.get("cycle") === "yearly" ? "&cycle=yearly" : ""}`)
   }, [])
   let supabase: ReturnType<typeof getSupabaseBrowserClient>
   try {
@@ -43,7 +44,7 @@ export default function LoginPage() {
 
   const nextAfterLogin = () => {
     const q = new URLSearchParams(window.location.search)
-    return checkoutNext(q.get("plan_id"), q.get("cycle")) || "/dashboard"
+    return (q.get("trial") === "1" ? trialNext(q.get("plan_id")) : checkoutNext(q.get("plan_id"), q.get("cycle"))) || "/dashboard"
   }
 
   const handleEmailLogin = async (e: React.FormEvent) => {

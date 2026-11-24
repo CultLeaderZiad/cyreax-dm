@@ -82,3 +82,9 @@ export function checkoutNext(planId: string | null | undefined, cycle?: string |
   if (!planId || !PLAN_ID.test(planId)) return null
   return `/checkout/${planId}${cycle === "yearly" ? "?cycle=yearly" : ""}`
 }
+
+/** Where to send a customer who chose "start the free trial" on a plan: only ever /start-trial/<uuid>. */
+export function trialNext(planId: string | null | undefined): string | null {
+  if (!planId || !PLAN_ID.test(planId)) return null
+  return `/start-trial/${planId}`
+}
