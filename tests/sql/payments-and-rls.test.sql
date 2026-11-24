@@ -350,4 +350,14 @@ DO $$ BEGIN
   UPDATE public.account_onboarding SET status = 'link_sent' WHERE account_id = '77777777-0000-0000-0000-0000000000bb';
 END $$;
 
+-- 16. Onboarding starts after payment: a row can exist before the customer typed anything.
+DO $$ BEGIN
+  INSERT INTO public.accounts (id, email) VALUES ('77777777-0000-0000-0000-0000000000cc', 'paid@test.local') ON CONFLICT DO NOTHING;
+  INSERT INTO public.account_onboarding (account_id) VALUES ('77777777-0000-0000-0000-0000000000cc');
+  IF (SELECT status FROM public.account_onboarding WHERE account_id = '77777777-0000-0000-0000-0000000000cc') <> 'awaiting_access' THEN
+    RAISE EXCEPTION 'FAIL: a new onboarding row must start at awaiting_access';
+  END IF;
+  UPDATE public.account_onboarding SET status = 'access_granted' WHERE account_id = '77777777-0000-0000-0000-0000000000cc';
+END $$;
+
 SELECT 'ALL DB CHECKS PASSED' AS result;

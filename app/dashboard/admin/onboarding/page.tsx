@@ -11,7 +11,7 @@ import { fetcher } from "@/lib/fetcher"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 
-type State = "awaiting_form" | "submitted" | "approved" | "link_sent" | "connected"
+type State = "awaiting_form" | "awaiting_access" | "access_granted" | "submitted" | "approved" | "link_sent" | "connected"
 interface Item {
   accountId: string
   email: string | null
@@ -28,8 +28,10 @@ interface Item {
 }
 
 const LABEL: Record<State, { text: string; cls: string }> = {
-  awaiting_form: { text: "Signed up, form not sent", cls: "bg-neutral-500/20 text-[var(--t2)]" },
-  submitted: { text: "Pending your review", cls: "bg-amber-500/20 text-amber-300" },
+  awaiting_form: { text: "Signed up, has not paid", cls: "bg-neutral-500/20 text-[var(--t2)]" },
+  awaiting_access: { text: "Paid: approve access", cls: "bg-amber-500/20 text-amber-300" },
+  access_granted: { text: "Access approved: waiting for details", cls: "bg-blue-500/20 text-blue-300" },
+  submitted: { text: "Details received: review", cls: "bg-amber-500/20 text-amber-300" },
   approved: { text: "Approved", cls: "bg-emerald-500/20 text-emerald-300" },
   link_sent: { text: "Invitation sent", cls: "bg-blue-500/20 text-blue-300" },
   connected: { text: "Connected", cls: "bg-emerald-500/20 text-emerald-300" },
@@ -98,7 +100,20 @@ function Row({ item, onChanged }: { item: Item; onChanged: () => void }) {
       </div>
 
       {item.state === "awaiting_form" ? (
-        <p className="text-[13px] text-[var(--t2)]">This customer created an account but has not sent their details yet. They are asked for them as soon as they open the dashboard.</p>
+        <p className="text-[13px] text-[var(--t2)]">This customer created an account but has not paid yet. The details form opens only after they pay and you approve access.</p>
+      ) : item.state === "awaiting_access" || item.state === "access_granted" ? (
+        <div className="space-y-3">
+          <p className="text-[13px] text-[var(--t2)]">
+            {item.state === "awaiting_access"
+              ? "This customer paid. Approve access so they can send the details we need to connect their accounts."
+              : "Access is approved. The customer has not sent their details yet."}
+          </p>
+          {item.state === "awaiting_access" && (
+            <Button size="sm" disabled={busy} onClick={() => patch({ status: "access_granted" }, "Access approved: the customer can now send their details")}>
+              {busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="me-1.5 size-3.5" />} Approve access
+            </Button>
+          )}
+        </div>
       ) : (
         <>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -122,8 +137,8 @@ function Row({ item, onChanged }: { item: Item; onChanged: () => void }) {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" disabled={busy || item.state !== "submitted"} onClick={() => patch({ status: "approved", note }, "Approved: the customer can now use the app")}>
-              <Check className="me-1.5 size-3.5" /> Approve
+            <Button size="sm" disabled={busy || item.state !== "submitted"} onClick={() => patch({ status: "approved", note }, "Details approved: the customer can now use the app")}>
+              <Check className="me-1.5 size-3.5" /> Approve details
             </Button>
             <Button size="sm" variant="secondary" disabled={busy || item.state === "connected"} onClick={() => patch({ status: "link_sent", note }, "Customer told to accept the invitation")}>
               {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="me-1.5 size-3.5" />} I sent the invitation
@@ -146,7 +161,7 @@ export default function AdminOnboardingPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--t1)]">Onboarding</h1>
-        <p className="mt-1 text-xs text-[var(--t3)]">Customers send their account details here and wait for your review. Approve them, connect their accounts, send the invitation, then mark them connected.</p>
+        <p className="mt-1 text-xs text-[var(--t3)]">After a customer pays, approve their access. They then send their account details; approve those, connect their accounts, send the invitation, then mark them connected.</p>
       </div>
       {isLoading ? (
         <div className="h-32 animate-pulse rounded-2xl border border-[var(--line)] bg-[var(--s1)]" />

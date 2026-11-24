@@ -70,7 +70,7 @@ export function OnboardingForm({ initial }: { initial?: Partial<Fields> }) {
         <div className="space-y-1">
           <h1 className="text-xl font-semibold">Tell us about your accounts</h1>
           <p className="text-[13.5px] leading-relaxed text-[var(--t2)]">
-            We connect your accounts for you. Send us the details below, then we will send you an invitation to accept on Instagram and Facebook. It takes about two minutes.
+            Your payment is confirmed and your account is approved. We connect your accounts for you: send us the details below, we review them, then we send you an invitation to accept on Instagram and Facebook. It takes about two minutes.
           </p>
         </div>
 

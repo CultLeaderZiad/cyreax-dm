@@ -234,10 +234,18 @@ export const MACHINES = {
   accountOnboarding: machine({
     table: "account_onboarding",
     column: "status",
-    initial: "submitted",
-    // submitted = pending review. The admin approves, then sends the invitation, then marks connected; a customer may correct the details only while it is still submitted.
-    transitions: { submitted: ["approved", "link_sent", "connected"], approved: ["submitted", "link_sent", "connected"], link_sent: ["submitted", "connected"], connected: [] },
-    writers: ["app/api/onboarding/route.ts", "app/api/admin/onboarding/[accountId]/route.ts"],
+    initial: "awaiting_access",
+    // Paid -> admin approves access -> customer sends details -> admin approves them -> invitation -> connected.
+    // A customer may correct their details only while the status is submitted.
+    transitions: {
+      awaiting_access: ["access_granted"],
+      access_granted: ["submitted", "awaiting_access"],
+      submitted: ["approved", "access_granted", "link_sent", "connected"],
+      approved: ["submitted", "link_sent", "connected"],
+      link_sent: ["submitted", "connected"],
+      connected: [],
+    },
+    writers: ["app/api/auth/me/route.ts", "app/api/onboarding/route.ts", "app/api/admin/onboarding/[accountId]/route.ts"],
   }),
   aiAgentProposal: machine({
     table: "ai_agent_proposals",

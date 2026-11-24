@@ -16,6 +16,7 @@ import { PlanActivation } from "@/components/billing/PlanActivation"
 import { OnboardingForm } from "@/components/onboarding/OnboardingForm"
 import { OnboardingBanner } from "@/components/onboarding/OnboardingBanner"
 import { PendingReview } from "@/components/onboarding/PendingReview"
+import { AwaitingAccess } from "@/components/onboarding/AwaitingAccess"
 import { gateReason as gateReasonFor } from "@/lib/billing/gate"
 
 function MobileTabBarWrapper({
@@ -119,6 +120,11 @@ export default function DashboardLayout({
 
     if (activating && role !== 'admin') {
         return <PlanActivation />
+    }
+
+    // Paid, waiting for the admin to approve access: the details form is not open yet.
+    if (onboardingStatus === 'awaiting_access' && role !== 'admin') {
+        return <AwaitingAccess onLogout={logout} email={email} />
     }
 
     if (onboardingRequired) {

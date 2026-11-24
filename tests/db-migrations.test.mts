@@ -28,6 +28,7 @@ const MIGRATIONS = [
   "supabase/migrations/20261128120000_whop_price_sync.sql",
   "supabase/migrations/20261129120000_account_onboarding.sql",
   "supabase/migrations/20261130120000_onboarding_review.sql",
+  "supabase/migrations/20261201120000_onboarding_access_step.sql",
 ]
 
 const base = process.env.CYREAX_TEST_PG
