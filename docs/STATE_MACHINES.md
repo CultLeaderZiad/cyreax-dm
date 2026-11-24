@@ -313,8 +313,12 @@ Written by: `app/api/onboarding/route.ts`, `app/api/admin/onboarding/[accountId]
 ```mermaid
 stateDiagram-v2
   [*] --> submitted
+  submitted --> approved
   submitted --> link_sent
   submitted --> connected
+  approved --> submitted
+  approved --> link_sent
+  approved --> connected
   link_sent --> submitted
   link_sent --> connected
   connected --> [*]

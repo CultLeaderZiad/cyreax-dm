@@ -121,9 +121,8 @@ describe("the customer's own onboarding", () => {
     assert.equal(fakeDb().tables.account_onboarding.length, 0)
   })
 
-  it("editing keeps the stored token when the masked value is sent back, and resets the status", async () => {
+  it("while the details wait for review the customer can correct them; the stored token is kept when the masked value is sent back", async () => {
     await put(form)
-    fakeDb().tables.account_onboarding[0].status = "link_sent"
     const before = fakeDb().tables.account_onboarding[0].telegram_bot_token
     assert.equal((await put({ ...form, company: "New name", telegramBotToken: "123456789:••••••••" })).status, 200)
     const row = fakeDb().tables.account_onboarding[0]
@@ -132,10 +131,13 @@ describe("the customer's own onboarding", () => {
     assert.equal(row.status, "submitted")
   })
 
-  it("once connected the customer cannot change it", async () => {
+  it("once the details were reviewed the customer cannot change them", async () => {
     await put(form)
-    fakeDb().tables.account_onboarding[0].status = "connected"
-    assert.equal((await put({ ...form, company: "Hijack" })).status, 409)
+    for (const status of ["approved", "link_sent", "connected"]) {
+      fakeDb().tables.account_onboarding[0].status = status
+      assert.equal((await put({ ...form, company: "Hijack" })).status, 409, status)
+    }
+    assert.equal(fakeDb().tables.account_onboarding[0].company, "Sara Shop")
   })
 
   it("a customer only ever reads and writes their own row", async () => {
@@ -173,6 +175,9 @@ describe("what the admin sees", () => {
   it("the admin moves the status, leaves a message and can reveal the token", async () => {
     await put(form)
     as(ADMIN)
+    assert.equal((await adminOne.PATCH(req({ status: "approved" }), ctx(USER))).status, 200)
+    assert.equal(fakeDb().tables.account_onboarding[0].status, "approved")
+    assert.ok(fakeDb().tables.account_onboarding[0].approved_at)
     assert.equal((await adminOne.PATCH(req({ status: "link_sent", note: "Accept the invite on Instagram" }), ctx(USER))).status, 200)
     const row = fakeDb().tables.account_onboarding[0]
     assert.equal(row.status, "link_sent")

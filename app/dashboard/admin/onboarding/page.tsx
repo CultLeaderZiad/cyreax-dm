@@ -11,7 +11,7 @@ import { fetcher } from "@/lib/fetcher"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 
-type State = "awaiting_form" | "submitted" | "link_sent" | "connected"
+type State = "awaiting_form" | "submitted" | "approved" | "link_sent" | "connected"
 interface Item {
   accountId: string
   email: string | null
@@ -29,7 +29,8 @@ interface Item {
 
 const LABEL: Record<State, { text: string; cls: string }> = {
   awaiting_form: { text: "Signed up, form not sent", cls: "bg-neutral-500/20 text-[var(--t2)]" },
-  submitted: { text: "Details received", cls: "bg-amber-500/20 text-amber-300" },
+  submitted: { text: "Pending your review", cls: "bg-amber-500/20 text-amber-300" },
+  approved: { text: "Approved", cls: "bg-emerald-500/20 text-emerald-300" },
   link_sent: { text: "Invitation sent", cls: "bg-blue-500/20 text-blue-300" },
   connected: { text: "Connected", cls: "bg-emerald-500/20 text-emerald-300" },
 }
@@ -121,7 +122,10 @@ function Row({ item, onChanged }: { item: Item; onChanged: () => void }) {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" disabled={busy || item.state === "connected"} onClick={() => patch({ status: "link_sent", note }, "Customer told to accept the invitation")}>
+            <Button size="sm" disabled={busy || item.state !== "submitted"} onClick={() => patch({ status: "approved", note }, "Approved: the customer can now use the app")}>
+              <Check className="me-1.5 size-3.5" /> Approve
+            </Button>
+            <Button size="sm" variant="secondary" disabled={busy || item.state === "connected"} onClick={() => patch({ status: "link_sent", note }, "Customer told to accept the invitation")}>
               {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="me-1.5 size-3.5" />} I sent the invitation
             </Button>
             <Button size="sm" variant="secondary" disabled={busy || item.state === "connected"} onClick={() => patch({ status: "connected", note }, "Marked as connected")}>
@@ -142,7 +146,7 @@ export default function AdminOnboardingPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--t1)]">Onboarding</h1>
-        <p className="mt-1 text-xs text-[var(--t3)]">Customers send their account details here. Connect their accounts, send them the invitation, then mark it.</p>
+        <p className="mt-1 text-xs text-[var(--t3)]">Customers send their account details here and wait for your review. Approve them, connect their accounts, send the invitation, then mark them connected.</p>
       </div>
       {isLoading ? (
         <div className="h-32 animate-pulse rounded-2xl border border-[var(--line)] bg-[var(--s1)]" />

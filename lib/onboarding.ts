@@ -6,7 +6,7 @@
 
 import { isPlaceholderToken } from "@/lib/token-crypto"
 
-export type OnboardingStatus = "submitted" | "link_sent" | "connected"
+export type OnboardingStatus = "submitted" | "approved" | "link_sent" | "connected"
 
 export interface OnboardingInput {
   fullName: string

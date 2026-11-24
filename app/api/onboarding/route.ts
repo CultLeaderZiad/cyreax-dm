@@ -37,7 +37,8 @@ export async function PUT(request: NextRequest) {
   const body = await request.json().catch(() => null)
   const supabase = await getSupabaseBypassClient()
   const existing = await supabase.from("account_onboarding").select("*").eq("account_id", session.user.id).maybeSingle()
-  if (existing.data?.status === "connected") return NextResponse.json({ error: "Your accounts are already connected. Contact support to change them." }, { status: 409 })
+  // The details can be corrected while they wait for review; once approved, changes go through support.
+  if (existing.data && existing.data.status !== "submitted") return NextResponse.json({ error: "Your details were already reviewed. Contact support to change them." }, { status: 409 })
 
   // A masked token echoed back by the form means "keep the one on file". It is
   // swapped for a well-formed placeholder only while validating the other fields.

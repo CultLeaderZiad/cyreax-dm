@@ -334,13 +334,20 @@ DO $$ DECLARE n int; BEGIN
   IF n <> 1 THEN RAISE EXCEPTION 'FAIL: Pro is not attached to its plan id'; END IF;
 END $$;
 
--- 14. Onboarding: status is constrained and one row per account.
+-- 14. Onboarding: status is constrained (including the review step) and one row per account.
 DO $$ BEGIN
   BEGIN
     INSERT INTO public.account_onboarding (account_id, full_name, status) VALUES ('77777777-0000-0000-0000-0000000000aa', 'X', 'nonsense');
     RAISE EXCEPTION 'FAIL: unknown onboarding status accepted';
   EXCEPTION WHEN check_violation OR foreign_key_violation THEN NULL;
   END;
+END $$;
+
+-- 15. The review step is a valid onboarding status.
+DO $$ BEGIN
+  INSERT INTO public.accounts (id, email) VALUES ('77777777-0000-0000-0000-0000000000bb', 'review@test.local') ON CONFLICT DO NOTHING;
+  INSERT INTO public.account_onboarding (account_id, full_name, status) VALUES ('77777777-0000-0000-0000-0000000000bb', 'R', 'approved');
+  UPDATE public.account_onboarding SET status = 'link_sent' WHERE account_id = '77777777-0000-0000-0000-0000000000bb';
 END $$;
 
 SELECT 'ALL DB CHECKS PASSED' AS result;
