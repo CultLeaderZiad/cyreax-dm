@@ -1,5 +1,8 @@
 "use client"
 
+import { useDateRange } from "@/hooks/use-date-range"
+import { formatSeconds, percentDelta, secondsDelta } from "@/lib/analytics/period"
+import type { OverviewKpis } from "@/lib/analytics/overview"
 import * as React from "react"
 import { useState, useMemo } from "react"
 import Link from "next/link"
@@ -37,6 +40,7 @@ import {
 import { cn } from "@/lib/utils"
 
 interface DashboardStats {
+  kpis?: OverviewKpis
   metrics?: {
     totalAutomations?: number
     activeTriggers?: number
@@ -86,7 +90,7 @@ export default function DashboardOverviewPage() {
   const { t, language } = useLanguage()
   const isAr = language === "ar"
 
-  const [dateRange, setDateRange] = useState("7d")
+  const [dateRange] = useDateRange()
   const [activityFilter, setActivityFilter] = useState("all")
   const [dismissCoach, setDismissCoach] = useState(false)
 
@@ -134,7 +138,11 @@ export default function DashboardOverviewPage() {
   const dateRangeLabel = useMemo(() => {
     if (dateRange === "today") return isAr ? "اليوم" : "Today"
     if (dateRange === "30d") return isAr ? "آخر 30 يوم" : "Last 30 days"
-    return isAr ? "٤ أكتوبر – ١٠ أكتوبر" : "Oct 4 – Oct 10"
+    // The real last 7 days, ending today.
+    const end = new Date()
+    const start = new Date(end.getTime() - 6 * 86_400_000)
+    const fmt = new Intl.DateTimeFormat(isAr ? "ar-EG" : "en-US", { month: "short", day: "numeric" })
+    return `${fmt.format(start)} – ${fmt.format(end)}`
   }, [dateRange, isAr])
 
   if (isSessionLoading || (isStatsLoading && !stats)) {
@@ -163,18 +171,14 @@ export default function DashboardOverviewPage() {
   }
 
   // Derive metrics
-  const totalConvs = stats?.metrics?.audienceReached ?? stats?.metrics?.conversationsCount ?? 0
-  const leadsCaptured = stats?.metrics?.messagesSent ?? stats?.metrics?.leadsCount ?? 0
-  const aiResolutionRate =
-    stats?.metrics?.aiResolutionRate !== undefined
-      ? stats?.metrics?.aiResolutionRate.toFixed(1)
-      : totalConvs > 0
-      ? ((leadsCaptured / totalConvs) * 100).toFixed(1)
-      : "0"
-  const medianResponse =
-    stats?.metrics?.medianResponseSeconds !== undefined
-      ? `${stats.metrics.medianResponseSeconds}s`
-      : "—"
+  // The cards: counted for the chosen range and compared with the same length right before it.
+  const kpis = stats?.kpis
+  const convs = kpis?.conversations.current ?? 0
+  const leads = kpis?.leads.current ?? 0
+  const replies = kpis?.replies.current ?? 0
+  const medianNow = kpis?.medianResponseSeconds.current ?? null
+  const asDelta = (d: ReturnType<typeof percentDelta>, invert = false) =>
+    d ? { delta: d.label, deltaType: d.direction, invertDeltaColor: invert } : {}
 
   // Fresh workspace detection: zero conversations and zero automations
   const isTrulyNew =
@@ -235,27 +239,13 @@ export default function DashboardOverviewPage() {
             {dateRangeLabel} ·{" "}
             {isAr ? (
               <>
-                أجابت أتمتتك على{" "}
-                <strong className="font-semibold text-[var(--t1)] font-mono">
-                  <bdi>{aiResolutionRate}%</bdi>
-                </strong>{" "}
-                من أصل{" "}
-                <strong className="font-semibold text-[var(--t1)] font-mono">
-                  <bdi>{totalConvs.toLocaleString()}</bdi>
-                </strong>{" "}
-                محادثة بدون تدخل بشري.
+                <strong className="font-semibold text-[var(--t1)] font-mono"><bdi>{convs.toLocaleString()}</bdi></strong> محادثة جديدة و{" "}
+                <strong className="font-semibold text-[var(--t1)] font-mono"><bdi>{replies.toLocaleString()}</bdi></strong> رد مُرسل.
               </>
             ) : (
               <>
-                Your automations answered{" "}
-                <strong className="font-semibold text-[var(--t1)] font-mono">
-                  {aiResolutionRate}%
-                </strong>{" "}
-                of{" "}
-                <strong className="font-semibold text-[var(--t1)] font-mono">
-                  {totalConvs.toLocaleString()}
-                </strong>{" "}
-                conversations without a person.
+                <strong className="font-semibold text-[var(--t1)] font-mono">{convs.toLocaleString()}</strong> new conversations and{" "}
+                <strong className="font-semibold text-[var(--t1)] font-mono">{replies.toLocaleString()}</strong> replies sent.
               </>
             )}
           </p>
@@ -283,20 +273,24 @@ export default function DashboardOverviewPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <KPICard
           label={t.conversations || "Conversations"}
-          value={totalConvs.toLocaleString()}
+          value={convs.toLocaleString()}
+          {...asDelta(percentDelta(convs, kpis?.conversations.previous ?? 0))}
         />
         <KPICard
           label={t.leadsCaptured || "Leads captured"}
-          value={leadsCaptured.toLocaleString()}
+          value={leads.toLocaleString()}
+          {...asDelta(percentDelta(leads, kpis?.leads.previous ?? 0))}
         />
         <KPICard
-          label={t.aiResolution || "AI resolution"}
-          value={`${aiResolutionRate}%`}
+          label={isAr ? "ردود مُرسلة" : "Replies sent"}
+          value={replies.toLocaleString()}
           isAiMetric={true}
+          {...asDelta(percentDelta(replies, kpis?.replies.previous ?? 0))}
         />
         <KPICard
           label={t.medianFirstResponse || "Median first response"}
-          value={medianResponse}
+          value={medianNow == null ? "—" : formatSeconds(medianNow)}
+          {...asDelta(secondsDelta(medianNow, kpis?.medianResponseSeconds.previous ?? null), true)}
         />
       </div>
 

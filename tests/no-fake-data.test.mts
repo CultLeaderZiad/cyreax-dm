@@ -20,6 +20,7 @@ const FORBIDDEN: Array<[RegExp, string]> = [
   [/automation\.id === "demo-/, "demo automations"],
   [/\bHelix(a)?\b/, "the old product name"],
   [/set to be added soon/i, "a stale roadmap promise"],
+  [/Oct 4 . Oct 10/, "a fixed date range label"],
 ]
 
 function files(dir: string): string[] {

@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { requireSessionUser } from "@/lib/auth"
+import { loadOverviewKpis } from "@/lib/analytics/overview"
+import { parseRange } from "@/lib/analytics/period"
 
 export async function GET(request: NextRequest) {
     try {
@@ -131,7 +133,11 @@ export async function GET(request: NextRequest) {
             }
         }
 
+        // The cards for the chosen range, each against the same length right before it.
+        const kpis = await loadOverviewKpis(supabase, igUserId, parseRange(request.nextUrl.searchParams.get("range")))
+
         return NextResponse.json({
+            kpis,
             metrics: {
                 totalAutomations: automationsResult.count || 0,
                 activeTriggers: activeTriggersResult.count || 0,
