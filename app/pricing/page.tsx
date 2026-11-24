@@ -1,6 +1,7 @@
 import { CheckCircle, Zap, Star } from "lucide-react"
 import Link from "next/link"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { syncWhopPricesIfStale } from "@/lib/billing/whop-price-sync"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 import { FrontBackground } from "@/components/layout/FrontBackground"
@@ -18,6 +19,7 @@ export default async function PricingPage() {
   let planAgents: any[] | null = null
   try {
     const supabase = await getSupabaseBypassClient()
+    await syncWhopPricesIfStale(supabase)
     const plansResult = await supabase
       .from("plans")
       .select("*")

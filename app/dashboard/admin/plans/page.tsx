@@ -3,7 +3,7 @@
 import { PLAN_CATALOG, type PlanLimits } from "@/lib/billing/plans"
 import { EntitlementsEditor } from "@/components/admin/EntitlementsEditor"
 import { useState, useEffect } from "react"
-import { Loader2, Plus, Pencil, Trash2, ExternalLink } from "lucide-react"
+import { Loader2, Plus, Pencil, Trash2, ExternalLink, RefreshCw } from "lucide-react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/fetcher"
 import { toast } from "sonner"
@@ -102,7 +102,7 @@ export default function DashboardAdminPlansPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ ...EMPTY_FORM })
 
-  const { data: whopStatus } = useSWR<{ configured: boolean; plans: Record<string, { whop: { title: string | null; price: number | null; currency: string | null } | null; error: string | null }> }>(
+  const { data: whopStatus, mutate: mutateWhopStatus } = useSWR<{ configured: boolean; plans: Record<string, { whop: { title: string | null; price: number | null; currency: string | null } | null; error: string | null }> }>(
     "/api/admin/plans/whop-status",
     fetcher,
     { revalidateOnFocus: true },
@@ -251,6 +251,21 @@ export default function DashboardAdminPlansPage() {
     }
   }
 
+  const [syncing, setSyncing] = useState(false)
+  async function syncFromWhop() {
+    setSyncing(true)
+    try {
+      const res = await fetch("/api/admin/plans/whop-sync", { method: "POST" })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { toast.error(data.error || "Could not reach Whop"); return }
+      toast.success(data.updated?.length ? `Updated ${data.updated.length} price${data.updated.length === 1 ? "" : "s"} from Whop` : "Prices already match Whop")
+      await fetchPlans()
+      await mutateWhopStatus()
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   const handleToggleActive = async (plan: Plan) => {
     try {
       const res = await fetch(`/api/admin/plans/${plan.id}`, {
@@ -297,9 +312,14 @@ export default function DashboardAdminPlansPage() {
             Changes go live on the public pricing page immediately.
           </p>
         </div>
-        <Button onClick={openCreate} className="bg-[#e5a93c] text-black hover:bg-[#d4952b] font-semibold">
-          <Plus className="w-4 h-4 me-1.5" /> Add Plan
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={syncFromWhop} disabled={syncing} variant="secondary" className="font-semibold">
+            {syncing ? <Loader2 className="w-4 h-4 me-1.5 animate-spin" /> : <RefreshCw className="w-4 h-4 me-1.5" />} Sync prices from Whop
+          </Button>
+          <Button onClick={openCreate} className="bg-[#e5a93c] text-black hover:bg-[#d4952b] font-semibold">
+            <Plus className="w-4 h-4 me-1.5" /> Add Plan
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -471,6 +491,8 @@ export default function DashboardAdminPlansPage() {
                     className="bg-white/5 border-white/10 text-white"
                     placeholder="9.99"
                     value={form.price_usd}
+                    disabled={Boolean(form.whop_variant_id.trim())}
+                    title={form.whop_variant_id.trim() ? "Follows the price on Whop" : undefined}
                     onChange={(e) => setForm({ ...form, price_usd: e.target.value })}
                   />
                 </div>
@@ -483,6 +505,8 @@ export default function DashboardAdminPlansPage() {
                     className="bg-white/5 border-white/10 text-white"
                     placeholder="99.99"
                     value={form.price_yearly}
+                    disabled={Boolean(form.whop_variant_id_yearly.trim())}
+                    title={form.whop_variant_id_yearly.trim() ? "Follows the price on Whop" : undefined}
                     onChange={(e) => setForm({ ...form, price_yearly: e.target.value })}
                   />
                 </div>
