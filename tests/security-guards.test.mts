@@ -93,3 +93,15 @@ describe("webhook signature guard", () => {
     )
   })
 })
+
+describe("checkout redirect after signup or login", () => {
+  it("only ever produces /checkout/<uuid>, never an attacker-chosen path", async () => {
+    const { checkoutNext } = await import("../lib/auth-redirect.ts")
+    const id = "11111111-2222-3333-4444-555555555555"
+    assert.equal(checkoutNext(id), `/checkout/${id}`)
+    assert.equal(checkoutNext(id, "yearly"), `/checkout/${id}?cycle=yearly`)
+    for (const bad of ["../admin", "//evil.com", "https://evil.com", `${id}/../x`, "x", "", null, undefined]) {
+      assert.equal(checkoutNext(bad as any), null)
+    }
+  })
+})
