@@ -307,8 +307,8 @@ export default function DashboardAdminPlansPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">Plans & Billing</h1>
-          <p className="text-xs text-neutral-500 mt-1">
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--t1)]">Plans & Billing</h1>
+          <p className="text-xs text-[var(--t3)] mt-1">
             Changes go live on the public pricing page immediately.
           </p>
         </div>
@@ -316,7 +316,7 @@ export default function DashboardAdminPlansPage() {
           <Button onClick={syncFromWhop} disabled={syncing} variant="secondary" className="font-semibold">
             {syncing ? <Loader2 className="w-4 h-4 me-1.5 animate-spin" /> : <RefreshCw className="w-4 h-4 me-1.5" />} Sync prices from card checkout
           </Button>
-          <Button onClick={openCreate} className="bg-[#e5a93c] text-black hover:bg-[#d4952b] font-semibold">
+          <Button onClick={openCreate} className="bg-[var(--gold)] text-black hover:bg-[var(--gold2)] font-semibold">
             <Plus className="w-4 h-4 me-1.5" /> Add Plan
           </Button>
         </div>
@@ -330,18 +330,18 @@ export default function DashboardAdminPlansPage() {
 
       {loading ? (
         <div className="flex items-center justify-center p-12">
-          <Loader2 className="w-8 h-8 animate-spin text-neutral-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-[var(--t3)]" />
         </div>
       ) : plans.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/10 bg-[#0a0a0a] p-12 text-center max-w-xl mx-auto my-8">
-          <div className="w-16 h-16 mx-auto mb-4 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-            <Plus className="w-7 h-7 text-neutral-400" />
+        <div className="rounded-2xl border border-dashed border-[var(--line)] bg-[#0a0a0a] p-12 text-center max-w-xl mx-auto my-8">
+          <div className="w-16 h-16 mx-auto mb-4 bg-[var(--s2)] rounded-2xl flex items-center justify-center border border-[var(--line)]">
+            <Plus className="w-7 h-7 text-[var(--t2)]" />
           </div>
-          <h3 className="text-base font-bold text-white mb-1">No Custom Plans Created</h3>
-          <p className="text-sm text-neutral-400 mb-6">
+          <h3 className="text-base font-bold text-[var(--t1)] mb-1">No Custom Plans Created</h3>
+          <p className="text-sm text-[var(--t2)] mb-6">
             Create your first subscription tier or enterprise plan to display on the public pricing page.
           </p>
-          <Button onClick={openCreate} className="bg-[#e5a93c] hover:bg-[#d4952b] text-black font-semibold text-xs font-mono-ui uppercase tracking-wider cursor-pointer">
+          <Button onClick={openCreate} className="bg-[var(--gold)] hover:bg-[var(--gold2)] text-black font-semibold text-xs font-mono-ui uppercase tracking-wider cursor-pointer">
             <Plus className="w-4 h-4 me-1.5" /> Add Plan
           </Button>
         </div>
@@ -350,28 +350,28 @@ export default function DashboardAdminPlansPage() {
           {plans.map((plan) => (
             <div key={plan.id} className="relative flex flex-col h-full">
               <div
-                className={`border border-white/10 hover:border-white/20 bg-[#0d0e13]/90 rounded-2xl p-6 flex flex-col justify-between gap-4 h-full shadow-xl backdrop-blur-md transition-all ${
+                className={`border border-[var(--line)] hover:border-[var(--line2)] bg-[var(--s1)] rounded-2xl p-6 flex flex-col justify-between gap-4 h-full shadow-xl backdrop-blur-md transition-all ${
                   !plan.is_active ? "opacity-60" : ""
                 }`}
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-bold text-white text-lg">{plan.name}</h3>
-                    <p className="text-xs text-neutral-400 mt-1 line-clamp-2">
+                    <h3 className="font-bold text-[var(--t1)] text-lg">{plan.name}</h3>
+                    <p className="text-xs text-[var(--t2)] mt-1 line-clamp-2">
                       {plan.description || "No description"}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => openEdit(plan)}
-                      className="p-2 hover:bg-white/10 rounded-lg transition-colors text-neutral-400 hover:text-white cursor-pointer"
+                      className="p-2 hover:bg-[var(--s3)] rounded-lg transition-colors text-[var(--t2)] hover:text-white cursor-pointer"
                       title="Edit plan"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(plan.id)}
-                      className="p-2 hover:bg-red-500/10 rounded-lg transition-colors text-neutral-400 hover:text-red-400 cursor-pointer"
+                      className="p-2 hover:bg-red-500/10 rounded-lg transition-colors text-[var(--t2)] hover:text-red-400 cursor-pointer"
                       title="Delete plan"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -381,17 +381,17 @@ export default function DashboardAdminPlansPage() {
 
                 <WhopLine id={plan.whop_variant_id} status={plan.whop_variant_id ? whopStatus?.plans?.[plan.whop_variant_id] : undefined} localPrice={plan.price_usd} />
 
-                <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
+                <div className="mt-auto pt-4 border-t border-[var(--line)] flex items-center justify-between">
                   <div className="flex items-baseline gap-1">
-                    <span className="font-mono text-2xl text-white font-bold">${plan.price_usd}</span>
-                    <span className="text-[10px] text-neutral-500 uppercase tracking-wider">
+                    <span className="font-mono text-2xl text-[var(--t1)] font-bold">${plan.price_usd}</span>
+                    <span className="text-[10px] text-[var(--t3)] uppercase tracking-wider">
                       /{plan.billing_cycle}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span
                       className={`text-[10px] uppercase tracking-wider font-bold ${
-                        plan.is_active ? "text-green-400" : "text-neutral-500"
+                        plan.is_active ? "text-green-400" : "text-[var(--t3)]"
                       }`}
                     >
                       {plan.is_active ? "Live" : "Hidden"}
@@ -406,7 +406,7 @@ export default function DashboardAdminPlansPage() {
             </div>
           ))}
           {plans.length === 0 && (
-            <div className="col-span-full p-8 text-center border border-dashed border-white/10 rounded-xl text-neutral-500">
+            <div className="col-span-full p-8 text-center border border-dashed border-[var(--line)] rounded-xl text-[var(--t3)]">
               No plans found. Create one to get started.
             </div>
           )}
@@ -417,18 +417,18 @@ export default function DashboardAdminPlansPage() {
       {!loading && plans.length > 0 && agents.length > 0 && (
         <div className="mt-12">
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-white">Plan-Agent Matrix</h2>
-            <p className="text-xs text-neutral-500 mt-1">
+            <h2 className="text-xl font-bold text-[var(--t1)]">Plan-Agent Matrix</h2>
+            <p className="text-xs text-[var(--t3)] mt-1">
               Configure which AI agents are available in each plan. Changes apply immediately.
             </p>
           </div>
-          <div className="bg-[#0b0b0a] border border-white/10 rounded-2xl overflow-x-auto">
+          <div className="bg-[var(--s1)] border border-[var(--line)] rounded-2xl overflow-x-auto">
             <table className="w-full text-start text-sm whitespace-nowrap">
-              <thead className="bg-white/[0.02] border-b border-white/10">
+              <thead className="bg-[var(--s2)] border-b border-[var(--line)]">
                 <tr>
-                  <th className="px-6 py-4 font-mono-ui text-[10px] uppercase tracking-widest text-neutral-500 sticky start-0 bg-[#0b0b0a] z-10 border-e border-white/10">Agent</th>
+                  <th className="px-6 py-4 font-mono-ui text-[10px] uppercase tracking-widest text-[var(--t3)] sticky start-0 bg-[var(--s1)] z-10 border-e border-[var(--line)]">Agent</th>
                   {plans.map(plan => (
-                    <th key={plan.id} className="px-6 py-4 font-mono-ui text-[10px] uppercase tracking-widest text-neutral-500 text-center">
+                    <th key={plan.id} className="px-6 py-4 font-mono-ui text-[10px] uppercase tracking-widest text-[var(--t3)] text-center">
                       {plan.name}
                     </th>
                   ))}
@@ -436,8 +436,8 @@ export default function DashboardAdminPlansPage() {
               </thead>
               <tbody className="divide-y divide-white/10">
                 {agents.map(agent => (
-                  <tr key={agent.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-6 py-4 font-bold text-white sticky start-0 bg-[#0b0b0a] z-10 border-e border-white/10">
+                  <tr key={agent.id} className="hover:bg-[var(--s3)] transition-colors">
+                    <td className="px-6 py-4 font-bold text-[var(--t1)] sticky start-0 bg-[var(--s1)] z-10 border-e border-[var(--line)]">
                       {agent.name}
                     </td>
                     {plans.map(plan => {
@@ -460,10 +460,10 @@ export default function DashboardAdminPlansPage() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-[#0B0812] border-white/10 text-white max-w-lg">
+        <DialogContent className="bg-[var(--s1)] border-[var(--line)] text-[var(--t1)] max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit Plan" : "Add Plan"}</DialogTitle>
-            <DialogDescription className="text-neutral-400">
+            <DialogDescription className="text-[var(--t2)]">
               {editingId
                 ? "Update the plan — changes apply to the public pricing page immediately."
                 : "Create a new plan visible on the public pricing page."}
@@ -473,9 +473,9 @@ export default function DashboardAdminPlansPage() {
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-neutral-300">Name</Label>
+                <Label className="text-[var(--t2)]">Name</Label>
                 <Input
-                  className="bg-white/5 border-white/10 text-white"
+                  className="bg-[var(--s2)] border-[var(--line)] text-[var(--t1)]"
                   placeholder="Pro Plan"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -483,12 +483,12 @@ export default function DashboardAdminPlansPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-neutral-300">Price (Mo)</Label>
+                  <Label className="text-[var(--t2)]">Price (Mo)</Label>
                   <Input
                     type="number"
                     step="0.01"
                     min="0"
-                    className="bg-white/5 border-white/10 text-white"
+                    className="bg-[var(--s2)] border-[var(--line)] text-[var(--t1)]"
                     placeholder="9.99"
                     value={form.price_usd}
                     disabled={Boolean(form.whop_variant_id.trim())}
@@ -497,12 +497,12 @@ export default function DashboardAdminPlansPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-neutral-300">Price (Yr)</Label>
+                  <Label className="text-[var(--t2)]">Price (Yr)</Label>
                   <Input
                     type="number"
                     step="0.01"
                     min="0"
-                    className="bg-white/5 border-white/10 text-white"
+                    className="bg-[var(--s2)] border-[var(--line)] text-[var(--t1)]"
                     placeholder="99.99"
                     value={form.price_yearly}
                     disabled={Boolean(form.whop_variant_id_yearly.trim())}
@@ -513,40 +513,40 @@ export default function DashboardAdminPlansPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-neutral-300">EGP price (Mo / one-time)</Label>
-                  <Input type="number" step="1" min="0" className="bg-white/5 border-white/10 text-white" placeholder="1450"
+                  <Label className="text-[var(--t2)]">EGP price (Mo / one-time)</Label>
+                  <Input type="number" step="1" min="0" className="bg-[var(--s2)] border-[var(--line)] text-[var(--t1)]" placeholder="1450"
                     value={form.price_egp} onChange={(e) => setForm({ ...form, price_egp: e.target.value })} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-neutral-300">EGP price (Yr)</Label>
-                  <Input type="number" step="1" min="0" className="bg-white/5 border-white/10 text-white" placeholder="14500"
+                  <Label className="text-[var(--t2)]">EGP price (Yr)</Label>
+                  <Input type="number" step="1" min="0" className="bg-[var(--s2)] border-[var(--line)] text-[var(--t1)]" placeholder="14500"
                     value={form.price_yearly_egp} onChange={(e) => setForm({ ...form, price_yearly_egp: e.target.value })} />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-neutral-300">Grants plan (limits) on approval</Label>
-                <select className="w-full h-9 rounded-md bg-white/5 border border-white/10 text-white px-2 text-sm"
+                <Label className="text-[var(--t2)]">Grants plan (limits) on approval</Label>
+                <select className="w-full h-9 rounded-md bg-[var(--s2)] border border-[var(--line)] text-[var(--t1)] px-2 text-sm"
                   value={form.catalog_plan_id} onChange={(e) => setForm({ ...form, catalog_plan_id: e.target.value })}>
                   <option value="">Default (monthly → Creator, other → Creator Plus)</option>
                   {PLAN_CATALOG.filter((entry) => !entry.hidden).map((entry) => (
                     <option key={entry.id} value={entry.id}>{entry.name}</option>
                   ))}
                 </select>
-                <p className="text-[11px] text-neutral-500">Egyptian customers can pay the EGP price by e-wallet or InstaPay.</p>
+                <p className="text-[11px] text-[var(--t3)]">Egyptian customers can pay the EGP price by e-wallet or InstaPay.</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-neutral-300">Card checkout plan ID (Mo / one-time)</Label>
-                  <Input dir="ltr" className="bg-white/5 border-white/10 text-white font-mono" placeholder="plan_XXXXXXXX"
+                  <Label className="text-[var(--t2)]">Card checkout plan ID (Mo / one-time)</Label>
+                  <Input dir="ltr" className="bg-[var(--s2)] border-[var(--line)] text-[var(--t1)] font-mono" placeholder="plan_XXXXXXXX"
                     value={form.whop_variant_id} onChange={(e) => setForm({ ...form, whop_variant_id: e.target.value })} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-neutral-300">Card checkout plan ID (Yr)</Label>
-                  <Input dir="ltr" className="bg-white/5 border-white/10 text-white font-mono" placeholder="plan_XXXXXXXX"
+                  <Label className="text-[var(--t2)]">Card checkout plan ID (Yr)</Label>
+                  <Input dir="ltr" className="bg-[var(--s2)] border-[var(--line)] text-[var(--t1)] font-mono" placeholder="plan_XXXXXXXX"
                     value={form.whop_variant_id_yearly} onChange={(e) => setForm({ ...form, whop_variant_id_yearly: e.target.value })} />
                 </div>
               </div>
-              <p className="text-[11px] text-neutral-500">The plan ID of the pricing option in your card checkout dashboard. Card checkout is offered only when this is set.</p>
+              <p className="text-[11px] text-[var(--t3)]">The plan ID of the pricing option in your card checkout dashboard. Card checkout is offered only when this is set.</p>
               <EntitlementsEditor
                 catalogPlanId={form.catalog_plan_id}
                 value={form.entitlements}
@@ -555,9 +555,9 @@ export default function DashboardAdminPlansPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-neutral-300">Description</Label>
+              <Label className="text-[var(--t2)]">Description</Label>
               <Textarea
-                className="bg-white/5 border-white/10 text-white"
+                className="bg-[var(--s2)] border-[var(--line)] text-[var(--t1)]"
                 placeholder="What does this plan include?"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -566,17 +566,17 @@ export default function DashboardAdminPlansPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-neutral-300">Billing Cycle</Label>
+                <Label className="text-[var(--t2)]">Billing Cycle</Label>
                 <Select
                   value={form.billing_cycle}
                   onValueChange={(v) =>
                     setForm({ ...form, billing_cycle: v as Plan["billing_cycle"] })
                   }
                 >
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectTrigger className="bg-[var(--s2)] border-[var(--line)] text-[var(--t1)]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-[#0B0812] border-white/10 text-white">
+                  <SelectContent className="bg-[var(--s1)] border-[var(--line)] text-[var(--t1)]">
                     <SelectItem value="monthly">Monthly</SelectItem>
                     <SelectItem value="yearly">Yearly</SelectItem>
                     <SelectItem value="lifetime">Lifetime</SelectItem>
@@ -586,9 +586,9 @@ export default function DashboardAdminPlansPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-neutral-300">Features (comma separated)</Label>
+              <Label className="text-[var(--t2)]">Features (comma separated)</Label>
               <Textarea
-                className="bg-white/5 border-white/10 text-white"
+                className="bg-[var(--s2)] border-[var(--line)] text-[var(--t1)]"
                 placeholder="Unlimited automations, AI ice breakers, Priority support"
                 value={form.features}
                 onChange={(e) => setForm({ ...form, features: e.target.value })}
@@ -596,20 +596,20 @@ export default function DashboardAdminPlansPage() {
             </div>
 
             <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
+              <div className="flex items-center justify-between rounded-lg border border-[var(--line)] px-4 py-3">
                 <div>
-                  <p className="text-sm text-white">Active on pricing page</p>
-                  <p className="text-xs text-neutral-500">Toggle to show or hide this plan publicly.</p>
+                  <p className="text-sm text-[var(--t1)]">Active on pricing page</p>
+                  <p className="text-xs text-[var(--t3)]">Toggle to show or hide this plan publicly.</p>
                 </div>
                 <Switch
                   checked={form.is_active}
                   onCheckedChange={(v) => setForm({ ...form, is_active: v })}
                 />
               </div>
-              <div className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
+              <div className="flex items-center justify-between rounded-lg border border-[var(--line)] px-4 py-3">
                 <div>
-                  <p className="text-sm text-white">Contact Sales / Enterprise Plan</p>
-                  <p className="text-xs text-neutral-500">Enable this if it&apos;s a custom/enterprise plan without fixed pricing.</p>
+                  <p className="text-sm text-[var(--t1)]">Contact Sales / Enterprise Plan</p>
+                  <p className="text-xs text-[var(--t3)]">Enable this if it&apos;s a custom/enterprise plan without fixed pricing.</p>
                 </div>
                 <Switch
                   checked={form.is_contact_sales}
@@ -619,11 +619,11 @@ export default function DashboardAdminPlansPage() {
             </div>
 
             <div className="space-y-3 pt-2">
-              <Label className="text-neutral-300">Supported Platforms</Label>
+              <Label className="text-[var(--t2)]">Supported Platforms</Label>
               <div className="grid grid-cols-2 gap-3">
                 {Object.keys(form.platforms).map((platform) => (
-                  <div key={platform} className="flex items-center justify-between rounded-lg border border-white/10 px-3 py-2 bg-white/5">
-                    <span className="text-sm text-white capitalize">{platform}</span>
+                  <div key={platform} className="flex items-center justify-between rounded-lg border border-[var(--line)] px-3 py-2 bg-[var(--s2)]">
+                    <span className="text-sm text-[var(--t1)] capitalize">{platform}</span>
                     <Switch
                       checked={form.platforms[platform as keyof typeof form.platforms]}
                       onCheckedChange={(v) => setForm({
@@ -638,13 +638,13 @@ export default function DashboardAdminPlansPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-white/10 text-neutral-300 hover:bg-white/5">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[var(--line)] text-[var(--t2)] hover:bg-white/5">
               Cancel
             </Button>
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="bg-[#e5a93c] text-black hover:bg-[#d4952b] font-semibold disabled:opacity-50"
+              className="bg-[var(--gold)] text-black hover:bg-[var(--gold2)] font-semibold disabled:opacity-50"
             >
               {saving ? "Saving..." : editingId ? "Save Changes" : "Create Plan"}
             </Button>
@@ -673,19 +673,19 @@ function WhopLine({ id, status, localPrice }: { id?: string | null; status?: { w
   const live = status?.whop
   const mismatch = live?.price != null && live.currency === "USD" && Math.abs(live.price - Number(localPrice)) > 0.001
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 space-y-1">
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--s2)] p-3 space-y-1">
       <div className="flex items-center justify-between gap-2">
-        <code className="font-mono text-[11px] text-neutral-300 truncate" dir="ltr">{id}</code>
-        <a href={`https://whop.com/checkout/${id}`} target="_blank" rel="noopener noreferrer" className="shrink-0 text-neutral-400 hover:text-white transition-colors" title="Open this plan's checkout page">
+        <code className="font-mono text-[11px] text-[var(--t2)] truncate" dir="ltr">{id}</code>
+        <a href={`https://whop.com/checkout/${id}`} target="_blank" rel="noopener noreferrer" className="shrink-0 text-[var(--t2)] hover:text-white transition-colors" title="Open this plan's checkout page">
           <ExternalLink className="w-3.5 h-3.5" />
         </a>
       </div>
       {!status ? (
-        <p className="text-[11px] text-neutral-500 animate-pulse">Checking card checkout...</p>
+        <p className="text-[11px] text-[var(--t3)] animate-pulse">Checking card checkout...</p>
       ) : status.error ? (
         <p className="text-[11px] text-red-400">{status.error}</p>
       ) : (
-        <p className="text-[11px] text-neutral-400" dir="ltr">
+        <p className="text-[11px] text-[var(--t2)]" dir="ltr">
           Live price: {live?.title || "plan"}{live?.price != null ? ` · ${live.price} ${live.currency || ""}` : ""}
           {mismatch && <span className="text-amber-400"> · differs from the price shown here (${localPrice})</span>}
         </p>

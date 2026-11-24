@@ -16,5 +16,5 @@ export default async function DashboardAdminLayout({
     redirect("/dashboard")
   }
 
-  return <>{children}</>
+  return <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-7">{children}</div>
 }

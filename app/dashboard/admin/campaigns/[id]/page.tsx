@@ -222,7 +222,7 @@ export default function CampaignDetailsPage() {
             <ArrowLeft className={`w-5 h-5 ${isRtl ? 'rotate-180' : ''}`} />
           </Button>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <h2 className="text-2xl font-bold tracking-tight text-[var(--t1)] flex items-center gap-2">
               {campaign.name}
               <span className={`text-xs px-2 py-0.5 rounded-full border ${
                 campaign.status === "draft" 
@@ -258,7 +258,7 @@ export default function CampaignDetailsPage() {
               variant="outline"
               onClick={handleSendTest}
               disabled={sendingTest || sendingReal}
-              className="border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-white"
+              className="border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-[var(--t1)]"
             >
               {sendingTest ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'} animate-spin`} /> : <Mail className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'}`} />}
               {t.sendTestEmail}
@@ -276,7 +276,7 @@ export default function CampaignDetailsPage() {
                 type="datetime-local" 
                 value={scheduleTime}
                 onChange={e => setScheduleTime(e.target.value)}
-                className="bg-black text-white border border-zinc-800 rounded px-2 py-1 text-xs outline-none font-mono"
+                className="bg-black text-[var(--t1)] border border-zinc-800 rounded px-2 py-1 text-xs outline-none font-mono"
               />
               <Button 
                 onClick={handleScheduleCampaign}
@@ -341,7 +341,7 @@ export default function CampaignDetailsPage() {
                             aria-label={`Select ${c.email}`}
                           />
                         </td>
-                        <td className="px-4 py-3 text-white font-medium">{c.full_name || 'N/A'}</td>
+                        <td className="px-4 py-3 text-[var(--t1)] font-medium">{c.full_name || 'N/A'}</td>
                         <td className="px-4 py-3 text-zinc-300">{c.email}</td>
                         <td className="px-4 py-3 text-zinc-400">{c.plan}</td>
                       </tr>
@@ -366,7 +366,7 @@ export default function CampaignDetailsPage() {
                     {campaign.subject ? <Send className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">{t.subjectLine}</p>
+                    <p className="text-sm font-medium text-[var(--t1)]">{t.subjectLine}</p>
                     <p className="text-xs text-zinc-500">{campaign.subject || t.missing}</p>
                   </div>
                 </li>
@@ -375,7 +375,7 @@ export default function CampaignDetailsPage() {
                     {audience.length > 0 ? <Users className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">{t.validAudience}</p>
+                    <p className="text-sm font-medium text-[var(--t1)]">{t.validAudience}</p>
                     <p className="text-xs text-zinc-500">{t.recipientsFound.replace('{{count}}', audience.length.toString())}</p>
                   </div>
                 </li>
@@ -390,7 +390,7 @@ export default function CampaignDetailsPage() {
               </CardHeader>
               <CardContent className="p-6 text-center">
                 <Activity className="w-8 h-8 text-brand-400 mx-auto mb-3" />
-                <h3 className="text-2xl font-bold text-white">{campaign.recipient_count}</h3>
+                <h3 className="text-2xl font-bold text-[var(--t1)]">{campaign.recipient_count}</h3>
                 <p className="text-sm text-zinc-400">{t.totalRecipientsProcessed}</p>
               </CardContent>
             </Card>
