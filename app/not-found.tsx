@@ -3,7 +3,7 @@ import { FrontBackground } from "@/components/layout/FrontBackground"
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-[#03010A] text-white flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen text-white flex items-center justify-center p-4 relative overflow-hidden">
       <FrontBackground />
       <div className="text-center space-y-4 relative z-10">
         <h1 className="text-4xl font-bold">404 - Not Found</h1>

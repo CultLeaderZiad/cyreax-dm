@@ -6,7 +6,6 @@
 :root:not(.dark):not(.gold) .bg-\[\#03010A\]\/80:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-\[\#050508\]:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-\[\#07080c\]:not([data-keep-dark] *) { background-color: var(--s1); }
-:root:not(.dark):not(.gold) .bg-\[\#09090B\]:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-\[\#0B0812\]:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-\[\#0C0C0E\]:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-\[\#0a0a0a\]:not([data-keep-dark] *) { background-color: var(--s1); }
@@ -16,7 +15,6 @@
 :root:not(.dark):not(.gold) .bg-\[\#0c0a13\]\/80:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-\[\#0c0a14\]:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-\[\#0c0c12\]:not([data-keep-dark] *) { background-color: var(--s1); }
-:root:not(.dark):not(.gold) .bg-\[\#0c0d12\]\/95:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-\[\#0d0e12\]\/80:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-\[\#0d0e13\]\/85:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-\[\#0d0e13\]\/90:not([data-keep-dark] *) { background-color: var(--s1); }
@@ -26,7 +24,6 @@
 :root:not(.dark):not(.gold) .bg-\[\#0e1017\]\/50:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-\[\#111110\]:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-\[\#121218\]:not([data-keep-dark] *) { background-color: var(--s1); }
-:root:not(.dark):not(.gold) .bg-\[\#1a1a1a\]:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-black:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-black\/20:not([data-keep-dark] *) { background-color: var(--s2); }
 :root:not(.dark):not(.gold) .bg-black\/30:not([data-keep-dark] *) { background-color: var(--s2); }
@@ -51,7 +48,6 @@
 :root:not(.dark):not(.gold) .bg-zinc-900:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-zinc-900\/50:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .bg-zinc-900\/80:not([data-keep-dark] *) { background-color: var(--s1); }
-:root:not(.dark):not(.gold) .border-\[\#1a1a1a\]:not([data-keep-dark] *) { border-color: var(--line); }
 :root:not(.dark):not(.gold) .border-neutral-800:not([data-keep-dark] *) { border-color: var(--line); }
 :root:not(.dark):not(.gold) .border-neutral-900\/50:not([data-keep-dark] *) { border-color: var(--line); }
 :root:not(.dark):not(.gold) .border-white\/10:not([data-keep-dark] *) { border-color: var(--line); }
@@ -90,7 +86,6 @@
 :root:not(.dark):not(.gold) .hover\:bg-zinc-800:hover:not([data-keep-dark] *) { background-color: var(--s2); }
 :root:not(.dark):not(.gold) .hover\:bg-zinc-900\/30:hover:not([data-keep-dark] *) { background-color: var(--s1); }
 :root:not(.dark):not(.gold) .hover\:bg-zinc-900\/50:hover:not([data-keep-dark] *) { background-color: var(--s1); }
-:root:not(.dark):not(.gold) .hover\:border-white\/10:hover:not([data-keep-dark] *) { border-color: var(--line); }
 :root:not(.dark):not(.gold) .hover\:border-white\/20:hover:not([data-keep-dark] *) { border-color: var(--line2); }
 :root:not(.dark):not(.gold) .hover\:border-white\/25:hover:not([data-keep-dark] *) { border-color: var(--line2); }
 :root:not(.dark):not(.gold) .hover\:border-white\/30:hover:not([data-keep-dark] *) { border-color: var(--line2); }
@@ -137,7 +132,6 @@
 .gold .bg-\[\#03010A\]\/80:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-\[\#050508\]:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-\[\#07080c\]:not([data-keep-dark] *) { background-color: var(--s1); }
-.gold .bg-\[\#09090B\]:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-\[\#0B0812\]:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-\[\#0C0C0E\]:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-\[\#0a0a0a\]:not([data-keep-dark] *) { background-color: var(--s1); }
@@ -147,7 +141,6 @@
 .gold .bg-\[\#0c0a13\]\/80:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-\[\#0c0a14\]:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-\[\#0c0c12\]:not([data-keep-dark] *) { background-color: var(--s1); }
-.gold .bg-\[\#0c0d12\]\/95:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-\[\#0d0e12\]\/80:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-\[\#0d0e13\]\/85:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-\[\#0d0e13\]\/90:not([data-keep-dark] *) { background-color: var(--s1); }
@@ -157,7 +150,6 @@
 .gold .bg-\[\#0e1017\]\/50:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-\[\#111110\]:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-\[\#121218\]:not([data-keep-dark] *) { background-color: var(--s1); }
-.gold .bg-\[\#1a1a1a\]:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-black:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-black\/20:not([data-keep-dark] *) { background-color: var(--s2); }
 .gold .bg-black\/30:not([data-keep-dark] *) { background-color: var(--s2); }
@@ -170,7 +162,6 @@
 .gold .bg-zinc-900:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-zinc-900\/50:not([data-keep-dark] *) { background-color: var(--s1); }
 .gold .bg-zinc-900\/80:not([data-keep-dark] *) { background-color: var(--s1); }
-.gold .border-\[\#1a1a1a\]:not([data-keep-dark] *) { border-color: var(--line); }
 .gold .border-neutral-800:not([data-keep-dark] *) { border-color: var(--line); }
 .gold .border-neutral-900\/50:not([data-keep-dark] *) { border-color: var(--line); }
 .gold .border-zinc-700:not([data-keep-dark] *) { border-color: var(--line); }

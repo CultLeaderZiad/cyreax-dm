@@ -13,7 +13,7 @@ export const metadata = {
 
 export default function TermsPage() {
     return (
-        <main id="main-content" className="min-h-screen bg-[#03010A] text-white selection:bg-[#e5a93c] selection:text-black relative">
+        <main id="main-content" className="min-h-screen text-white selection:bg-[#e5a93c] selection:text-black relative">
             <FrontBackground />
             <Header activeHref="/terms" />
             <div className="max-w-3xl mx-auto px-4 py-24 sm:py-32 relative z-10">

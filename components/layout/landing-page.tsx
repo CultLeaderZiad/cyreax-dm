@@ -1,6 +1,5 @@
 "use client"
 
-import { VoxelArc } from "@/components/ui/voxel-arc"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
@@ -44,7 +43,6 @@ export function LandingPage() {
     <div className="min-h-screen bg-[#03010A] text-[#ededed] selection:bg-[#e5a93c] selection:text-black overflow-x-hidden antialiased relative">
       {/* ─── Shape Grid & Ambient Background ─── */}
       <FrontBackground />
-      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden"><VoxelArc intensity={0.42} /></div>
       <div className="grain-overlay" />
       <main id="main-content">
 

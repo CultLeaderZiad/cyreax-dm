@@ -53,7 +53,7 @@ export default async function PricingPage() {
     : []
 
   return (
-    <div className="min-h-screen bg-[#03010A] text-white flex flex-col justify-between selection:bg-[#e5a93c] selection:text-black relative">
+    <div className="min-h-screen text-white flex flex-col justify-between selection:bg-[#e5a93c] selection:text-black relative">
       <FrontBackground />
       <div>
         <Header activeHref="/pricing" />
