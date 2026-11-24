@@ -221,7 +221,7 @@ export async function getWorkspaceUsage(
     },
     plan: {
       id: resolvedPlan.id,
-      name: resolvedPlan.name === "Creator" ? "Pro" : resolvedPlan.name,
+      name: resolvedPlan.name,
       status,
       priceFormatted,
       renewsFormatted,

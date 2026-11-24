@@ -61,7 +61,7 @@ Sign out and back in. The Admin section appears in the sidebar.
 Setup (API key, webhook URL and events, mapping plans to Whop plan IDs) and
 the required environment variables (`WHOP_API_KEY`, `WHOP_WEBHOOK_SECRET`,
 `PAYMENT_WALLET_NUMBER`, `PAYMENT_INSTAPAY_NUMBER`, `PAYMENT_EGP_PER_USD`,
-`CRON_SECRET`) are in [docs/DEPLOY.md](./docs/DEPLOY.md#7-payments).
+`CRON_SECRET`) are in [docs/DEPLOY.md](./docs/DEPLOY.md#8-payments).
 
 ---
 

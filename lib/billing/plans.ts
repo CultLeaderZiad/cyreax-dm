@@ -11,7 +11,8 @@ import { BRAND } from "@/lib/brand"
 
 export type PlanAudience = "creator" | "agency"
 export type MeterKey = "workspaces" | "channels" | "contacts" | "aiReplies" | "broadcasts" | "seats"
-export type FeatureKey = "whiteLabel" | "apiAccess"
+export type FeatureKey = "whiteLabel" | "apiAccess" | "aiAgent"
+export type InsightsLevel = "none" | "weekly" | "daily"
 
 export interface PlanLimits {
   workspaces: number
@@ -22,6 +23,10 @@ export interface PlanLimits {
   seats: number
   whiteLabel: boolean
   apiAccess: boolean
+  /** The AI Growth Agent chat (Pro and Agency). */
+  aiAgent: boolean
+  /** How often AI Recommendations refresh. */
+  insights: InsightsLevel
 }
 
 export interface PlanDefinition {
@@ -35,16 +40,27 @@ export interface PlanDefinition {
   limits: PlanLimits
   /** Account.plan values that resolve to this tier, including legacy slugs. */
   aliases: string[]
+  /** Not sold and not offered in Admin -> Plans (internal tiers). */
+  hidden?: boolean
 }
 
 export const SOFT_LIMIT_RATIO = 0.8
-export const TRIAL_DAYS = 14
+/** Free trial for every new account: no card, Pro features. */
+export const TRIAL_DAYS = 7
+/** The tier a running trial uses (Pro). */
+export const TRIAL_PLAN_ID = "creator_plus"
 export const DUNNING_GRACE_DAYS = 7
 
+/**
+ * Starter, Pro and Agency are the sellable tiers. The ids stay "creator",
+ * "creator_plus" and "agency" because billing_accounts.plan_id already stores
+ * them. These numbers are the defaults: Admin -> Plans can override any of
+ * them per plan (plans.entitlements), see applyEntitlements().
+ */
 export const PLAN_CATALOG: PlanDefinition[] = [
   {
     id: "creator_free",
-    name: "Creator Free",
+    name: "Free",
     audience: "creator",
     description: `One channel and a small contact list, so a creator can try ${BRAND.name}.`,
     monthlyUsd: 0,
@@ -59,77 +75,87 @@ export const PLAN_CATALOG: PlanDefinition[] = [
       seats: 1,
       whiteLabel: false,
       apiAccess: false,
+      aiAgent: false,
+      insights: "none",
     },
     aliases: ["creator_free", "free"],
+    hidden: true,
   },
   {
     id: "creator",
-    name: "Creator",
+    name: "Starter",
     audience: "creator",
-    description: "Instagram, WhatsApp, and one more channel, with monthly broadcasts.",
-    monthlyUsd: 29,
-    yearlyUsd: 290,
+    description: "For a creator getting started: two channels, automations and weekly AI recommendations.",
+    monthlyUsd: 19.99,
+    yearlyUsd: 199.9,
     trialDays: TRIAL_DAYS,
     limits: {
       workspaces: 1,
-      channels: 3,
-      contacts: 5000,
-      aiReplies: 2000,
-      broadcasts: 4,
-      seats: 2,
+      channels: 2,
+      contacts: 2000,
+      aiReplies: 1000,
+      broadcasts: 2,
+      seats: 1,
       whiteLabel: false,
-      apiAccess: true,
+      apiAccess: false,
+      aiAgent: false,
+      insights: "weekly",
     },
-    aliases: ["creator", "monthly", "trial"],
+    aliases: ["creator", "starter", "monthly"],
   },
   {
     id: "creator_plus",
-    name: "Creator Plus",
+    name: "Pro",
     audience: "creator",
-    description: "More channels, a public API, and room for a small team.",
-    monthlyUsd: 59,
-    yearlyUsd: 590,
+    description: "For growing creators and small businesses: five channels, the AI Growth Agent and daily recommendations.",
+    monthlyUsd: 29.99,
+    yearlyUsd: 299.9,
     trialDays: TRIAL_DAYS,
     limits: {
-      workspaces: 3,
-      channels: 8,
-      contacts: 25000,
-      aiReplies: 10000,
-      broadcasts: 20,
-      seats: 5,
+      workspaces: 1,
+      channels: 5,
+      contacts: 10000,
+      aiReplies: 5000,
+      broadcasts: 10,
+      seats: 3,
       whiteLabel: false,
       apiAccess: true,
+      aiAgent: true,
+      insights: "daily",
     },
-    aliases: ["creator_plus", "one_time"],
+    // A running free trial uses Pro, so a new account can try the AI Agent.
+    aliases: ["creator_plus", "pro", "one_time", "trial"],
   },
   {
     id: "agency",
     name: "Agency",
     audience: "agency",
-    description: "Client workspaces, white-label, and reseller billing.",
-    monthlyUsd: 149,
-    yearlyUsd: 1490,
+    description: "For agencies: client workspaces, white-label, client reports and the AI Growth Agent for every client.",
+    monthlyUsd: 44.99,
+    yearlyUsd: 449.9,
     trialDays: TRIAL_DAYS,
     limits: {
-      workspaces: 10,
-      channels: 30,
-      contacts: 100000,
-      aiReplies: 40000,
-      broadcasts: 50,
+      workspaces: 5,
+      channels: 25,
+      contacts: 50000,
+      aiReplies: 20000,
+      broadcasts: -1,
       seats: 10,
       whiteLabel: true,
       apiAccess: true,
+      aiAgent: true,
+      insights: "daily",
     },
     aliases: ["agency"],
   },
   {
     id: "agency_pro",
-    name: "Agency Pro",
+    name: "Unlimited",
     audience: "agency",
-    description: "High-volume agencies. Channels and contacts are not capped.",
+    description: "Internal tier for platform admins. Not sold.",
     monthlyUsd: 349,
     yearlyUsd: 3490,
-    trialDays: TRIAL_DAYS,
+    trialDays: 0,
     limits: {
       workspaces: 50,
       channels: -1,
@@ -139,8 +165,11 @@ export const PLAN_CATALOG: PlanDefinition[] = [
       seats: 30,
       whiteLabel: true,
       apiAccess: true,
+      aiAgent: true,
+      insights: "daily",
     },
     aliases: ["agency_pro"],
+    hidden: true,
   },
 ]
 
@@ -186,4 +215,60 @@ export function isMonthlyMeter(key: MeterKey): boolean {
 export function meterPeriod(key: MeterKey, now: Date): string {
   if (!isMonthlyMeter(key)) return "lifetime"
   return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`
+}
+
+// ---- Admin-controlled entitlements -----------------------------------------
+
+const NUMERIC_LIMITS: Array<keyof PlanLimits> = ["workspaces", "channels", "contacts", "aiReplies", "broadcasts", "seats"]
+const BOOLEAN_LIMITS: Array<keyof PlanLimits> = ["whiteLabel", "apiAccess", "aiAgent"]
+const INSIGHT_LEVELS: InsightsLevel[] = ["none", "weekly", "daily"]
+
+/**
+ * Cleans what the admin form sends for plans.entitlements: only known keys,
+ * integers from -1 (unlimited) to 1,000,000,000, real booleans, a valid
+ * insights level. Anything else is dropped, never trusted.
+ */
+export function sanitizeEntitlements(input: unknown): Partial<PlanLimits> {
+  const out: Record<string, number | boolean | string> = {}
+  if (!input || typeof input !== "object") return out
+  const source = input as Record<string, unknown>
+  for (const key of NUMERIC_LIMITS) {
+    const value = source[key]
+    if (typeof value === "number" && Number.isInteger(value) && value >= -1 && value <= 1_000_000_000) out[key] = value
+  }
+  for (const key of BOOLEAN_LIMITS) {
+    if (typeof source[key] === "boolean") out[key] = source[key] as boolean
+  }
+  if (typeof source.insights === "string" && (INSIGHT_LEVELS as string[]).includes(source.insights)) out.insights = source.insights
+  return out as Partial<PlanLimits>
+}
+
+/** The catalog defaults with the admin's overrides on top. */
+export function applyEntitlements<T extends PlanDefinition>(plan: T, overrides: unknown): T {
+  const clean = sanitizeEntitlements(overrides)
+  if (Object.keys(clean).length === 0) return plan
+  return { ...plan, limits: { ...plan.limits, ...clean } }
+}
+
+const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n)
+const count = (n: number, one: string, many: string) => (n < 0 ? `Unlimited ${many}` : `${fmt(n)} ${n === 1 ? one : many}`)
+
+/**
+ * Human feature lines generated from a plan's real limits, so what customers
+ * read on the pricing page can never drift from what the server enforces.
+ */
+export function describeEntitlements(limits: PlanLimits): string[] {
+  const lines = [
+    count(limits.channels, "channel", "channels"),
+    count(limits.contacts, "contact", "contacts"),
+    `${limits.aiReplies < 0 ? "Unlimited" : fmt(limits.aiReplies)} AI replies / month`,
+    limits.broadcasts === 0 ? null : `${limits.broadcasts < 0 ? "Unlimited" : fmt(limits.broadcasts)} broadcasts / month`,
+    limits.workspaces > 1 || limits.workspaces < 0 ? count(limits.workspaces, "client workspace", "client workspaces") : null,
+    limits.seats > 1 || limits.seats < 0 ? count(limits.seats, "team seat", "team seats") : null,
+    limits.insights === "daily" ? "Daily AI recommendations" : limits.insights === "weekly" ? "Weekly AI recommendations" : null,
+    limits.aiAgent ? "AI Growth Agent" : null,
+    limits.apiAccess ? "Public API" : null,
+    limits.whiteLabel ? "White-label and client reports" : null,
+  ]
+  return lines.filter((line): line is string => Boolean(line))
 }

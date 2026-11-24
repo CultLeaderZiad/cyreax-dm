@@ -117,6 +117,7 @@ Phase files, in this order. Each is idempotent and does not delete tenant rows.
 15. Scheduler and campaigns (2026-11-13): `20261113120000_pg_cron_scheduler.sql`, `20261113120100_email_campaign_scheduling.sql`
 16. Review fixes (2026-11-17): `20261117120000_byok_rpc_lockdown.sql`, `20261117120100_review_payment_underpay_guard.sql`, `20261117120200_review_payment_plan_and_lifetime.sql`
 17. Whop billing (2026-11-23): `20261123120000_whop_billing.sql`
+18. Plan entitlements (2026-11-24): `20261124120000_plan_entitlements.sql`
 
 Every file from step 14 on has a commented rollback at the top.
 
@@ -196,7 +197,34 @@ For Egypt and the GCC, apply without the US:
 
 Turn on `TIKTOK_MESSAGING_ENABLED` after that review. Leave `TIKTOK_US_REVIEW_APPROVED` unset unless the US data security review has passed. Run `supabase/migrations/20260930_phase7_tiktok_windows.sql` so the 10-message window survives a restart. The app still enforces the cap in memory if that table is missing. See `docs/phase4-channels.md`.
 
-## 7. Payments
+## 7. Plans, trial and what each plan includes
+
+Three sold plans: **Starter**, **Pro**, **Agency** (their ids stay `creator`,
+`creator_plus`, `agency` because `billing_accounts.plan_id` already stores
+them). Everything about a plan is controlled in **Admin → Plans**:
+
+- **Price and billing cycle**, EGP prices, the Whop plan IDs.
+- **Limits and features** ("Limits & features" in the plan form): channels,
+  contacts, AI replies / month, broadcasts / month, client workspaces, team
+  seats (`-1` = unlimited), AI recommendations (off / weekly / daily), and the
+  switches for the AI Growth Agent, the public API and white-label. Saved in
+  `plans.entitlements` (migration `20261124120000_plan_entitlements.sql`),
+  validated on the server, and enforced on every request, so a change applies
+  immediately. "Reset to defaults" uses the tier defaults in
+  `lib/billing/plans.ts`.
+- What customers read on the pricing page, the billing page and the
+  choose-a-plan screen is generated from those same limits, so it cannot drift
+  from what the server enforces. The plan's own "features" text is added after.
+
+**Free trial:** every new account gets 7 days, no card, with Pro features
+(`TRIAL_DAYS` in `lib/billing/plans.ts`, and the `accounts.trial_ends_at`
+default). When it ends the account is paused at once (no grace period):
+the dashboard is replaced by a screen with the plans, to pay, or **Log out**.
+The server blocks the same accounts independently. In **Admin → Users** you can
+extend a trial (7 / 14 / 30 days), put an account on a plan for N days, or set
+it to Expired to pause it.
+
+## 8. Payments
 
 Two ways to pay, one source of truth (`billing_accounts`):
 
@@ -278,12 +306,12 @@ subscriptions to Whop. Customers manage or cancel at
 
 An upgrade does not change the plan until a payment is approved or the provider reports success. A downgrade is stored on `billing_accounts.scheduled_plan_id` and applied by the dunning cron at period end.
 
-## 8. Health, errors, and the demo
+## 9. Health, errors, and the demo
 
 - `GET /api/health` returns 200 with `status: "degraded"` when Supabase env is missing, and 503 when the Supabase auth health check fails.
 - Set `SENTRY_DSN` to POST envelopes. Unset, errors are only logged.
 - `pnpm seed` loads a demo workspace named Cyreax DM Demo Clinic, an agency named Noir Agency, two contacts, and a client price of 4900 minor units SAR per month on Tap. It refuses to run without `SEED_ACCOUNT_EMAIL`. Do not run it in CI.
 
-## 9. Arabic reports
+## 10. Arabic reports
 
 Client PDF reports embed `lib/pdf/fonts/NotoNaskhArabic-Regular.ttf` (SIL Open Font License, see `lib/pdf/fonts/OFL.txt`). PDF viewers do not shape Arabic, so the generator maps letters to presentation forms before drawing them.

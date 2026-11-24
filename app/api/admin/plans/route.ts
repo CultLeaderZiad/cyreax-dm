@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { whopIdsError } from "@/lib/billing/whop"
+import { sanitizeEntitlements } from "@/lib/billing/plans"
 
 export async function GET(request: NextRequest) {
   const adminCheck = await requireAdmin()
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest) {
         catalog_plan_id: catalog_plan_id || null,
         whop_variant_id: whop_variant_id || null,
         whop_variant_id_yearly: whop_variant_id_yearly || null,
+        entitlements: body.entitlements == null ? null : sanitizeEntitlements(body.entitlements),
         billing_cycle,
         features: features || [],
         stripe_price_id,

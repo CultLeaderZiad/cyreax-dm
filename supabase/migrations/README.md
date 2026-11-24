@@ -308,3 +308,10 @@ route passes `p_override`, which the old function does not accept.
 `whop_checkouts` and `whop_webhook_events` tables, and
 `cyreax_review_payment` recording `payment_provider = 'manual'`. Run it after
 the review migrations; rollback in the header.
+
+## Plan entitlements (2026-11-24)
+
+`20261124120000_plan_entitlements.sql` adds `plans.entitlements` (jsonb object
+or NULL): the limits and features Admin -> Plans can override per plan, read by
+`resolveAccountPlan` on every request. Run it before the Admin -> Plans page
+is used; until then the code defaults apply. Rollback in the header.
