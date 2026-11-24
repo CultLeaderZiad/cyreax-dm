@@ -23,7 +23,7 @@ export function AiIntentBuilder({
           <Sparkles className="w-4 h-4 text-[#e5a93c]" /> Describe what you want
         </label>
         <p className="text-xs text-neutral-400">
-          Tell our AI what you want to automate (e.g., "when people comment 'price', send them my price list") and we'll set up the form for you.
+          Tell our AI what you want to automate (e.g., &quot;when people comment &apos;price&apos;, send them my price list&quot;) and we&apos;ll set up the form for you.
         </p>
         <div className="flex gap-2 mt-2">
           <input

@@ -59,7 +59,7 @@ function AiAgentContent() {
     }
   }, [searchParams])
 
-  const handleTabChange = (key: TabKey) => {
+  function handleTabChange(key: TabKey) {
     setActiveTab(key)
     const params = new URLSearchParams(window.location.search)
     params.set("tab", key)
@@ -105,7 +105,7 @@ function AiAgentContent() {
               AI Agent
             </h1>
             <p className="text-[12.5px] text-[var(--t3)]">
-              Agents answer DMs in the customer's dialect, using only this workspace's knowledge.
+              Agents answer DMs in the customer&apos;s dialect, using only this workspace&apos;s knowledge.
             </p>
           </div>
 

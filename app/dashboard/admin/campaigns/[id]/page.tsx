@@ -102,7 +102,7 @@ export default function CampaignDetailsPage() {
     fetchData()
   }, [id])
 
-  const fetchData = async () => {
+  async function fetchData() {
     setLoading(true)
     try {
       // 1. Fetch Campaign

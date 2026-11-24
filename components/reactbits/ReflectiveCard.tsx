@@ -723,8 +723,11 @@ const ReflectiveCard = ({
     intro
   };
   const settingsRef = useRef(settings);
-  settingsRef.current = settings;
-  errorRef.current = onWebcamError;
+  // Keep the latest props for the render loop without touching refs during render.
+  useLayoutEffect(() => {
+    settingsRef.current = settings;
+    errorRef.current = onWebcamError;
+  });
 
   useEffect(() => {
     wakeRef.current?.();

@@ -664,7 +664,7 @@ export function ChannelCards({
               </div>
             ) : (
               <p className="text-[11.5px] text-[var(--t3)] leading-relaxed">
-                Messaging depends on TikTok's regional approval. We check this account's region when you connect and show what's available.
+                Messaging depends on TikTok&apos;s regional approval. We check this account&apos;s region when you connect and show what&apos;s available.
               </p>
             )}
           </div>

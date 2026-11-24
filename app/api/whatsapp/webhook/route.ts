@@ -9,7 +9,7 @@ import { metaVerifyTokenMatches } from "@/lib/webhooks/verify-token"
 export { processWhatsAppWebhookBody } from "@/lib/channels/ingress"
 
 function isAuthorizedVerifyToken(candidate: string | null): boolean {
-  return metaVerifyTokenMatches(candidate)
+  return metaVerifyTokenMatches("whatsapp", candidate)
 }
 
 const APP_SECRET = process.env.META_APP_SECRET || process.env.INSTAGRAM_APP_SECRET

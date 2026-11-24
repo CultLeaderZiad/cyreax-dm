@@ -143,6 +143,27 @@ describe("No placeholder data", () => {
   })
 })
 
+describe("Billing shows only real plans and prices (P1-4)", () => {
+  it("no invented plan names, prices or non-plan checkout links", () => {
+    const files = [
+      "app/dashboard/billing/page.tsx",
+      "components/billing/CurrentPlanCard.tsx",
+      "components/billing/PlansComparisonRow.tsx",
+      "components/billing/RecentPaymentsTable.tsx",
+      "components/mobile/StickyCTA.tsx",
+    ]
+    for (const f of files) {
+      const src = readFileSync(f, "utf8")
+      for (const fake of ["Agency Growth", "11,900", "15,700", "3,900", "SAR 920", "$249", "HLX-3K8P", "8,240", "14 / 10"]) {
+        assert.ok(!src.includes(fake), `${f} still contains ${fake}`)
+      }
+      assert.ok(!/router\.push\(`\/checkout\/agency/.test(src), `${f} links to /checkout/agency`)
+    }
+    const page = readFileSync("app/dashboard/billing/page.tsx", "utf8")
+    assert.match(page, /\/checkout\/\$\{encodeURIComponent\(targetPlan\.id\)\}/, "mobile CTA uses the real plan id")
+  })
+})
+
 describe("Sidebar", () => {
   it("a parent without its own page only toggles (Admin used to open and close in one click)", () => {
     const src = readFileSync("components/nav/SidebarTree.tsx", "utf8")

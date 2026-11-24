@@ -9,7 +9,7 @@ import { metaVerifyTokenMatches } from "@/lib/webhooks/verify-token"
 export { processInstagramWebhookBody } from "@/lib/channels/ingress"
 
 function isAuthorizedVerifyToken(candidate: string | null): boolean {
-  return metaVerifyTokenMatches(candidate)
+  return metaVerifyTokenMatches("instagram", candidate)
 }
 
 const APP_SECRETS = [process.env.INSTAGRAM_APP_SECRET, process.env.META_APP_SECRET].filter(

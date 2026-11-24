@@ -1,7 +1,9 @@
 "use client"
 
 import React from "react"
+import useSWR from "swr"
 import { Pill } from "@/components/ui/Pill"
+import { fetcher } from "@/lib/fetcher"
 
 export interface PaymentItem {
   id?: string
@@ -14,51 +16,54 @@ export interface PaymentItem {
 }
 
 export interface RecentPaymentsTableProps {
+  /** Override for previews; by default the table loads the account's real payments. */
   payments?: PaymentItem[]
-  currency?: "EGP" | "SAR" | "USD"
 }
 
-export function RecentPaymentsTable({
-  payments,
-  currency = "EGP",
-}: RecentPaymentsTableProps) {
-  const defaultPayments: PaymentItem[] = [
-    {
-      datePlan: "Oct 1, 2026 · Agency Growth",
-      method: "Vodafone Cash",
-      reference: "HLX-3K8P",
-      status: "verified",
-      statusLabel: "Verified in 2h",
-      amount:
-        currency === "SAR"
-          ? "SAR 1,220"
-          : currency === "USD"
-          ? "$329"
-          : "EGP 15,700",
-    },
-    {
-      datePlan: "Sep 1, 2026 · Agency Growth",
-      method: "Card ·· 4242",
-      reference: "in_109x...",
-      status: "paid",
-      statusLabel: "Paid",
-      amount:
-        currency === "SAR"
-          ? "SAR 1,150"
-          : currency === "USD"
-          ? "$310"
-          : "EGP 14,750",
-    },
-  ]
+interface ApiPayment {
+  id: string
+  createdAt: string
+  plan: string | null
+  amountEgp: number | null
+  method: string | null
+  referenceCode: string | null
+  status: string
+}
 
-  const list = payments !== undefined ? payments : defaultPayments
+const METHOD_LABEL: Record<string, string> = { wallet: "E-wallet", instapay: "InstaPay" }
+
+function toItem(p: ApiPayment): PaymentItem {
+  let date = ""
+  try {
+    date = new Intl.DateTimeFormat("en-US", { timeZone: "Africa/Cairo", month: "short", day: "numeric", year: "numeric" }).format(new Date(p.createdAt))
+  } catch {
+    date = ""
+  }
+  const status: PaymentItem["status"] =
+    p.status === "approved" || p.status === "active" ? "verified" : p.status === "rejected" ? "rejected" : "pending"
+  return {
+    id: p.id,
+    datePlan: [date, p.plan].filter(Boolean).join(" · "),
+    method: METHOD_LABEL[p.method || ""] || p.method || "—",
+    reference: p.referenceCode || "—",
+    status,
+    statusLabel: status === "verified" ? "Approved" : undefined,
+    amount: p.amountEgp != null ? `EGP ${new Intl.NumberFormat("en-US").format(p.amountEgp)}` : "—",
+  }
+}
+
+export function RecentPaymentsTable({ payments }: RecentPaymentsTableProps) {
+  const { data, isLoading } = useSWR<{ payments: ApiPayment[] }>(payments ? null : "/api/payments/manual", fetcher, {
+    revalidateOnFocus: false,
+  })
+  const list: PaymentItem[] = payments ?? (data?.payments || []).map(toItem)
 
   const renderStatusPill = (item: PaymentItem) => {
     switch (item.status) {
       case "verified":
         return (
           <Pill variant="green" dot={false}>
-            {item.statusLabel || "Verified in 2h"}
+            {item.statusLabel || "Verified"}
           </Pill>
         )
       case "paid":
@@ -96,7 +101,9 @@ export function RecentPaymentsTable({
         </h3>
       </div>
 
-      {list.length === 0 ? (
+      {isLoading && !payments ? (
+        <div className="h-[72px] animate-pulse bg-[var(--s2)]/40" />
+      ) : list.length === 0 ? (
         <div className="py-8 text-center">
           <p className="text-[12.5px] text-[var(--t3)]">No payments yet.</p>
         </div>

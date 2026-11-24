@@ -1,3 +1,5 @@
+import { metaVerifyTokenMatches } from "@/lib/webhooks/verify-token"
+
 export type WebhookGuardEnv = {
   NODE_ENV?: string
   VERCEL_ENV?: string
@@ -14,8 +16,7 @@ export function devWebhookSignatureBypass(env: WebhookGuardEnv = process.env): b
   return env.DISABLE_WEBHOOK_SIGNATURE_CHECK === "true"
 }
 
-/** Exact, case-sensitive match against WHATSAPP_WEBHOOK_VERIFY_TOKEN only. */
+/** Exact, case-sensitive, constant-time match against WHATSAPP_WEBHOOK_VERIFY_TOKEN only. */
 export function whatsappVerifyTokenMatches(candidate: string | null, expected: string | undefined): boolean {
-  if (!candidate || !expected) return false
-  return candidate === expected
+  return metaVerifyTokenMatches("whatsapp", candidate, { WHATSAPP_WEBHOOK_VERIFY_TOKEN: expected })
 }

@@ -631,7 +631,7 @@ export function ChatWindow({
         ) : messagesError ? (
           /* Error state */
           <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
-            <p className="text-[13px] text-[var(--red)]">Couldn't load this conversation.</p>
+            <p className="text-[13px] text-[var(--red)]">Couldn&apos;t load this conversation.</p>
             <button
               type="button"
               onClick={() => mutateMessages()}

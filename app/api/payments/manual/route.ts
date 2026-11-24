@@ -9,6 +9,7 @@
 // plan: rows start 'pending' and only cyreax_review_payment (admin) changes them.
 export const dynamic = "force-dynamic"
 
+import { paymentDestinations } from "@/lib/billing/payment-methods"
 import { randomUUID } from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { forbidBelow, requireSessionUser } from "@/lib/auth"
@@ -66,6 +67,10 @@ export async function POST(request: NextRequest) {
     transferredAt: form.get("transferredAt"),
   })
   if (!parsed.ok) return fail(400, parsed.error, parsed.field)
+  // A method whose payout number is not configured cannot be paid to.
+  if (!paymentDestinations()[parsed.value.method]) {
+    return fail(503, "This payment method is temporarily unavailable. Please choose another or contact support.", "method")
+  }
 
   const file = form.get("proof")
   const proofFile = file && typeof file === "object" && "arrayBuffer" in file ? (file as File) : null

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import useSWR from "swr"
+import { useRouter } from "next/navigation"
 import { fetcher } from "@/lib/fetcher"
 import {
   Workflow,
@@ -61,6 +62,7 @@ const FLOW_TEMPLATES = [
 ]
 
 export default function FlowsPage() {
+  const router = useRouter()
   const { data, mutate, isLoading } = useSWR("/api/flows", fetcher)
   const [search, setSearch] = useState("")
   const [selectedChannel, setSelectedChannel] = useState<string>("all")
@@ -86,7 +88,7 @@ export default function FlowsPage() {
       setBusy(false)
       if (res.ok && body.id) {
         toast.success(`Flow "${name}" created`)
-        window.location.href = `/dashboard/flows/${body.id}`
+        router.push(`/dashboard/flows/${body.id}`)
       } else {
         toast.error(body.error || "Failed to create flow")
       }

@@ -1,7 +1,8 @@
 "use client"
 
-export { AiAgentCards as AgentsManager } from "@/components/ai-agent/AiAgentCards"
+import { AiAgentCards } from "@/components/ai-agent/AiAgentCards"
+
+export { AiAgentCards as AgentsManager }
 export default function LegacyAgentsManager() {
-  const { AiAgentCards } = require("@/components/ai-agent/AiAgentCards")
   return <AiAgentCards />
 }

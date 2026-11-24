@@ -54,7 +54,7 @@ export function UnansweredQuestions() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <h3 className="text-[13.5px] font-semibold text-[var(--t1)] tracking-tight">
-            Questions the agent couldn't answer
+            Questions the agent couldn&apos;t answer
           </h3>
           <Pill variant="amber" dot={false}>
             {questions.length > 0 ? "7 this week" : "0 this week"}
@@ -123,7 +123,7 @@ export function UnansweredQuestions() {
               Teach agent answer
             </DialogTitle>
             <DialogDescription className="text-xs text-[var(--t3)]" dir="auto">
-              Question: "{selectedQuestion?.arabicText}" ({selectedQuestion?.topic})
+              Question: &quot;{selectedQuestion?.arabicText}&quot; ({selectedQuestion?.topic})
             </DialogDescription>
           </DialogHeader>
 

@@ -41,7 +41,7 @@ export default function AdminEnterprisePage() {
     fetchInquiries()
   }, [])
 
-  const fetchInquiries = async () => {
+  async function fetchInquiries() {
     try {
       setError("")
       setLoading(true)
@@ -88,7 +88,7 @@ export default function AdminEnterprisePage() {
         <div>
           <h1 className="text-xl font-bold text-white">Enterprise Inquiries</h1>
           <p className="text-xs text-neutral-500 mt-1">
-            Review custom plan requests. Approving doesn't provision anything automatically.
+            Review custom plan requests. Approving doesn&apos;t provision anything automatically.
           </p>
         </div>
       </div>

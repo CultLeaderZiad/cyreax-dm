@@ -38,11 +38,7 @@ export default function CampaignsPage() {
     }
   }, [tabParam])
 
-  useEffect(() => {
-    fetchCampaigns()
-  }, [])
-
-  const fetchCampaigns = async () => {
+  async function fetchCampaigns() {
     setLoading(true)
     try {
       const res = await fetch("/api/admin/campaigns")
@@ -56,6 +52,10 @@ export default function CampaignsPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchCampaigns()
+  }, [])
 
   const getStatusBadge = (status: Campaign['status']) => {
     switch (status) {
@@ -275,7 +275,7 @@ export default function CampaignsPage() {
                     <Clock className="w-8 h-8 text-zinc-600" />
                   </div>
                   <h3 className="text-xl font-medium text-white mb-2">No scheduled campaigns</h3>
-                  <p className="text-zinc-400 max-w-sm mb-6">You don't have any scheduled campaigns.</p>
+                  <p className="text-zinc-400 max-w-sm mb-6">You don&apos;t have any scheduled campaigns.</p>
                 </div>
               ) : (
                 <table className="w-full text-sm text-start">
@@ -344,7 +344,7 @@ export default function CampaignsPage() {
                     <Clock className="w-8 h-8 text-zinc-600" />
                   </div>
                   <h3 className="text-xl font-medium text-white mb-2">No drafts</h3>
-                  <p className="text-zinc-400 max-w-sm mb-6">You don't have any drafts.</p>
+                  <p className="text-zinc-400 max-w-sm mb-6">You don&apos;t have any drafts.</p>
                 </div>
               ) : (
                 <table className="w-full text-sm text-start">

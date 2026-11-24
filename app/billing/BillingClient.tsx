@@ -164,7 +164,7 @@ export default function BillingPage() {
           <div className="border border-white/[0.08] rounded-2xl p-8 bg-white/[0.02] flex items-center gap-4">
             <Shield className="w-8 h-8 text-green-400 flex-shrink-0" />
             <div>
-              <h3 className="font-mono text-lg font-bold text-white mb-1">You're all set!</h3>
+              <h3 className="font-mono text-lg font-bold text-white mb-1">You&apos;re all set!</h3>
               <p className="font-mono text-xs text-neutral-500">
                 Your automations are running with full access. 
                 {user.plan === "monthly" && " To manage your subscription, contact support."}

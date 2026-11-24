@@ -2,30 +2,39 @@ import { timingSafeEqual } from "crypto"
 
 type VerifyEnv = Record<string, string | undefined>
 
-const VERIFY_TOKEN_ENV = [
-  "INSTAGRAM_WEBHOOK_VERIFY_TOKEN",
-  "FACEBOOK_WEBHOOK_VERIFY_TOKEN",
-  "WHATSAPP_WEBHOOK_VERIFY_TOKEN",
-  "META_VERIFY_TOKEN",
-  "META_WEBHOOK_VERIFY_TOKEN",
-  "WEBHOOK_VERIFY_TOKEN",
-] as const
+export type MetaProduct = "instagram" | "facebook" | "whatsapp"
+
+/** The only env var each product's GET handshake accepts. */
+export const VERIFY_TOKEN_ENV: Record<MetaProduct, string> = {
+  instagram: "INSTAGRAM_WEBHOOK_VERIFY_TOKEN",
+  facebook: "FACEBOOK_WEBHOOK_VERIFY_TOKEN",
+  whatsapp: "WHATSAPP_WEBHOOK_VERIFY_TOKEN",
+}
 
 /**
- * Meta `hub.verify_token` handshake. Only tokens configured in the
- * environment are accepted, compared exactly (case-sensitive, constant time).
- * There are no built-in fallback tokens: values committed to a public repo
- * are known to everyone. No configured token means the handshake fails.
+ * Meta `hub.verify_token` handshake for one product. Accepts only that
+ * product's token (WhatsApp only WHATSAPP_WEBHOOK_VERIFY_TOKEN, and so on),
+ * so a token leaked or set up for one product cannot subscribe another.
+ * Compared exactly (case-sensitive, constant time). No fallback or shared
+ * token: an unset product token means the handshake fails.
+ *
+ * This is only the subscription handshake. POST deliveries still require a
+ * valid X-Hub-Signature-256 HMAC in each route.
  */
-export function metaVerifyTokenMatches(candidate: string | null | undefined, env: VerifyEnv = process.env): boolean {
+export function metaVerifyTokenMatches(
+  product: MetaProduct,
+  candidate: string | null | undefined,
+  env: VerifyEnv = process.env,
+): boolean {
   if (!candidate) return false
+  const expected = env[VERIFY_TOKEN_ENV[product]]
+  if (!expected) return false
   const given = Buffer.from(candidate, "utf8")
-  let matched = false
-  for (const name of VERIFY_TOKEN_ENV) {
-    const expected = env[name]
-    if (!expected) continue
-    const want = Buffer.from(expected, "utf8")
-    if (want.length === given.length && timingSafeEqual(want, given)) matched = true
+  const want = Buffer.from(expected, "utf8")
+  if (want.length !== given.length) {
+    // Still do a constant-time compare so timing does not reveal the length check.
+    timingSafeEqual(want, want)
+    return false
   }
-  return matched
+  return timingSafeEqual(want, given)
 }

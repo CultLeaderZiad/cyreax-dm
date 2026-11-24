@@ -2,6 +2,29 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { getSessionUser } from "@/lib/auth"
+import { listMemberships } from "@/lib/workspaces"
+import { unlockedAgentIds } from "@/lib/billing/agent-access"
+import { roleAllows, type WorkspaceRole } from "@/lib/workspace-access"
+
+/**
+ * Which account's agents may this caller act on?
+ * Always their own. Another account only when the caller is a member of a
+ * workspace that account owns, with at least `minimum` role. The id from the
+ * query string / body is never trusted on its own.
+ */
+async function targetAccount(
+  supabase: any,
+  callerId: string,
+  requested: unknown,
+  minimum: WorkspaceRole,
+): Promise<{ accountId: string } | { response: NextResponse }> {
+  const wanted = typeof requested === "string" && requested.trim() ? requested.trim() : callerId
+  if (wanted === callerId) return { accountId: callerId }
+  const memberships = await listMemberships(supabase, callerId).catch(() => null)
+  const allowed = (memberships || []).some((m) => m.ownerAccountId === wanted && roleAllows(m.role, minimum))
+  if (!allowed) return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) }
+  return { accountId: wanted }
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,20 +33,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     
-    // We can also extract accountId from query param or session, defaulting to the authenticated user
-    const searchParams = req.nextUrl.searchParams
-    const accId = searchParams.get("accountId") || user.id
-
     const supabase = await getSupabaseBypassClient()
+    const target = await targetAccount(supabase, user.id, req.nextUrl.searchParams.get("accountId"), "member")
+    if ("response" in target) return target.response
+    const accId = target.accountId
     
     // Fetch base data in parallel
     const [
       { data: agents, error: agentsError },
-      { data: account },
       { data: settings, error: settingsError }
     ] = await Promise.all([
       supabase.from("agents").select("*").eq("is_active", true).order("sort_order"),
-      supabase.from("accounts").select("plan, role").eq("id", accId).maybeSingle(),
       supabase.from("account_agent_settings").select("agent_id, is_enabled, byok_provider, byok_connected_at, last_used_at").eq("account_id", accId)
     ]);
 
@@ -35,24 +55,10 @@ export async function GET(req: NextRequest) {
       throw new Error(agentsError.message)
     }
 
-    // Get user's plan_agents mapping based on plan
-    let planAgents: string[] = []
-    
-    if (account?.role === 'admin') {
-      // Admins get all agents unlocked
-      planAgents = agents?.map((a: any) => a.id) || []
-    } else if (account?.plan) {
-      // Paid users (monthly, one_time, yearly) get ALL agents unlocked by default
-      // Only trial users are restricted to plan_agents table entries
-      const paidPlans = ['monthly', 'one_time', 'yearly']
-      if (paidPlans.includes(account.plan)) {
-        planAgents = agents?.map((a: any) => a.id) || []
-      } else {
-        // Trial/free users: check plan_agents table
-        const { data: pa, error: paError } = await supabase.from("plan_agents").select("agent_id").eq("plan_id", account.plan)
-        if (pa && !paError) planAgents = pa.map((p: any) => p.agent_id)
-      }
-    }
+    // Unlocked agents follow the plan that was actually bought (plan_agents),
+    // not a blanket "paid unlocks everything".
+    const access = await unlockedAgentIds(supabase, accId, (agents || []).map((a: any) => a.id))
+    const planAgents = access.agentIds
 
     const settingsMap = (!settingsError && settings ? settings : []).reduce((acc: any, s: any) => {
       acc[s.agent_id] = s
@@ -69,10 +75,10 @@ export async function GET(req: NextRequest) {
       settings: settingsMap[agent.id] || { is_enabled: true, is_default: true }
     })) || []
 
-    return NextResponse.json({ agents: result, plan_id: account?.plan })
+    return NextResponse.json({ agents: result, plan_id: access.planId })
   } catch (error: any) {
     console.error("[api/agents] GET error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: "Could not load agents" }, { status: 500 })
   }
 }
 
@@ -83,13 +89,14 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { accountId, agentId, is_enabled, byok_key, byok_provider } = await req.json()
-    // Use the passed accountId or default to the user's id
-    const accId = accountId || user.id
-
-    if (!accId || !agentId) return NextResponse.json({ error: "Missing ids" }, { status: 400 })
+    const { accountId, agentId, is_enabled, byok_key, byok_provider } = await req.json().catch(() => ({}))
+    if (!agentId) return NextResponse.json({ error: "Missing ids" }, { status: 400 })
 
     const supabase = await getSupabaseBypassClient()
+    // Changing settings or a BYOK key for a workspace you don't own needs owner/admin.
+    const target = await targetAccount(supabase, user.id, accountId, "admin")
+    if ("response" in target) return target.response
+    const accId = target.accountId
 
     if (byok_key) {
       // Handling BYOK key via RPC
@@ -120,7 +127,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error("[api/agents] PATCH error:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: "Could not update agent" }, { status: 500 })
   }
 }
 

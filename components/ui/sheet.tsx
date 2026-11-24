@@ -100,7 +100,7 @@ function SheetPortal({ children }: { children: React.ReactNode }) {
   return createPortal(children, document.body)
 }
 
-interface SheetOverlayProps extends React.HTMLAttributes<HTMLDivElement> {}
+type SheetOverlayProps = React.HTMLAttributes<HTMLDivElement>
 
 function SheetOverlay({ className, onClick, ...props }: SheetOverlayProps) {
   const { setOpen } = useSheet()

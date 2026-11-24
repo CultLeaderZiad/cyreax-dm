@@ -97,7 +97,7 @@ export default function DashboardAdminPlansPage() {
     fetchPlans()
   }, [])
 
-  const fetchPlans = async () => {
+  async function fetchPlans() {
     try {
       setError("")
       const [plansRes, agentsRes, planAgentsRes] = await Promise.all([
@@ -545,7 +545,7 @@ export default function DashboardAdminPlansPage() {
               <div className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
                 <div>
                   <p className="text-sm text-white">Contact Sales / Enterprise Plan</p>
-                  <p className="text-xs text-neutral-500">Enable this if it's a custom/enterprise plan without fixed pricing.</p>
+                  <p className="text-xs text-neutral-500">Enable this if it&apos;s a custom/enterprise plan without fixed pricing.</p>
                 </div>
                 <Switch
                   checked={form.is_contact_sales}

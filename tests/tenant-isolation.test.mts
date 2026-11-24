@@ -207,3 +207,62 @@ describe("team invites require a confirmed email", () => {
     assert.equal(fakeDb().tables.agency_team_members[0].status, "active")
   })
 })
+
+const agentsRoute = await import("../app/api/agents/route.ts")
+const AGENT = "44444444-0000-0000-0000-000000000001"
+
+describe("agents: another account's settings and BYOK key are off limits", () => {
+  let byokCalls: any[] = []
+  beforeEach(() => {
+    const db = seed()
+    db.tables.agents = [{ id: AGENT, agent_key: "reply", is_active: true, sort_order: 1 }]
+    db.tables.account_agent_settings = [{ account_id: B, agent_id: AGENT, is_enabled: true, byok_provider: "openai" }]
+    byokCalls = []
+    db.rpc = { set_agent_byok_key: (args: any) => { byokCalls.push(args); return { data: null, error: null } } }
+    process.env.BYOK_ENCRYPTION_SECRET = "test-secret"
+  })
+
+  it("A cannot read B's plan and agent settings", async () => {
+    as(A)
+    const res = await agentsRoute.GET(req(`/api/agents?accountId=${B}`))
+    assert.equal(res.status, 403)
+  })
+
+  it("A cannot change B's agent settings", async () => {
+    as(A)
+    const res = await agentsRoute.PATCH(req("/api/agents", json({ accountId: B, agentId: AGENT, is_enabled: false }, "PATCH")))
+    assert.equal(res.status, 403)
+    assert.equal(fakeDb().tables.account_agent_settings.find((r) => r.account_id === B)?.is_enabled, true)
+  })
+
+  it("A cannot replace B's BYOK key", async () => {
+    as(A)
+    const res = await agentsRoute.PATCH(req("/api/agents", json({ accountId: B, agentId: AGENT, byok_key: "sk-attacker", byok_provider: "openai" }, "PATCH")))
+    assert.equal(res.status, 403)
+    assert.equal(byokCalls.length, 0)
+  })
+
+  it("a plain member of B's workspace can read but not change B's agents", async () => {
+    fakeDb().tables.workspace_members.push({ workspace_id: "wB", account_id: A, role: "member", created_at: "2026-01-02" })
+    as(A)
+    assert.equal((await agentsRoute.GET(req(`/api/agents?accountId=${B}`))).status, 200)
+    const res = await agentsRoute.PATCH(req("/api/agents", json({ accountId: B, agentId: AGENT, byok_key: "sk-x" }, "PATCH")))
+    assert.equal(res.status, 403)
+    assert.equal(byokCalls.length, 0)
+  })
+
+  it("an admin of B's workspace can manage B's agents", async () => {
+    fakeDb().tables.workspace_members.push({ workspace_id: "wB", account_id: A, role: "admin", created_at: "2026-01-02" })
+    as(A)
+    const res = await agentsRoute.PATCH(req("/api/agents", json({ accountId: B, agentId: AGENT, is_enabled: false }, "PATCH")))
+    assert.equal(res.status, 200)
+  })
+
+  it("everyone can manage their own agents, and the session decides whose they are", async () => {
+    as(A)
+    const res = await agentsRoute.PATCH(req("/api/agents", json({ agentId: AGENT, byok_key: "sk-mine", byok_provider: "openai" }, "PATCH")))
+    assert.equal(res.status, 200)
+    assert.equal(byokCalls.length, 1)
+    assert.equal(byokCalls[0].p_account_id, A)
+  })
+})

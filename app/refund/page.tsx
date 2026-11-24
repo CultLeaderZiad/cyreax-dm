@@ -30,7 +30,7 @@ export default function RefundPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">1. How to Cancel</h2>
                         <ul className="list-disc ps-6 space-y-2 mt-2">
-                            <li>Cancel from your dashboard: go to <strong className="text-white">Billing &amp; Subscription</strong> and select "Cancel subscription". A confirmation dialog will appear before the cancellation is applied.</li>
+                            <li>Cancel from your dashboard: go to <strong className="text-white">Billing &amp; Subscription</strong> and select &quot;Cancel subscription&quot;. A confirmation dialog will appear before the cancellation is applied.</li>
                             <li>Cancel any time from your Billing page. No further charges or renewal requests are made after you cancel.</li>
                             <li>Your plan stays active until the end of the period you already paid for. After that, your account moves to the expired state: your data and configuration are preserved, but automations pause until you renew.</li>
                             <li>We do not charge cancellation fees, ever.</li>
