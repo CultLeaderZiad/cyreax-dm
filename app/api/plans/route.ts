@@ -1,11 +1,13 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { syncWhopPricesIfStale } from "@/lib/billing/whop-price-sync"
 import { PLAN_CATALOG, applyEntitlements, describeEntitlements } from "@/lib/billing/plans"
 
 export async function GET() {
   try {
     const supabase = await getSupabaseBypassClient()
+    await syncWhopPricesIfStale(supabase)
     const { data: plans, error } = await supabase
       .from("plans")
       .select("*")
