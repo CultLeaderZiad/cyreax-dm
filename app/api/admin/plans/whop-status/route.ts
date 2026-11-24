@@ -23,9 +23,9 @@ export async function GET() {
       [plan.whop_variant_id, plan.whop_variant_id_yearly]
         .filter((id: unknown): id is string => isWhopVariantId(id))
         .map(async (id: string) => {
-          if (!config) { out[id] = { whop: null, error: "WHOP_API_KEY is not set" }; return }
+          if (!config) { out[id] = { whop: null, error: "The card checkout key is not set on the server" }; return }
           try { out[id] = { whop: await getWhopPlan(id, config.apiKey), error: null } }
-          catch (e: any) { out[id] = { whop: null, error: String(e?.message || e).slice(0, 160) } }
+          catch (e: any) { out[id] = { whop: null, error: String(e?.message || e).replace(/Whop/g, "Card checkout").slice(0, 160) } }
         }),
     ),
   )
