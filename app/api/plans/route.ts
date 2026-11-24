@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from "next/server"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { PLAN_CATALOG, applyEntitlements, describeEntitlements } from "@/lib/billing/plans"
 
 export async function GET() {
   try {
@@ -20,7 +21,11 @@ export async function GET() {
     const plansWithAgents = plans.map((plan: any) => {
         const activeAgents = planAgents?.filter((pa: any) => pa.plan_id === plan.id && pa.is_enabled)
             .map((pa: any) => pa.agents) || []
-        return { ...plan, active_agents: activeAgents }
+        // What the server enforces for this plan right now: the tier defaults
+        // with the admin's overrides, and the lines customers read generated from it.
+        const tier = PLAN_CATALOG.find((p) => p.id === plan.catalog_plan_id) || PLAN_CATALOG.find((p) => p.id === (plan.billing_cycle === "monthly" ? "creator" : "creator_plus"))!
+        const effective = applyEntitlements(tier, plan.entitlements)
+        return { ...plan, active_agents: activeAgents, effective_limits: effective.limits, feature_lines: describeEntitlements(effective.limits) }
     })
 
     return NextResponse.json(plansWithAgents)

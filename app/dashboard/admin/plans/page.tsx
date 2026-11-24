@@ -1,6 +1,7 @@
 "use client"
 
-import { PLAN_CATALOG } from "@/lib/billing/plans"
+import { PLAN_CATALOG, type PlanLimits } from "@/lib/billing/plans"
+import { EntitlementsEditor } from "@/components/admin/EntitlementsEditor"
 import { useState, useEffect } from "react"
 import { Loader2, Plus, Pencil, Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -38,6 +39,7 @@ interface Plan {
   catalog_plan_id?: string | null
   whop_variant_id?: string | null
   whop_variant_id_yearly?: string | null
+  entitlements?: PlanLimits | null
   billing_cycle: "monthly" | "yearly" | "lifetime"
   features: string[] | null
   is_active: boolean
@@ -72,6 +74,7 @@ const EMPTY_FORM = {
   catalog_plan_id: "",
   whop_variant_id: "",
   whop_variant_id_yearly: "",
+  entitlements: null as PlanLimits | null,
   billing_cycle: "monthly" as Plan["billing_cycle"],
   features: "",
   stripe_price_id: "",
@@ -169,6 +172,7 @@ export default function DashboardAdminPlansPage() {
       catalog_plan_id: plan.catalog_plan_id || "",
       whop_variant_id: plan.whop_variant_id || "",
       whop_variant_id_yearly: plan.whop_variant_id_yearly || "",
+      entitlements: plan.entitlements || null,
       billing_cycle: plan.billing_cycle,
       features: Array.isArray(plan.features) ? plan.features.join(", ") : "",
       stripe_price_id: plan.stripe_price_id || "",
@@ -202,6 +206,7 @@ export default function DashboardAdminPlansPage() {
         catalog_plan_id: form.catalog_plan_id || null,
         whop_variant_id: form.whop_variant_id.trim() || null,
         whop_variant_id_yearly: form.whop_variant_id_yearly.trim() || null,
+        entitlements: form.entitlements,
         billing_cycle: form.billing_cycle,
         features: form.features
           .split(",")
@@ -490,7 +495,7 @@ export default function DashboardAdminPlansPage() {
                 <select className="w-full h-9 rounded-md bg-white/5 border border-white/10 text-white px-2 text-sm"
                   value={form.catalog_plan_id} onChange={(e) => setForm({ ...form, catalog_plan_id: e.target.value })}>
                   <option value="">Default (monthly → Creator, other → Creator Plus)</option>
-                  {PLAN_CATALOG.filter((entry) => entry.monthlyUsd > 0).map((entry) => (
+                  {PLAN_CATALOG.filter((entry) => !entry.hidden).map((entry) => (
                     <option key={entry.id} value={entry.id}>{entry.name}</option>
                   ))}
                 </select>
@@ -509,6 +514,11 @@ export default function DashboardAdminPlansPage() {
                 </div>
               </div>
               <p className="text-[11px] text-neutral-500">From Whop → Products → your product → the pricing option. Card checkout (Whop) is offered only when this is set.</p>
+              <EntitlementsEditor
+                catalogPlanId={form.catalog_plan_id}
+                value={form.entitlements}
+                onChange={(next) => setForm({ ...form, entitlements: next })}
+              />
             </div>
 
             <div className="space-y-1.5">
