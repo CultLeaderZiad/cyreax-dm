@@ -39,10 +39,8 @@ export async function GET(request: NextRequest) {
       const now = new Date();
       if (trialDate < now) {
         isTrialExpired = true;
-        // 24 hour deadline after expiration
-        if (now.getTime() - trialDate.getTime() > 24 * 60 * 60 * 1000) {
-          isPastDeadline = true;
-        }
+        // No grace period: the account is paused the moment the trial ends.
+        isPastDeadline = true;
       }
     }
 
@@ -82,9 +80,7 @@ export async function GET(request: NextRequest) {
             const now = new Date();
             if (trialDate < now) {
               isTrialExpired = true;
-              if (now.getTime() - trialDate.getTime() > 24 * 60 * 60 * 1000) {
-                isPastDeadline = true;
-              }
+              isPastDeadline = true;
             } else {
               isTrialExpired = false;
               isPastDeadline = false;
