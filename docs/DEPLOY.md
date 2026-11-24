@@ -61,7 +61,7 @@ AI providers, all optional except Groq for the default agent:
 
 `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, plus optional model overrides `GROQ_MODEL`, `GEMINI_MODEL`, `ANTHROPIC_MODEL`, `OPENROUTER_MODEL`, `OPENAI_MODEL`. `OPENAI_API_KEY` also switches knowledge-base embeddings to `text-embedding-3-small`. Re-save the knowledge base if you add or remove it.
 
-Cyreax DM's own subscription (manual e-wallet / InstaPay, see section 7):
+Cyreax DM's own subscription (card via Whop for everyone, e-wallet / InstaPay for Egypt; see section 7):
 
 | Variable | Used for |
 | --- | --- |
@@ -69,6 +69,9 @@ Cyreax DM's own subscription (manual e-wallet / InstaPay, see section 7):
 | `PAYMENT_INSTAPAY_NUMBER` | Required. InstaPay mobile number, same rules |
 | `PAYMENT_EGP_PER_USD` | Optional. Only for plans with no EGP price in Admin → Plans: amount = USD price × rate, rounded up. Unset means such plans cannot be bought |
 | `CRON_SECRET` | Required. Bearer token the scheduler sends to `/api/cron/*` (dunning ends expired plans; see section 4) |
+| `WHOP_API_KEY` | Required for card payments. Whop Account API key, server-side only |
+| `WHOP_WEBHOOK_SECRET` | Required for card payments. The `ws_…` signing secret of the `/api/webhooks/whop` webhook |
+| `WHOP_ACCOUNT_ID` | Optional. Your Whop account id (`biz_…`) |
 | `PAYMOB_API_KEY`, `PAYMOB_INTEGRATION_ID`, `PAYMOB_IFRAME_ID` | Optional platform Paymob checkout (`/api/billing/checkout`) |
 | `TAP_SECRET_KEY` | Optional platform Tap checkout, and the Tap webhook when a workspace has no Tap key |
 
@@ -113,6 +116,7 @@ Phase files, in this order. Each is idempotent and does not delete tenant rows.
 14. Security and payments (2026-11-07): `20261107120000_security_app_settings_rls.sql`, `20261107120100_security_rls_gaps_and_storage.sql`, `20261107120200_outbound_sends.sql`, `20261107120300_manual_wallet_payments.sql`, `20261107120400_support_tickets.sql`
 15. Scheduler and campaigns (2026-11-13): `20261113120000_pg_cron_scheduler.sql`, `20261113120100_email_campaign_scheduling.sql`
 16. Review fixes (2026-11-17): `20261117120000_byok_rpc_lockdown.sql`, `20261117120100_review_payment_underpay_guard.sql`, `20261117120200_review_payment_plan_and_lifetime.sql`
+17. Whop billing (2026-11-23): `20261123120000_whop_billing.sql`
 
 Every file from step 14 on has a commented rollback at the top.
 
@@ -193,6 +197,52 @@ For Egypt and the GCC, apply without the US:
 Turn on `TIKTOK_MESSAGING_ENABLED` after that review. Leave `TIKTOK_US_REVIEW_APPROVED` unset unless the US data security review has passed. Run `supabase/migrations/20260930_phase7_tiktok_windows.sql` so the 10-message window survives a restart. The app still enforces the cap in memory if that table is missing. See `docs/phase4-channels.md`.
 
 ## 7. Payments
+
+Two ways to pay, one source of truth (`billing_accounts`):
+
+| Method | Who sees it | How access is granted |
+| --- | --- | --- |
+| **Card (Whop)** | Everyone | Whop webhook → `billing_accounts` (`payment_provider = 'whop'`) |
+| **E-wallet / InstaPay** | Egyptian customers only | Admin approval → `billing_accounts` (`payment_provider = 'manual'`) |
+
+"Egyptian" means the account's saved `accounts.country` is `EG`, or, if none is
+saved, Vercel's `x-vercel-ip-country` is `EG` (`lib/billing/region.ts`). The
+manual payment API refuses everyone else, not only the UI.
+
+### Whop setup
+
+1. **API key:** Whop → Developer → API keys → Create. Choose "Sell and manage
+   subscriptions" or a custom set that can create checkout configurations and
+   read memberships and payments. Put it in Vercel as `WHOP_API_KEY`.
+2. **Webhook:** Whop → Developer → Webhooks → Create webhook.
+   - URL: `{APP_URL}/api/webhooks/whop` (for production:
+     `https://cyreax-dm.vercel.app/api/webhooks/whop`)
+   - Events: `membership.activated`, `membership.updated`, `payment.succeeded`,
+     `payment.failed`, `refund.created`, `refund.updated`
+   - Copy the signing secret (starts with `ws_`, keep the prefix) into Vercel as
+     `WHOP_WEBHOOK_SECRET`.
+3. **Optional:** `WHOP_ACCOUNT_ID` (`biz_…`).
+4. **Plans:** in Whop, create a product and one pricing option per plan and
+   cycle. In **Admin → Plans**, paste each option's ID (`plan_…`) into
+   "Whop plan ID (Mo / one-time)" and, if sold yearly, "Whop plan ID (Yr)".
+   A lifetime plan (billing cycle "lifetime") uses the first field.
+   "Pay with card" only appears for plans with a Whop plan ID.
+5. Redeploy, then send a test event from the Whop dashboard and check the
+   delivery shows `200`.
+
+How it works: checkout creates a Whop checkout configuration with metadata
+`{ cyreax_ref, cyreax_account_id, cyreax_plan_id }` and records the ref in
+`whop_checkouts`. Each webhook is signature-checked, processed once per
+`webhook-id`, and re-reads the membership from Whop's API (deliveries can
+arrive out of order). The plan granted comes from the Admin → Plans mapping
+of the membership's Whop plan, never from metadata; metadata is trusted only
+when its ref matches a checkout created for that account and plan. Renewals
+move `current_period_end`; cancel-at-period-end keeps access until then;
+canceled, expired or a full refund end it. The dunning cron leaves Whop
+subscriptions to Whop. Customers manage or cancel at
+`https://whop.com/@me/settings/orders/` ("Manage subscription" on Billing).
+
+### Egyptian payments: e-wallet / InstaPay with admin review
 
 ### Cyreax DM plans: e-wallet / InstaPay with admin review
 

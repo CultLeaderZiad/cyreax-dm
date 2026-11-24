@@ -56,3 +56,29 @@ describe("paid access ends at current_period_end even if the cron is late", () =
     assert.notEqual(plan.id, "expired")
   })
 })
+
+describe("one source of truth: Whop and manual rows entitle the same way", () => {
+  for (const provider of ["whop", "manual"]) {
+    it(`${provider}: active until current_period_end, lifetime forever, expired after`, async () => {
+      const base = { plan_id: "agency_pro", payment_provider: provider }
+      assert.equal((await resolveAccountPlan(dbWith({ ...base, status: "active", interval: "month", current_period_end: iso(NOW + day) }), account, NOW)).id, "agency_pro")
+      assert.equal((await resolveAccountPlan(dbWith({ ...base, status: "active", interval: "lifetime", current_period_end: null }), account, NOW)).id, "agency_pro")
+      assert.equal((await resolveAccountPlan(dbWith({ ...base, status: "active", interval: "year", current_period_end: iso(NOW - 1) }), account, NOW)).id, "expired")
+      assert.equal((await resolveAccountPlan(dbWith({ ...base, status: "canceled", interval: "month", current_period_end: iso(NOW + day) }), account, NOW)).id, "expired")
+    })
+  }
+})
+
+const { dunningAction } = await import("../lib/billing/lifecycle.ts")
+
+describe("dunning: Whop follows Whop, manual keeps reminders", () => {
+  const overdue = { planId: "agency_pro", status: "active" as const, trialEndsAt: null, periodEnd: iso(NOW - day), graceUntil: null, dunningStep: 0, cancelAtPeriodEnd: false, scheduledPlanId: null }
+  it("manual rows past the period end get the past-due reminder", () => {
+    assert.equal(dunningAction({ ...overdue, paymentProvider: "manual" }, NOW).type, "mark_past_due")
+    assert.equal(dunningAction({ ...overdue }, NOW).type, "mark_past_due", "legacy rows without a provider too")
+  })
+  it("Whop rows are left to Whop's webhooks", () => {
+    assert.equal(dunningAction({ ...overdue, paymentProvider: "whop" }, NOW).type, "none")
+    assert.equal(dunningAction({ ...overdue, status: "past_due", graceUntil: iso(NOW - 1), paymentProvider: "whop" }, NOW).type, "none")
+  })
+})

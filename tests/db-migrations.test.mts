@@ -20,6 +20,7 @@ const MIGRATIONS = [
   "supabase/migrations/20261117120000_byok_rpc_lockdown.sql",
   "supabase/migrations/20261117120100_review_payment_underpay_guard.sql",
   "supabase/migrations/20261117120200_review_payment_plan_and_lifetime.sql",
+  "supabase/migrations/20261123120000_whop_billing.sql",
 ]
 
 const base = process.env.CYREAX_TEST_PG

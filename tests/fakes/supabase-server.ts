@@ -54,7 +54,13 @@ class Query implements PromiseLike<any> {
     return this
   }
   insert(values: Row | Row[]) { this.op = "insert"; this.payload = values; return this }
-  upsert(values: Row | Row[]) { this.op = "upsert"; this.payload = values; return this }
+  private conflictCols: string[] = ["id"]
+  upsert(values: Row | Row[], opts: { onConflict?: string } = {}) {
+    this.op = "upsert"
+    this.payload = values
+    if (opts.onConflict) this.conflictCols = opts.onConflict.split(",").map((c) => c.trim())
+    return this
+  }
   update(values: Row) { this.op = "update"; this.payload = values; return this }
   delete() { this.op = "delete"; return this }
   eq(c: string, v: any) { this.filters.push((r) => String(r[c]) === String(v)); return this }
@@ -81,7 +87,21 @@ class Query implements PromiseLike<any> {
     if (this.op === "select") {
       if (this.embedded) return { data: null, error: { code: "PGRST200", message: "embedding unsupported in fake" } }
       out = rows.filter(match)
-    } else if (this.op === "insert" || this.op === "upsert") {
+    } else if (this.op === "upsert") {
+      // Like Postgres ON CONFLICT (cols) DO UPDATE: merge into the matching row.
+      out = []
+      for (const r of Array.isArray(this.payload) ? this.payload : [this.payload]) {
+        const existing = rows.find((row) => this.conflictCols.every((c) => r[c] !== undefined && String(row[c]) === String(r[c])))
+        if (existing) {
+          Object.assign(existing, r)
+          out.push(existing)
+        } else {
+          const created = { id: r.id ?? crypto.randomUUID(), ...r }
+          rows.push(created)
+          out.push(created)
+        }
+      }
+    } else if (this.op === "insert") {
       const list = (Array.isArray(this.payload) ? this.payload : [this.payload]).map((r: Row) => ({ id: r.id ?? crypto.randomUUID(), ...r }))
       rows.push(...list)
       out = list

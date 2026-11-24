@@ -36,6 +36,8 @@ interface Plan {
   price_egp?: number | null
   price_yearly_egp?: number | null
   catalog_plan_id?: string | null
+  whop_variant_id?: string | null
+  whop_variant_id_yearly?: string | null
   billing_cycle: "monthly" | "yearly" | "lifetime"
   features: string[] | null
   is_active: boolean
@@ -68,6 +70,8 @@ const EMPTY_FORM = {
   price_egp: "",
   price_yearly_egp: "",
   catalog_plan_id: "",
+  whop_variant_id: "",
+  whop_variant_id_yearly: "",
   billing_cycle: "monthly" as Plan["billing_cycle"],
   features: "",
   stripe_price_id: "",
@@ -163,6 +167,8 @@ export default function DashboardAdminPlansPage() {
       price_egp: plan.price_egp != null ? String(plan.price_egp) : "",
       price_yearly_egp: plan.price_yearly_egp != null ? String(plan.price_yearly_egp) : "",
       catalog_plan_id: plan.catalog_plan_id || "",
+      whop_variant_id: plan.whop_variant_id || "",
+      whop_variant_id_yearly: plan.whop_variant_id_yearly || "",
       billing_cycle: plan.billing_cycle,
       features: Array.isArray(plan.features) ? plan.features.join(", ") : "",
       stripe_price_id: plan.stripe_price_id || "",
@@ -194,6 +200,8 @@ export default function DashboardAdminPlansPage() {
         price_egp: form.price_egp ? Math.round(parseFloat(form.price_egp)) : null,
         price_yearly_egp: form.price_yearly_egp ? Math.round(parseFloat(form.price_yearly_egp)) : null,
         catalog_plan_id: form.catalog_plan_id || null,
+        whop_variant_id: form.whop_variant_id.trim() || null,
+        whop_variant_id_yearly: form.whop_variant_id_yearly.trim() || null,
         billing_cycle: form.billing_cycle,
         features: form.features
           .split(",")
@@ -486,8 +494,21 @@ export default function DashboardAdminPlansPage() {
                     <option key={entry.id} value={entry.id}>{entry.name}</option>
                   ))}
                 </select>
-                <p className="text-[11px] text-neutral-500">Customers pay the EGP price by e-wallet or InstaPay. Without an EGP price the checkout asks them to contact support.</p>
+                <p className="text-[11px] text-neutral-500">Egyptian customers can pay the EGP price by e-wallet or InstaPay.</p>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-neutral-300">Whop plan ID (Mo / one-time)</Label>
+                  <Input dir="ltr" className="bg-white/5 border-white/10 text-white font-mono" placeholder="plan_XXXXXXXX"
+                    value={form.whop_variant_id} onChange={(e) => setForm({ ...form, whop_variant_id: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-neutral-300">Whop plan ID (Yr)</Label>
+                  <Input dir="ltr" className="bg-white/5 border-white/10 text-white font-mono" placeholder="plan_XXXXXXXX"
+                    value={form.whop_variant_id_yearly} onChange={(e) => setForm({ ...form, whop_variant_id_yearly: e.target.value })} />
+                </div>
+              </div>
+              <p className="text-[11px] text-neutral-500">From Whop → Products → your product → the pricing option. Card checkout (Whop) is offered only when this is set.</p>
             </div>
 
             <div className="space-y-1.5">

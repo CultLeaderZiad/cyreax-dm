@@ -53,11 +53,15 @@ Sign out and back in. The Admin section appears in the sidebar.
 
 ## Payments
 
-Customers pay by Egyptian e-wallet or InstaPay and upload a transfer
-screenshot; an admin approves it in **Admin → Payments**. See
-[docs/DEPLOY.md](./docs/DEPLOY.md#7-payments) for the flow and the required
-environment variables (`PAYMENT_WALLET_NUMBER`, `PAYMENT_INSTAPAY_NUMBER`,
-`PAYMENT_EGP_PER_USD`, `CRON_SECRET`).
+- **Card (Whop)** for every customer: hosted Whop checkout, plan activated by
+  the signed Whop webhook at `/api/webhooks/whop`.
+- **E-wallet / InstaPay** for Egyptian customers only: transfer, upload the
+  screenshot, an admin approves it in **Admin → Payments**.
+
+Setup (API key, webhook URL and events, mapping plans to Whop plan IDs) and
+the required environment variables (`WHOP_API_KEY`, `WHOP_WEBHOOK_SECRET`,
+`PAYMENT_WALLET_NUMBER`, `PAYMENT_INSTAPAY_NUMBER`, `PAYMENT_EGP_PER_USD`,
+`CRON_SECRET`) are in [docs/DEPLOY.md](./docs/DEPLOY.md#7-payments).
 
 ---
 

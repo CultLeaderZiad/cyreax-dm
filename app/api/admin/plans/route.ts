@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
+import { whopIdsError } from "@/lib/billing/whop"
 
 export async function GET(request: NextRequest) {
   const adminCheck = await requireAdmin()
@@ -23,7 +24,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { name, description, price_usd, price_yearly, price_egp, price_yearly_egp, catalog_plan_id, billing_cycle, features, stripe_price_id, is_active, is_contact_sales, platforms } = body
+    const { name, description, price_usd, price_yearly, price_egp, price_yearly_egp, catalog_plan_id, billing_cycle, features, stripe_price_id, is_active, is_contact_sales, platforms, whop_variant_id, whop_variant_id_yearly } = body
+    const whopError = whopIdsError(body)
+    if (whopError) return NextResponse.json({ error: whopError }, { status: 400 })
     const supabase = await getSupabaseBypassClient()
 
     const { data, error } = await supabase
@@ -36,6 +39,8 @@ export async function POST(request: NextRequest) {
         price_egp: price_egp ?? null,
         price_yearly_egp: price_yearly_egp ?? null,
         catalog_plan_id: catalog_plan_id || null,
+        whop_variant_id: whop_variant_id || null,
+        whop_variant_id_yearly: whop_variant_id_yearly || null,
         billing_cycle,
         features: features || [],
         stripe_price_id,

@@ -300,3 +300,11 @@ the file header.
 
 Deploy the app code from the same release together with 2 and 3: the admin
 route passes `p_override`, which the old function does not accept.
+
+## Whop billing (2026-11-23)
+
+`20261123120000_whop_billing.sql`: Whop plan IDs on `plans`,
+`accounts.country`, `billing_accounts.payment_provider`, the service-only
+`whop_checkouts` and `whop_webhook_events` tables, and
+`cyreax_review_payment` recording `payment_provider = 'manual'`. Run it after
+the review migrations; rollback in the header.

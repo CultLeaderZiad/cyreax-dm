@@ -70,7 +70,9 @@ async function png(withExif = false) {
   return new Uint8Array(await img.toBuffer())
 }
 
-async function submit(fields: Record<string, string | Blob | null>, headers: Record<string, string> = {}) {
+// Manual payments are Egypt-only: requests look like they come from Egypt
+// unless a test says otherwise.
+async function submit(fields: Record<string, string | Blob | null>, headers: Record<string, string> = { "x-vercel-ip-country": "EG" }) {
   const form = new FormData()
   for (const [key, value] of Object.entries(fields)) if (value !== null) form.set(key, value as any)
   return manual.POST(new NextRequest("https://app.test/api/payments/manual", { method: "POST", body: form, headers }))
@@ -144,6 +146,18 @@ describe("submitting proof", () => {
   beforeEach(() => {
     seed()
     as(A)
+  })
+
+  it("is Egypt-only on the server: other countries are refused", async () => {
+    assert.equal((await submit(await validFields(), {})).status, 403, "unknown country")
+    assert.equal((await submit(await validFields(), { "x-vercel-ip-country": "SA" })).status, 403, "non-EG IP")
+    // A saved non-EG country wins over an Egyptian IP.
+    fakeDb().tables.accounts.find((a) => a.id === A)!.country = "US"
+    assert.equal((await submit(await validFields(), { "x-vercel-ip-country": "EG" })).status, 403, "saved country wins")
+    // A saved EG country works even from another IP (travelling customer).
+    fakeDb().tables.accounts.find((a) => a.id === A)!.country = "EG"
+    assert.equal((await submit(await validFields(), { "x-vercel-ip-country": "AE" })).status, 201)
+    assert.equal(fakeDb().tables.payment_submissions.length, 1)
   })
 
   it("refuses a method whose payout number is not configured", async () => {

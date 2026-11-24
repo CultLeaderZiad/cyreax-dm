@@ -10,6 +10,7 @@
 export const dynamic = "force-dynamic"
 
 import { paymentDestinations } from "@/lib/billing/payment-methods"
+import { isEgyptianCustomer } from "@/lib/billing/region"
 import { randomUUID } from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { forbidBelow, requireSessionUser } from "@/lib/auth"
@@ -40,6 +41,10 @@ export async function POST(request: NextRequest) {
   const denied = forbidBelow(session.user.workspace_role, "owner")
   if (denied) return denied
   const account = session.user
+  // Wallet / InstaPay are for Egyptian customers only; everyone else pays by card (Whop).
+  if (!isEgyptianCustomer({ accountCountry: account.country, headers: request.headers })) {
+    return fail(403, "E-wallet and InstaPay are only available in Egypt. Please pay by card.")
+  }
 
   const declared = Number(request.headers.get("content-length") || 0)
   if (declared > PROOF_MAX_BYTES + 256 * 1024) return fail(413, "The screenshot must be 5 MB or smaller.", "proof")

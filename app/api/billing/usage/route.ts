@@ -6,6 +6,8 @@ import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { featureEnabled, limitFor, type MeterKey } from "@/lib/billing/plans"
 import { activePeriodValid, measureUsage, resolveAccountPlan } from "@/lib/billing/enforce"
 import { judgeUsage } from "@/lib/billing/usage"
+import { isEgyptianCustomer } from "@/lib/billing/region"
+import { WHOP_MANAGE_URL } from "@/lib/billing/whop"
 
 const METRICS: MeterKey[] = ["workspaces", "channels", "contacts", "aiReplies", "broadcasts", "seats"]
 
@@ -15,7 +17,7 @@ export async function GET(request: NextRequest) {
   const supabase = await getSupabaseBypassClient()
   const account = session.user
   const plan = await resolveAccountPlan(supabase, account)
-  let billing = await supabase.from("billing_accounts").select("status, trial_ends_at, current_period_end, scheduled_plan_id, grace_until, dunning_step, interval, provider, display_plan_id").eq("account_id", account.id).maybeSingle()
+  let billing = await supabase.from("billing_accounts").select("status, trial_ends_at, current_period_end, scheduled_plan_id, grace_until, dunning_step, interval, provider, display_plan_id, payment_provider, cancel_at_period_end").eq("account_id", account.id).maybeSingle()
   if (billing.error) {
     // Before migration 20261117120200 there is no display_plan_id column.
     billing = await supabase.from("billing_accounts").select("status, trial_ends_at, current_period_end, scheduled_plan_id, grace_until, dunning_step, interval, provider").eq("account_id", account.id).maybeSingle()
@@ -51,6 +53,12 @@ export async function GET(request: NextRequest) {
     displayPlan,
     interval: billing.data?.interval || null,
     provider: billing.data?.provider || null,
+    // 'whop' | 'manual': decides "Manage subscription" vs "Renew by wallet".
+    paymentProvider: (billing.data as any)?.payment_provider || null,
+    cancelAtPeriodEnd: Boolean((billing.data as any)?.cancel_at_period_end),
+    manageUrl: (billing.data as any)?.payment_provider === "whop" ? WHOP_MANAGE_URL : null,
+    // Egypt-only manual methods (same rule the manual payment API enforces).
+    egyptian: isEgyptianCustomer({ accountCountry: account.country, headers: request.headers }),
     status: status || (account.plan === "trial" ? "trialing" : plan.blocked ? "expired" : "active"),
     trialEndsAt: billing.data?.trial_ends_at || account.trial_ends_at || null,
     periodEnd: billing.data?.current_period_end || null,
