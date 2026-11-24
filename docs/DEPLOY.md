@@ -122,6 +122,7 @@ Phase files, in this order. Each is idempotent and does not delete tenant rows.
 20. AI recommendations (2026-11-26): `20261126120000_ai_recommendations.sql`
 21. AI Growth Agent (2026-11-27): `20261127120000_ai_agent_proposals.sql`
 22. Prices follow Whop (2026-11-28): `20261128120000_whop_price_sync.sql`
+23. Customer onboarding (2026-11-29): `20261129120000_account_onboarding.sql`
 
 Every file from step 14 on has a commented rollback at the top.
 
@@ -233,6 +234,26 @@ Whop at most every 10 minutes (when the pricing page or `/api/plans` is read),
 so a price edited on Whop shows up in the app by itself. Admin -> Plans has a
 "Sync prices from Whop" button for an immediate refresh, and the price field is
 locked while a Whop id is set. EGP prices stay admin-set. Needs `WHOP_API_KEY`.
+
+**Free trial per plan:** in **Admin -> Plans -> Limits & features**, "Free trial (days)"
+(0 = no trial) and "Trial quota (% of plan)" are set per plan. A visitor who picks a
+plan and starts the trial gets that plan's features for that many days, with AI
+replies, AI requests and broadcasts limited to the chosen percentage (unlimited
+quotas are capped at 1,000 during a trial). When the trial ends the account keeps
+the same plan for 12 hours, with a countdown, then pauses until it pays. One trial
+per account.
+
+**Onboarding:** every new customer sends their name, company, Instagram username,
+Facebook Page ID and (optionally) a Telegram bot token before using the dashboard
+(`/guides/connect` explains where to find each). **Admin -> Onboarding** lists
+the requests and recent signups, with a badge on the sidebar; connect the accounts,
+send the invitation, then mark "I sent the invitation" and "Connected". The customer
+sees the status in a banner. Set `ADMIN_NOTIFY_EMAIL` to be emailed on each new
+submission (falls back to the support address); the email contains no secrets.
+
+**Announcements:** **Settings -> Announcements** (admin only) has separate switches
+for the top bar and for the "Latest updates" block on the home page. The block is
+off until you switch it on.
 
 **AI limits per plan:** "AI requests / month" (Admin -> Plans) caps recommendations,
 the Growth Agent and analytics; auto-replies keep their own "AI replies / month"
