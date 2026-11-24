@@ -46,7 +46,7 @@ export function PlatformIcons({ plan }: { plan: any }) {
 const money = (n: unknown) => new Intl.NumberFormat("en-US").format(Math.round(Number(n)))
 
 /** The cards only (children of a grid): used by the pricing page, which adds its own extra card. */
-export function PlanCards({ plans, featuredId, isAnnual, isAr, t, mode = "public", currentPlanId }: { plans: any[]; featuredId?: string; isAnnual: boolean; isAr: boolean; t: any; mode?: "public" | "dashboard"; currentPlanId?: string | null }) {
+export function PlanCards({ plans, featuredId, isAnnual, isAr, t, mode = "public", currentPlanId, manualOption = false }: { plans: any[]; featuredId?: string; isAnnual: boolean; isAr: boolean; t: any; mode?: "public" | "dashboard"; currentPlanId?: string | null; manualOption?: boolean }) {
   const translateFeature = makeTranslateFeature(t, isAr)
   return (
     <>
@@ -74,7 +74,7 @@ export function PlanCards({ plans, featuredId, isAnnual, isAr, t, mode = "public
                         ? { label: isAr ? "ابدأ التجربة المجانية" : "Start free trial", href: `/start-trial/${plan.id}` }
                         : { label: `${t.selectPlan || "Select"} ${plan.name}`, href: `/checkout/${plan.id}${isAnnual ? "?cycle=yearly" : ""}` }
                   }
-                  secondary={mode === "public" && Number(plan.effective_limits?.trialDays || 0) > 0 ? { label: isAr ? "أو اشترك الآن" : "or subscribe now", href: `/checkout/${plan.id}${isAnnual ? "?cycle=yearly" : ""}` } : undefined}
+                  secondary={mode === "dashboard" && manualOption && plan.id !== currentPlanId ? { label: isAr ? "أو ادفع بمحفظة / إنستا باي" : "or pay by e-wallet / InstaPay", href: `/checkout/${plan.id}?method=manual${isAnnual ? "&cycle=yearly" : ""}` } : mode === "public" && Number(plan.effective_limits?.trialDays || 0) > 0 ? { label: isAr ? "أو اشترك الآن" : "or subscribe now", href: `/checkout/${plan.id}${isAnnual ? "?cycle=yearly" : ""}` } : undefined}
                 />
               )
               return (
@@ -117,10 +117,10 @@ export function PlanCards({ plans, featuredId, isAnnual, isAr, t, mode = "public
 }
 
 /** A standalone grid of plan cards (landing page, dashboard). */
-export function PlansGrid({ plans, featuredId, isAnnual = false, isAr, t, mode = "public", currentPlanId }: { plans: any[]; featuredId?: string; isAnnual?: boolean; isAr: boolean; t: any; mode?: "public" | "dashboard"; currentPlanId?: string | null }) {
+export function PlansGrid({ plans, featuredId, isAnnual = false, isAr, t, mode = "public", currentPlanId, manualOption = false }: { plans: any[]; featuredId?: string; isAnnual?: boolean; isAr: boolean; t: any; mode?: "public" | "dashboard"; currentPlanId?: string | null; manualOption?: boolean }) {
   return (
     <div className={`grid grid-cols-1 gap-8 pt-4 items-stretch ${plans.length >= 4 ? "md:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-3"}`}>
-      <PlanCards plans={plans} featuredId={featuredId} isAnnual={isAnnual} isAr={isAr} t={t} mode={mode} currentPlanId={currentPlanId} />
+      <PlanCards plans={plans} featuredId={featuredId} isAnnual={isAnnual} isAr={isAr} t={t} mode={mode} currentPlanId={currentPlanId} manualOption={manualOption} />
     </div>
   )
 }
