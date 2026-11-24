@@ -98,3 +98,15 @@ describe("Egypt detection", () => {
     assert.equal(normalizeCountry("EGY"), null)
   })
 })
+
+describe("live Whop plan info", () => {
+  it("reads title and price from Whop, and refuses anything that is not a plan id", async () => {
+    const { getWhopPlan } = await import("../lib/billing/whop.ts")
+    let url = ""
+    const fetchImpl: any = async (u: string) => { url = u; return { ok: true, json: async () => ({ id: "plan_IBbNH8TGcs1np", title: "Starter", renewal_price: "19.99", currency: "usd", billing_period: 30 }) } }
+    const info = await getWhopPlan("plan_IBbNH8TGcs1np", "k", fetchImpl)
+    assert.ok(url.endsWith("/plans/plan_IBbNH8TGcs1np"))
+    assert.deepEqual([info.title, info.price, info.currency, info.billingPeriodDays], ["Starter", 19.99, "USD", 30])
+    await assert.rejects(getWhopPlan("../x", "k", fetchImpl))
+  })
+})
