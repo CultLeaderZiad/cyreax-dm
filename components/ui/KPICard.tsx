@@ -27,7 +27,9 @@ export function KPICard({
 
   // Render a minimal, GPU-friendly 22px SVG sparkline
   const renderSparkline = () => {
-    const points = sparklinePoints || [14, 18, 12, 16, 20, 15, 22]
+    const points = sparklinePoints
+    // Only a real series is drawn; nothing is invented to fill the space.
+    if (!points || points.length < 2) return null
     const width = 80
     const height = 22
     const min = Math.min(...points)
@@ -97,9 +99,9 @@ export function KPICard({
         )}
       </div>
 
-      <div className="mt-3 flex items-center justify-end">
-        {renderSparkline()}
-      </div>
+      {sparklinePoints && sparklinePoints.length >= 2 && (
+        <div className="mt-3 flex items-center justify-end">{renderSparkline()}</div>
+      )}
     </div>
   )
 }

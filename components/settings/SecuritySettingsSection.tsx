@@ -10,6 +10,15 @@ import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
 export function SecuritySettingsSection() {
+  const [browserLabel, setBrowserLabel] = React.useState("")
+  React.useEffect(() => {
+    // Read from this browser itself; no location is guessed.
+    const ua = navigator.userAgent
+    const browser = /Edg\//.test(ua) ? "Edge" : /OPR\//.test(ua) ? "Opera" : /Firefox\//.test(ua) ? "Firefox" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "Browser"
+    const os = /Windows/.test(ua) ? "Windows" : /Android/.test(ua) ? "Android" : /iPhone|iPad/.test(ua) ? "iOS" : /Mac OS/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : ""
+    setBrowserLabel(os ? `${browser} on ${os}` : browser)
+  }, [])
+
   const router = useRouter()
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -162,7 +171,7 @@ export function SecuritySettingsSection() {
                   Current session
                 </span>
                 <span className="text-[11px] text-[var(--t3)] font-mono block">
-                  Cairo, Egypt · Chrome on Windows
+                  {browserLabel || "This browser"}
                 </span>
               </div>
               <span className="w-2 h-2 rounded-full bg-[var(--green)]" />

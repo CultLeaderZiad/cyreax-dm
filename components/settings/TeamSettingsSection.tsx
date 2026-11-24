@@ -33,69 +33,7 @@ interface TeamMember {
   inviteSentAgo?: string
 }
 
-const initialMembers: TeamMember[] = [
-  {
-    id: "1",
-    name: "Tariq Mansour",
-    email: "tariq@mirage.agency",
-    avatarInitials: "TM",
-    avatarBg: "bg-[#E9C77E]",
-    avatarTextColor: "text-black",
-    role: "owner",
-    clientsText: "All 14",
-    lastActive: "Now",
-  },
-  {
-    id: "2",
-    name: "Lina Mahmoud",
-    email: "lina@mirage.agency",
-    avatarInitials: "LM",
-    avatarBg: "bg-[#3DD68C]",
-    avatarTextColor: "text-black",
-    role: "admin",
-    clientsText: "All 14",
-    lastActive: "14m",
-  },
-  {
-    id: "3",
-    name: "Omar Khalil",
-    email: "omar@mirage.agency",
-    avatarInitials: "OK",
-    avatarBg: "bg-[#6EA8FE]",
-    avatarTextColor: "text-black",
-    role: "agent",
-    clientsText: "Nour +3",
-    clientsTags: ["Nour", "+3"],
-    lastActive: "2h",
-  },
-  {
-    id: "4",
-    name: "Nour Adel",
-    email: "nour@nourcosmetics.com",
-    avatarInitials: "NA",
-    avatarBg: "bg-[#F2555A]",
-    avatarTextColor: "text-white",
-    role: "client-viewer",
-    isClient: true,
-    clientsText: "Nour",
-    clientsTags: ["Nour"],
-    lastActive: "Yesterday",
-  },
-  {
-    id: "5",
-    name: "sara@mirage.agency",
-    email: "sara@mirage.agency",
-    avatarInitials: "?",
-    avatarBg: "bg-[var(--s2)] border border-[var(--line2)]",
-    avatarTextColor: "text-[var(--t3)]",
-    role: "agent",
-    clientsText: "Falak Fitness",
-    clientsTags: ["Falak Fitness"],
-    lastActive: "Pending",
-    isPending: true,
-    inviteSentAgo: "Invite sent 2d ago",
-  },
-]
+const initialMembers: TeamMember[] = []
 
 export function TeamSettingsSection() {
   const [members, setMembers] = useState<TeamMember[]>(initialMembers)
@@ -111,12 +49,12 @@ export function TeamSettingsSection() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   // White-label state
-  const [customDomain, setCustomDomain] = useState("portal.mirage.agency")
-  const [senderEmail, setSenderEmail] = useState("reports@mirage.agency")
+  const [customDomain, setCustomDomain] = useState("")
+  const [senderEmail, setSenderEmail] = useState("")
   const [selectedColor, setSelectedColor] = useState("#0B0B0D")
-  const [logoName, setLogoName] = useState("mirage-logo.svg")
-  const [hideBranding, setHideBranding] = useState(true)
-  const [monthlyPdfReport, setMonthlyPdfReport] = useState(true)
+  const [logoName, setLogoName] = useState("")
+  const [hideBranding, setHideBranding] = useState(false)
+  const [monthlyPdfReport, setMonthlyPdfReport] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
 
   const swatches = [
@@ -143,7 +81,7 @@ export function TeamSettingsSection() {
     fetch("/api/team")
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data?.members) && data.members.length > 0) {
+        if (Array.isArray(data?.members)) {
           const apiMembers: TeamMember[] = data.members.map((m: any, idx: number) => ({
             id: m.id || String(idx),
             name: m.name || m.email,
@@ -153,7 +91,7 @@ export function TeamSettingsSection() {
             avatarTextColor: "text-black",
             role: m.role || "agent",
             clientsText: "All Workspaces",
-            lastActive: "Active",
+            lastActive: "",
           }))
           setMembers(apiMembers)
         }
@@ -302,6 +240,13 @@ export function TeamSettingsSection() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--line)]">
+                  {members.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-[13px] text-[var(--t3)]">
+                        No team members yet. Invite someone to get started.
+                      </td>
+                    </tr>
+                  )}
                   {members.map((m) => (
                     <tr key={m.id} className="hover:bg-[var(--s2)]/50 transition-colors">
                       {/* Member column */}
@@ -742,7 +687,7 @@ export function TeamSettingsSection() {
                   setInviteEmail(e.target.value)
                   if (inviteError) setInviteError("")
                 }}
-                placeholder="colleague@mirage.agency"
+                placeholder="colleague@yourcompany.com"
                 aria-describedby={inviteError ? "invite-error" : undefined}
                 className="w-full h-[32px] rounded-[6px] bg-[var(--s2)] border border-[var(--line2)] px-2.5 text-[12px] text-[var(--t1)] outline-none focus:border-[var(--line3)]"
               />

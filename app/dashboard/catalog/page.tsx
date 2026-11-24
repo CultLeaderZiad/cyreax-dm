@@ -9,7 +9,7 @@ export default function CatalogPage() {
   const orders = useSWR("/api/orders", fetcher)
   const [name, setName] = useState("")
   const [price, setPrice] = useState("")
-  const [csv, setCsv] = useState("name,price,currency,sku\nSerum,450,EGP,serum-1")
+  const [csv, setCsv] = useState("")
   const [note, setNote] = useState("")
 
   async function addProduct() {
@@ -62,7 +62,7 @@ export default function CatalogPage() {
         </div>
         <div className="border border-white/10 rounded-2xl p-4 space-y-2">
           <h2 className="text-sm text-white">CSV import</h2>
-          <textarea className={field} rows={4} value={csv} onChange={(event) => setCsv(event.target.value)} />
+          <textarea className={field} rows={4} placeholder="name,price,currency,sku" value={csv} onChange={(event) => setCsv(event.target.value)} />
           <button type="button" className={button} onClick={importCsv}>Import</button>
           <div className="flex gap-2">
             <button type="button" className={ghost} onClick={() => sync("shopify")}>Sync Shopify</button>

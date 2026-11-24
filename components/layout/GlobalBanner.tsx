@@ -62,7 +62,7 @@ export function GlobalBanner() {
             <Sparkles className="w-3 h-3 text-[#e5a93c]" />
             v2.0
           </span>
-          <span className="text-zinc-300">{(banner.message || "").replace(/Helixa/gi, "CYREAX DM")}</span>
+          <span className="text-zinc-300">{banner.message || ""}</span>
           
           {banner.link && (
             <Link 

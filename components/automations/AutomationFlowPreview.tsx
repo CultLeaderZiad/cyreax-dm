@@ -32,7 +32,7 @@ export function AutomationFlowPreview({ automation, onTest }: AutomationFlowPrev
 
   const channel = (automation.platform || "instagram").toLowerCase()
   const isActive = automation.is_active
-  const isDraft = !isActive && automation.id === "demo-5"
+  const isDraft = false
 
   // Extract keywords from trigger_value or fallback
   const rawKeywords = automation.trigger_value || (automation as any).keywords || ""
@@ -54,22 +54,11 @@ export function AutomationFlowPreview({ automation, onTest }: AutomationFlowPrev
     automation.response_content?.card?.buttons?.[0]?.title ||
     automation.response_content?.quick_replies?.[0]?.title ||
     (automation.response_content as any)?.buttons?.[0]?.title ||
-    (automation.id === "demo-1" ? "أيوة ابعتي اللينك" : null)
+    null
 
-  // Determine computed stats (hide tiles without data)
-  const stats = (automation as any).stats || (
-    automation.id === "demo-1"
-      ? { runs: "1,126", leads: "160", sales: "EGP 21.6k" }
-      : automation.id === "demo-2"
-      ? { runs: "342", leads: "14", sales: null }
-      : automation.id === "demo-3"
-      ? { runs: "88", leads: "8", sales: null }
-      : automation.id === "demo-4"
-      ? { runs: "214", leads: null, sales: null }
-      : automation.id === "demo-6"
-      ? { runs: "57", leads: "4", sales: null }
-      : null
-  )
+  // Real numbers only: the 7-day run count the API measured. Nothing is invented.
+  const runs7d = (automation as any).runs_7d
+  const stats = (automation as any).stats || (runs7d != null ? { runs: Number(runs7d).toLocaleString(), leads: null, sales: null } : null)
 
   const hasStats = stats && (stats.runs || stats.leads || stats.sales)
 
@@ -77,7 +66,7 @@ export function AutomationFlowPreview({ automation, onTest }: AutomationFlowPrev
   const triggerLabel =
     automation.trigger_source === "comment"
       ? (keywords.length > 0
-          ? 'Comment on Reel "Vitamin C in 30 sec" contains'
+          ? "Comment on the selected post contains"
           : "Any comment on selected posts")
       : automation.trigger_source === "dm"
       ? (keywords.length > 0 ? "Direct message contains keyword" : "New direct message received")
@@ -266,7 +255,7 @@ export function AutomationFlowPreview({ automation, onTest }: AutomationFlowPrev
           )}
 
           {/* Split Outcome Branches (if button or demo-1) */}
-          {(buttonText || automation.id === "demo-1") && (
+          {buttonText && (
             <div className="pt-2">
               <div className="text-[10px] font-mono text-[var(--t4)] text-center mb-2">
                 button tapped?

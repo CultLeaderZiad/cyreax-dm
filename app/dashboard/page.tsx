@@ -284,32 +284,19 @@ export default function DashboardOverviewPage() {
         <KPICard
           label={t.conversations || "Conversations"}
           value={totalConvs.toLocaleString()}
-          delta="+12.4%"
-          deltaType="increase"
-          sparklinePoints={[12, 14, 13, 16, 18, 17, 21]}
         />
         <KPICard
           label={t.leadsCaptured || "Leads captured"}
           value={leadsCaptured.toLocaleString()}
-          delta="+18.9%"
-          deltaType="increase"
-          sparklinePoints={[8, 10, 11, 14, 13, 17, 19]}
         />
         <KPICard
           label={t.aiResolution || "AI resolution"}
           value={`${aiResolutionRate}%`}
-          delta="+4.2 pts"
-          deltaType="increase"
           isAiMetric={true}
-          sparklinePoints={[65, 67, 66, 70, 69, 71, 74]}
         />
         <KPICard
           label={t.medianFirstResponse || "Median first response"}
           value={medianResponse}
-          delta="-21s"
-          deltaType="decrease"
-          invertDeltaColor={true}
-          sparklinePoints={[55, 50, 48, 42, 40, 39, 38]}
         />
       </div>
 
@@ -416,115 +403,6 @@ export default function DashboardOverviewPage() {
         </Card>
       ) : (
         <>
-          {/* ─── Weekly Coach Card ─── */}
-          {!dismissCoach && (
-            <Card className="border-[var(--line)] overflow-hidden">
-              <CardHeader className="py-2.5 px-4 bg-[var(--s2)]/40 border-b border-[var(--line)] flex flex-row items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="size-3.5 text-[var(--gold)] shrink-0" />
-                  <CardTitle className="text-[13px] text-[var(--t1)]">
-                    {t.weeklyCoach || "Weekly coach"}
-                  </CardTitle>
-                  <span className="text-[12px] text-[var(--t3)] font-normal hidden sm:inline">
-                    {isAr
-                      ? "٣ اقتراحات مستخلصة من محادثات هذا الأسبوع"
-                      : "3 suggestions from this week's conversations"}
-                  </span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setDismissCoach(true)}
-                  className="text-[11.5px] text-[var(--t3)] hover:text-[var(--t1)] h-[24px] px-2"
-                >
-                  {isAr ? "تجاهل الكل" : "Dismiss all"}
-                </Button>
-              </CardHeader>
-
-              {workspaceDays < 7 ? (
-                /* Honest card when workspace is younger than 7 days */
-                <CardContent className="p-5 flex items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <p className="text-[13px] text-[var(--t1)] font-medium">
-                      {isAr
-                        ? "لا توجد بيانات كافية بعد."
-                        : "Not enough data yet."}
-                    </p>
-                    <p className="text-[12px] text-[var(--t3)]">
-                      {isAr
-                        ? "تبدأ اقتراحات المدرب الذكي بعد ٧ أيام من المحادثات النشطة."
-                        : "Coach suggestions start after 7 days of conversations."}
-                    </p>
-                  </div>
-                  <Button asChild variant="default" size="sm">
-                    <Link href="/dashboard/connected-platforms">
-                      <span>{isAr ? "ربط قناة" : "Connect a channel"}</span>
-                    </Link>
-                  </Button>
-                </CardContent>
-              ) : (
-                /* 3 Structured Insights in a Row with 1px hairline dividers */
-                <CardContent className="p-0 grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x md:rtl:divide-x-reverse divide-[var(--line)]">
-                  {/* Suggestion 1: Unanswered demand */}
-                  <div className="p-4 flex flex-col justify-between gap-3 bg-[var(--s1)]">
-                    <div className="space-y-2">
-                      <Pill variant="amber" dot={false} className="text-[10.5px]">
-                        {isAr ? "طلب غير مجاب" : "Unanswered demand"}
-                      </Pill>
-                      <p className="text-[12.5px] text-[var(--t1)] leading-relaxed">
-                        <span className="font-arabic" dir="rtl">؟بكام</span> (&quot;how much?&quot;) was asked{" "}
-                        <strong className="font-mono text-white">48 times</strong> on the Vitamin C serum Reel. 19 of those got no reply within 1 hour.
-                      </p>
-                    </div>
-                    <Button asChild variant="default" size="sm" className="w-fit">
-                      <Link href="/dashboard/automations">
-                        <Zap className="size-3 text-[var(--gold)]" />
-                        <span>{isAr ? "إنشاء رد تلقائي للسعر" : "Create price auto-reply"}</span>
-                      </Link>
-                    </Button>
-                  </div>
-
-                  {/* Suggestion 2: Best performer */}
-                  <div className="p-4 flex flex-col justify-between gap-3 bg-[var(--s1)]">
-                    <div className="space-y-2">
-                      <Pill variant="blue" dot={false} className="text-[10.5px]">
-                        {isAr ? "الأفضل أداءً" : "Best performer"}
-                      </Pill>
-                      <p className="text-[12.5px] text-[var(--t1)] leading-relaxed">
-                        &quot;Glow kit&quot; comment-to-DM converted{" "}
-                        <strong className="font-mono text-white">14.2%</strong> of commenters to leads, 3× your average flow.
-                      </p>
-                    </div>
-                    <Button asChild variant="default" size="sm" className="w-fit">
-                      <Link href="/dashboard/automations">
-                        <RefreshCcw className="size-3" />
-                        <span>{isAr ? "إعادة الاستخدام في الريل القادم" : "Reuse on next Reel"}</span>
-                      </Link>
-                    </Button>
-                  </div>
-
-                  {/* Suggestion 3: Leak */}
-                  <div className="p-4 flex flex-col justify-between gap-3 bg-[var(--s1)]">
-                    <div className="space-y-2">
-                      <Pill variant="red" dot={false} className="text-[10.5px]">
-                        {isAr ? "تسريب عملاء" : "Leak"}
-                      </Pill>
-                      <p className="text-[12.5px] text-[var(--t1)] leading-relaxed">
-                        <strong className="font-mono text-white">22 WhatsApp chats</strong> passed the 24-hour window before a human replied. Most arrived after 10 PM.
-                      </p>
-                    </div>
-                    <Button asChild variant="default" size="sm" className="w-fit">
-                      <Link href="/dashboard/ai-engine">
-                        <Clock className="size-3" />
-                        <span>{isAr ? "ضبط تحويل المحادثات خارج أوقات العمل" : "Set after-hours AI handoff"}</span>
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-          )}
-
           {/* ─── Bottom Grid (Activity ~2fr, Attention & Channels ~1fr) ─── */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             {/* Left Column: Activity Feed (7 cols) */}
