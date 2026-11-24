@@ -3,7 +3,7 @@
 import React, { useState } from "react"
 import useSWR from "swr"
 import { useRouter } from "next/navigation"
-import { Pill } from "@/components/ui/Pill"
+import { PlanCardBody } from "@/components/billing/PlanCardBody"
 import { cn } from "@/lib/utils"
 import { fetcher } from "@/lib/fetcher"
 
@@ -36,14 +36,14 @@ export function formatEgp(value: number | null | undefined): string | null {
 
 /**
  * Plans and prices straight from the plans table (Admin -> Plans). Nothing
- * here is invented: a plan without an EGP price shows "Price on checkout".
+ * here is invented.
  */
 export function PlansComparisonRow({ currentPlanId = null, onSelectPlan }: PlansComparisonRowProps) {
   const [isAnnual, setIsAnnual] = useState(false)
   const router = useRouter()
   const { data, error, isLoading } = useSWR<DbPlan[]>("/api/plans", fetcher, { revalidateOnFocus: false })
   const plans = Array.isArray(data) ? data.filter((p) => !p.is_contact_sales) : []
-  const hasYearly = plans.some((p) => p.price_yearly_egp != null)
+  const hasYearly = plans.some((p) => p.price_yearly != null)
 
   const select = (plan: DbPlan) => {
     if (plan.id === currentPlanId) return
@@ -83,76 +83,33 @@ export function PlansComparisonRow({ currentPlanId = null, onSelectPlan }: Plans
           {error ? "Couldn't load plans. Try again in a moment." : "No plans are available right now."}
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={cn("grid grid-cols-1 gap-6", plans.length >= 3 ? "md:grid-cols-3" : plans.length === 2 ? "md:grid-cols-2" : "")}>
           {plans.map((p) => {
             const isCurrent = p.id === currentPlanId
             const lifetime = p.billing_cycle === "lifetime"
-            const price = formatEgp(isAnnual && !lifetime ? p.price_yearly_egp ?? null : p.price_egp ?? null)
-            const per = lifetime ? "once" : isAnnual ? "/yr" : "/mo"
+            const yearly = isAnnual && !lifetime && p.price_yearly != null
+            const usd = yearly ? p.price_yearly : p.price_usd
+            const egp = formatEgp(yearly ? p.price_yearly_egp ?? null : p.price_egp ?? null)
+            const per = lifetime ? "once" : yearly ? "/yr" : "/mo"
+            const lines = [...new Set([...(p.feature_lines || []), ...(p.features || [])])]
             return (
               <div
                 key={p.id}
-                role={isCurrent ? "region" : "button"}
-                tabIndex={isCurrent ? undefined : 0}
-                aria-label={isCurrent ? `${p.name} plan (Current)` : `Select ${p.name} plan`}
-                onClick={() => select(p)}
-                onKeyDown={(e) => {
-                  if (!isCurrent && (e.key === "Enter" || e.key === " ")) {
-                    e.preventDefault()
-                    select(p)
-                  }
-                }}
                 className={cn(
-                  "rounded-xl border p-4.5 flex flex-col justify-between space-y-4 transition-all text-start",
-                  isCurrent
-                    ? "border-[var(--goldline)] bg-[var(--s2)] shadow-xs"
-                    : "border-[var(--line)] bg-[var(--s1)] hover:border-[var(--line2)] hover:bg-[var(--s2)]/40 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--gold)]",
+                  "flex flex-col rounded-2xl border bg-[#0d0e13] p-7 transition-all duration-300",
+                  isCurrent ? "border-[#e5a93c]/60 shadow-[0_0_0_1px_rgba(229,169,60,0.25)]" : "border-white/[0.12] hover:-translate-y-1 hover:border-white/[0.25]",
                 )}
               >
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[13px] font-semibold text-[var(--t1)]">{p.name}</span>
-                    {isCurrent && (
-                      <Pill variant="gold" dot={false} className="text-[10px] h-4">
-                        Current
-                      </Pill>
-                    )}
-                  </div>
-                  <div>
-                    {price ? (
-                      <>
-                        <span className="font-mono text-[20px] font-semibold text-[var(--t1)] tabular-nums">
-                          <bdi>{price}</bdi>
-                        </span>
-                        <span className="text-[11px] text-[var(--t3)] font-mono ms-1">{per}</span>
-                      </>
-                    ) : (
-                      <span className="text-[12px] text-[var(--t3)]">Price on checkout</span>
-                    )}
-                  </div>
-                  {[...new Set([...(p.feature_lines || []), ...(p.features || [])])].length > 0 && (
-                    <div className="space-y-1.5 text-[11.5px] text-[var(--t2)] pt-1">
-                      {[...new Set([...(p.feature_lines || []), ...(p.features || [])])].slice(0, 8).map((feat) => (
-                        <div key={feat} className="flex items-center gap-1.5">
-                          <span className="text-[var(--t4)]">•</span>
-                          <span>{feat}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="pt-2">
-                  <div
-                    className={cn(
-                      "h-[28px] rounded-[6px] border flex items-center justify-center text-[11.5px] font-medium",
-                      isCurrent
-                        ? "border-[var(--goldline)] bg-[var(--goldbg)] text-[var(--gold2)]"
-                        : "border-[var(--line)] bg-[var(--s2)] text-[var(--t2)]",
-                    )}
-                  >
-                    {isCurrent ? "Current plan" : `Choose ${p.name}`}
-                  </div>
-                </div>
+                <PlanCardBody
+                  name={p.name}
+                  description={p.description}
+                  usd={usd}
+                  egp={egp}
+                  period={per}
+                  lines={lines}
+                  featured={isCurrent}
+                  cta={{ label: isCurrent ? "Current plan" : `Choose ${p.name}`, onClick: () => select(p), disabled: isCurrent }}
+                />
               </div>
             )
           })}

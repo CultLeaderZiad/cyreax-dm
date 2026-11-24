@@ -1,5 +1,6 @@
 "use client"
 
+import { PlanCardBody } from "@/components/billing/PlanCardBody"
 import ReflectiveCard from "@/components/reactbits/ReflectiveCard"
 import { useState } from "react"
 import { CheckCircle, Zap, Star } from "lucide-react"
@@ -164,46 +165,18 @@ export default function PricingClient({ plans }: { plans: any[] }) {
               const egp = isAnnual ? plan.price_yearly_egp : plan.price_egp
               const lines: string[] = (plan.features || []).filter((f: string) => !f.toLowerCase().includes("only one platform"))
               const body = (
-                <>
-                  <div className="mb-8">
-                    <div className="flex items-center gap-2 mb-2">
-                      {isFeatured && <Star className="w-5 h-5 text-[#e5a93c]" />}
-                      <h3 className={`text-xl font-bold ${isFeatured ? "text-[#e5a93c]" : "text-white"}`}>{plan.name}</h3>
-                    </div>
-                    {plan.description && <p className={`${isFeatured ? "text-white/80" : "text-neutral-400"} text-sm`}>{plan.description}</p>}
-                    <div className="mt-4 flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-white font-mono-ui" dir="ltr">${usd}</span>
-                      <span className={`${isFeatured ? "text-white/75" : "text-neutral-500"} text-xs`}>
-                        {plan.billing_cycle === "lifetime" ? (isAr ? "مرة واحدة" : "once") : `/${isAnnual ? (isAr ? "سنة" : "yr") : (isAr ? "شهر" : "mo")}`}
-                      </span>
-                    </div>
-                    {egp ? (
-                      <p className={`mt-1 text-xs ${isFeatured ? "text-white/70" : "text-neutral-500"}`} dir="ltr">
-                        {isAr ? "في مصر: " : "In Egypt: "}EGP {money(egp)}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <ul className="space-y-3 mb-8 flex-1">
-                    {lines.map((f) => (
-                      <li key={f} className={`flex items-start gap-3 text-sm ${isFeatured ? "text-white/90" : "text-neutral-300"}`}>
-                        <CheckCircle className={`w-5 h-5 shrink-0 ${isFeatured ? "text-[#e5a93c]" : "text-neutral-500"}`} />
-                        <span>{translateFeature(f)}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {renderPlatformIcons(plan)}
-
-                  <Link
-                    href={`/checkout/${plan.id}${isAnnual ? "?cycle=yearly" : ""}`}
-                    className={`mt-6 w-full block text-center font-bold py-3 rounded-xl transition-all font-mono-ui text-xs uppercase tracking-wider ${
-                      isFeatured ? "bg-[#e5a93c] hover:bg-[#d4952b] text-black shadow-lg" : "bg-white/10 hover:bg-white/20 text-white"
-                    }`}
-                  >
-                    {`${t.selectPlan || "Select"} ${plan.name}`}
-                  </Link>
-                </>
+                <PlanCardBody
+                  name={plan.name}
+                  description={plan.description}
+                  usd={usd}
+                  egp={egp ? `EGP ${money(egp)}` : null}
+                  period={plan.billing_cycle === "lifetime" ? (isAr ? "مرة واحدة" : "once") : `/${isAnnual ? (isAr ? "سنة" : "yr") : (isAr ? "شهر" : "mo")}`}
+                  lines={lines.map(translateFeature)}
+                  featured={isFeatured}
+                  isAr={isAr}
+                  extra={renderPlatformIcons(plan)}
+                  cta={{ label: `${t.selectPlan || "Select"} ${plan.name}`, href: `/checkout/${plan.id}${isAnnual ? "?cycle=yearly" : ""}` }}
+                />
               )
               return (
                 <div key={plan.id} className="relative pt-4 flex flex-col h-full">
@@ -233,7 +206,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
                       </div>
                     </ReflectiveCard>
                   ) : (
-                    <div className="p-8 flex flex-col h-full bg-[#0d0e13]/85 border border-white/[0.08] hover:border-white/[0.16] rounded-2xl relative shadow-xl backdrop-blur-md transition-all duration-300">
+                    <div className="p-8 flex flex-col h-full bg-[#0d0e13] border border-white/[0.12] hover:border-white/[0.25] hover:-translate-y-1 rounded-2xl relative shadow-xl transition-all duration-300">
                       {body}
                     </div>
                   )}
@@ -244,7 +217,7 @@ export default function PricingClient({ plans }: { plans: any[] }) {
             {/* Enterprise / contact sales: only when the admin created such a plan. */}
             {enterprisePlan && (
               <div className="relative pt-4 flex flex-col h-full">
-                <div className="p-8 flex flex-col h-full bg-[#0d0e13]/85 border border-white/[0.08] hover:border-white/[0.16] rounded-2xl relative shadow-xl backdrop-blur-md transition-all duration-300">
+                <div className="p-8 flex flex-col h-full bg-[#0d0e13] border border-white/[0.12] hover:border-white/[0.25] hover:-translate-y-1 rounded-2xl relative shadow-xl transition-all duration-300">
                   <div className="mb-8">
                     <div className="flex items-center gap-2 mb-2">
                       <Zap className="w-5 h-5 text-white" />

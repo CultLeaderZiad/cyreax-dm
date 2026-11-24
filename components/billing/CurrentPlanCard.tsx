@@ -167,13 +167,13 @@ export function CurrentPlanCard({
           <div className="flex items-center justify-between text-[11.5px]">
             <span className="text-[var(--t3)]">Paid with</span>
             <span className="text-[var(--t1)] font-medium">
-              {paymentProvider === "whop" ? "Card (Whop)" : "E-wallet / InstaPay"}
+              {paymentProvider === "whop" ? "Card" : "E-wallet / InstaPay"}
             </span>
           </div>
         )}
         {paymentProvider === "whop" && cancelAtPeriodEnd && (
           <p className="text-[11.5px] text-[var(--amber)]">
-            Set to cancel{periodEndLabel ? ` on ${periodEndLabel}` : " at the end of the period"}. Manage it on Whop to keep it.
+            Set to cancel{periodEndLabel ? ` on ${periodEndLabel}` : " at the end of the period"}. Use Manage subscription to keep it.
           </p>
         )}
 
