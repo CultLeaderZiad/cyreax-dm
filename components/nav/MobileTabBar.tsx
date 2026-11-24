@@ -80,8 +80,13 @@ export function MobileTabBar({
             icon: Shield,
             children: [
               { id: "users", label: "Users", href: "/dashboard/admin" },
+              { id: "onboarding", label: "Onboarding", href: "/dashboard/admin/onboarding" },
               { id: "plans", label: "Plans", href: "/dashboard/admin/plans" },
-              { id: "trials", label: "Trials", href: "/dashboard/admin/enterprise" },
+              { id: "payments", label: "Payments", href: "/dashboard/admin/payments" },
+              { id: "support", label: "Support inbox", href: "/dashboard/admin/support" },
+              { id: "enterprise", label: "Enterprise inquiries", href: "/dashboard/admin/enterprise" },
+              { id: "campaigns", label: "Campaigns", href: "/dashboard/admin/campaigns" },
+              { id: "agents", label: "Agents catalog", href: "/dashboard/admin/agents" },
             ],
           },
         ]

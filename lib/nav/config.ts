@@ -143,7 +143,9 @@ export const NAV: NavItem[] = [
       { id: "plans", label: "Plans", href: "/dashboard/admin/plans" },
       { id: "payments", label: "Payments", href: "/dashboard/admin/payments" },
       { id: "support", label: "Support inbox", href: "/dashboard/admin/support" },
-      { id: "trials", label: "Trials", href: "/dashboard/admin/enterprise" },
+      { id: "enterprise", label: "Enterprise inquiries", href: "/dashboard/admin/enterprise" },
+      { id: "campaigns", label: "Campaigns", href: "/dashboard/admin/campaigns" },
+      { id: "agents", label: "Agents catalog", href: "/dashboard/admin/agents" },
     ],
   },
 ]
