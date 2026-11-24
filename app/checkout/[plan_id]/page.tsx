@@ -38,7 +38,7 @@ export default async function CheckoutPage(props: {
   // Amount, plan and reference are decided here and signed, so the browser
   // can't change them before submitting the proof.
   const terms = checkoutTerms(plan, cycle)
-  // Card (Whop) for everyone; wallet / InstaPay only for Egyptian customers
+  // Card  for everyone; wallet / InstaPay only for Egyptian customers
   // (the manual payment API enforces the same rule).
   const egyptian = isEgyptianCustomer({ accountCountry: user.country, headers: await headers() })
   const whopAvailable = Boolean(whopConfig() && variantForPlan(plan, cycle))
@@ -73,7 +73,7 @@ export default async function CheckoutPage(props: {
           priceText={cardPrice}
           available={whopAvailable}
         />
-        {egyptian && (
+        {egyptian && (quote || !whopAvailable) && (
           <>
             <div className="flex items-center gap-3 text-xs uppercase tracking-wider text-neutral-500">
               <span className="h-px flex-1 bg-white/10" />

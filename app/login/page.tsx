@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { checkoutNext } from "@/lib/auth-redirect"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { getSupabaseBrowserClient } from "@/lib/supabase-client"
@@ -19,6 +20,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   
+  // A visitor who picked a plan before logging in goes on to that plan's checkout.
+  const [carry, setCarry] = useState("")
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search)
+    if (checkoutNext(q.get("plan_id"), q.get("cycle"))) setCarry(`?plan_id=${q.get("plan_id")}${q.get("cycle") === "yearly" ? "&cycle=yearly" : ""}`)
+  }, [])
   let supabase: ReturnType<typeof getSupabaseBrowserClient>
   try {
     supabase = getSupabaseBrowserClient()
@@ -32,6 +39,11 @@ export default function LoginPage() {
         </div>
       </div>
     )
+  }
+
+  const nextAfterLogin = () => {
+    const q = new URLSearchParams(window.location.search)
+    return checkoutNext(q.get("plan_id"), q.get("cycle")) || "/dashboard"
   }
 
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -48,7 +60,7 @@ export default function LoginPage() {
       setError(error.message)
       setLoading(false)
     } else {
-      window.location.href = "/dashboard"
+      window.location.href = nextAfterLogin()
     }
   }
 
@@ -58,7 +70,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/api/auth/callback`,
+        redirectTo: `${window.location.origin}/api/auth/callback${nextAfterLogin() !== "/dashboard" ? `?next=${encodeURIComponent(nextAfterLogin())}` : ""}`,
       },
     })
     
@@ -179,7 +191,7 @@ export default function LoginPage() {
         
         <p className="mt-8 text-center text-xs text-zinc-400">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-semibold text-[#e5a93c] hover:text-[#d4952b] transition-colors">
+          <Link href={`/signup${carry}`} className="font-semibold text-[#e5a93c] hover:text-[#d4952b] transition-colors">
             Start free trial
           </Link>
         </p>

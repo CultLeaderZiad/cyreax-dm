@@ -4,7 +4,7 @@ import { useState } from "react"
 import { CreditCard, Loader2 } from "lucide-react"
 
 /**
- * "Pay with card (Whop)". Asks our server for a Whop checkout tied to the
+ * "Pay with card". Asks our server for a Whop checkout tied to the
  * signed-in account, then sends the browser to Whop's hosted checkout.
  * Access is granted by the Whop webhook, never by this page.
  */
@@ -68,10 +68,10 @@ export default function WhopCardOption({
             className="w-full inline-flex items-center justify-center gap-2 bg-[#e5a93c] hover:bg-[#d4952b] text-black font-bold py-3 rounded-xl text-sm disabled:opacity-60"
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            Pay with card (Whop)
+            Pay with card
           </button>
           <p className="text-xs text-neutral-500">
-            Secure checkout on Whop. Your plan activates as soon as Whop confirms the payment.
+            Secure card checkout. Your plan activates as soon as the payment is confirmed.
           </p>
         </>
       ) : (

@@ -227,7 +227,7 @@ function BillingPageContent() {
             <div className="rounded-[12px] border border-[var(--line)] bg-[var(--s1)] p-4 space-y-2 text-[13px] text-[var(--t2)]">
               {data?.paymentProvider === "whop" ? (
                 <>
-                  <p>Paid by card through Whop.</p>
+                  <p>Paid by card.</p>
                   {data?.manageUrl && (
                     <a href={data.manageUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-[var(--gold2)]">
                       Manage subscription
@@ -296,7 +296,7 @@ function BillingPageContent() {
               <h3 className="text-[14px] font-semibold text-[var(--t1)]">Payment</h3>
               <p className="text-[12.5px] text-[var(--t2)]">
                 {data?.paymentProvider === "whop"
-                  ? "Your card is billed by Whop. Update the card, see receipts or cancel with Manage subscription."
+                  ? "Your card subscription: update the card, see receipts or cancel with Manage subscription."
                   : "Pay by card at checkout. Choose a plan below to continue."}
               </p>
               {data?.paymentProvider === "whop" && data?.manageUrl && (

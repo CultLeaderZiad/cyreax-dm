@@ -1,4 +1,4 @@
-import { applyEntitlements, featureEnabled, limitFor, meterPeriod, resolvePlan, type FeatureKey, type MeterKey, type ResolvedPlan } from "@/lib/billing/plans"
+import { TRIAL_PLAN_ID, applyEntitlements, featureEnabled, limitFor, meterPeriod, resolvePlan, trialPhase, type FeatureKey, type MeterKey, type ResolvedPlan } from "@/lib/billing/plans"
 import { channelSlots, judgeUsage, slotsAfterConnect, type ChannelConnection, type ChannelProfile, type UsageJudgement } from "@/lib/billing/usage"
 
 export class PlanLimitError extends Error {
@@ -114,14 +114,18 @@ async function resolveBasePlan(supabase: any, account: AccountGate, nowMs: numbe
     return resolvePlan("expired")
   }
   // A finished trial is not a free tier: access is paused until a plan is paid.
-  if (billing?.status === "trialing" && billing.trial_ends_at && Date.parse(billing.trial_ends_at) <= nowMs) {
-    return resolvePlan("expired")
+  if (billing?.status === "trialing" && billing.trial_ends_at) {
+    const phase = trialPhase(Date.parse(billing.trial_ends_at), nowMs)
+    if (phase === "over") return resolvePlan("expired")
+    if (phase === "grace") return resolvePlan(TRIAL_PLAN_ID)
   }
   if (billing?.status === "active" || billing?.status === "past_due" || billing?.status === "trialing") {
     if (billing.plan_id) return resolvePlan(billing.plan_id)
   }
-  if (account.plan === "trial" && account.trial_ends_at && !account.trial_exempt && Date.parse(account.trial_ends_at) <= nowMs) {
-    return resolvePlan("expired")
+  if (account.plan === "trial" && account.trial_ends_at && !account.trial_exempt) {
+    const phase = trialPhase(Date.parse(account.trial_ends_at), nowMs)
+    if (phase === "over") return resolvePlan("expired")
+    if (phase === "grace") return resolvePlan(TRIAL_PLAN_ID)
   }
   return resolvePlan(account.plan)
 }

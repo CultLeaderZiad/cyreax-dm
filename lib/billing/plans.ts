@@ -49,6 +49,15 @@ export interface PlanDefinition {
 export const SOFT_LIMIT_RATIO = 0.8
 /** Free trial for every new account: no card, Pro features. */
 export const TRIAL_DAYS = 7
+/** After the trial ends the account keeps working for this long, with a countdown, so the owner can subscribe without losing a beat. */
+export const TRIAL_GRACE_HOURS = 12
+export const TRIAL_GRACE_MS = TRIAL_GRACE_HOURS * 3_600_000
+
+/** running: trial not over. grace: over, still inside the grace window. over: paused until a plan is paid. */
+export function trialPhase(trialEndsAtMs: number, nowMs: number): "running" | "grace" | "over" {
+  if (nowMs < trialEndsAtMs) return "running"
+  return nowMs < trialEndsAtMs + TRIAL_GRACE_MS ? "grace" : "over"
+}
 /** The tier a running trial uses (Pro). */
 export const TRIAL_PLAN_ID = "creator_plus"
 export const DUNNING_GRACE_DAYS = 7

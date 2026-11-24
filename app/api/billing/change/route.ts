@@ -6,15 +6,25 @@ import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { schedulePlanChange } from "@/lib/billing/lifecycle"
 import { syncLegacyPlanMirrors } from "@/lib/billing/activation"
 import { resolvePlan } from "@/lib/billing/plans"
+import { activePeriodValid } from "@/lib/billing/enforce"
 
 export async function POST(request: NextRequest) {
   const session = await requireSessionUser(request)
   if (session.response) return session.response
   const body = await request.json().catch(() => ({}))
   const next = resolvePlan(String(body.planId || ""))
-  if (!body.planId || next.id === "expired") return NextResponse.json({ error: "Unknown plan." }, { status: 400 })
+  // Only the plans that are sold can be chosen: never the internal Free or Unlimited tiers.
+  if (!body.planId || next.id === "expired" || next.hidden) return NextResponse.json({ error: "Unknown plan." }, { status: 400 })
   const supabase = await getSupabaseBypassClient()
-  const billing = await supabase.from("billing_accounts").select("plan_id, status, current_period_end").eq("account_id", session.user.id).maybeSingle()
+  const billing = await supabase.from("billing_accounts").select("plan_id, status, interval, current_period_end").eq("account_id", session.user.id).maybeSingle()
+  // A plan change is a service for someone who has PAID. Anyone else (trial,
+  // expired, canceled, never paid) goes through checkout, whatever the plan.
+  const paid = Boolean(
+    billing.data &&
+      (billing.data.status === "active" || billing.data.status === "past_due") &&
+      activePeriodValid(billing.data as any),
+  )
+  if (!paid) return NextResponse.json({ checkoutRequired: true, planId: next.id })
   const currentPlan = billing.data?.plan_id || session.user.plan || "creator_free"
   const change = schedulePlanChange({
     currentPlan,

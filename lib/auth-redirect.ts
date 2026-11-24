@@ -69,3 +69,16 @@ export function safeAuthNext(
 
   return cleaned
 }
+
+
+const PLAN_ID = /^[0-9a-f-]{36}$/i
+
+/**
+ * Where to send a customer after they sign up or log in having picked a plan.
+ * Only a real plan id (uuid) is accepted, so the value that lands in the
+ * redirect can never be anything but /checkout/<uuid>[?cycle=yearly].
+ */
+export function checkoutNext(planId: string | null | undefined, cycle?: string | null): string | null {
+  if (!planId || !PLAN_ID.test(planId)) return null
+  return `/checkout/${planId}${cycle === "yearly" ? "?cycle=yearly" : ""}`
+}

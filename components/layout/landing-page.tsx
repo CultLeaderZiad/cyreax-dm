@@ -15,6 +15,8 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import Link from "next/link"
 import { BRAND } from "@/lib/brand"
+import { ChannelsStrip, FinalCta, HowItWorks, PlansTeaser } from "@/components/landing/LandingSections"
+import { Reveal, SpotlightCard } from "@/components/landing/motion"
 
 export function LandingPage() {
   const router = useRouter()
@@ -150,6 +152,8 @@ export function LandingPage() {
             </span>
           </div>
 
+          <ChannelsStrip isAr={isAr} />
+
           {/* Interactive Automation Preview Card (Explicitly labeled as Example) */}
           <div id="how" className="mt-14 max-w-4xl mx-auto rounded-2xl border border-white/10 bg-gradient-to-b from-[#0e0e14]/90 to-[#06060a]/90 p-4 sm:p-6 shadow-2xl backdrop-blur-xl text-start relative overflow-hidden scroll-mt-24">
             <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] mb-4">
@@ -260,6 +264,8 @@ export function LandingPage() {
         </div>
       </div>
 
+      <HowItWorks isAr={isAr} />
+
       {/* ═══════════════════════════════════════════ FEATURES ═══════════════════════════════════════════ */}
       <section id="features" className="px-5 md:px-10 py-24 max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-3 mb-12">
@@ -276,59 +282,79 @@ export function LandingPage() {
           </span>
         </div>
 
-        <div className="feature-grid grid md:grid-cols-3 gap-px bg-white/[0.06] border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl">
-          <Feature
-            icon={<MessageCircle className="w-5 h-5" />}
-            title={isAr ? "مسارات التحويل من التعليق للخاص" : "Comment → DM Funnels"}
-            desc={isAr ? "مشغلات الكلمات المفتاحية أو الرد على الجميع في أي منشور. اختر الرد في الخاص فقط، أو الرد العام فقط، أو كلاهما." : "Keyword or reply-all triggers on any post. Choose DM only, public reply only, or both — with your own rotating public replies."}
-          />
-          <Feature
-            icon={<Send className="w-5 h-5" />}
-            title={isAr ? "أتمتة الكلمات المفتاحية في الرسائل" : "DM Keyword Automation"}
-            desc={isAr ? "رد تلقائي على الرسائل الخاصة بالنصوص والوسائط وبطاقات الروابط التفاعلية مع أزرار سريعة لتوجيه الزوار." : "Auto-respond to DMs with text, media, or rich cards with clickable buttons. Quick-reply chips guide visitors effortlessly."}
-          />
-          <Feature
-            icon={<AtSign className="w-5 h-5" />}
-            title={isAr ? "مشغلات تفاعلات القصص" : "Story Triggers"}
-            desc={isAr ? "تفاعل فورياً مع الإشارات في القصص والتفاعلات بالرموز التعبيرية والردود، مع التصفية الذكية." : "React immediately to story mentions, emoji reactions, and story replies. Filter by emoji or specific keyword triggers."}
-          />
-          <Feature
-            icon={<Brain className="w-5 h-5" />}
-            title={isAr ? "محرك وكيل الذكاء الاصطناعي" : "AI Agent Engine"}
-            desc={isAr ? "زود الذكاء الاصطناعي بمعلومات حسابك ونبرة صوتك ومنتجاتك، ليفهم مشاعر الجمهور ويجيب كإنسان حقيقي." : "Feed it your real account context — niche, products, tone — and let AI classify sentiment and answer questions naturally."}
-          />
-          <Feature
-            icon={<Inbox className="w-5 h-5" />}
-            title={isAr ? "صندوق وارد حي موحد" : "Unified Live Inbox"}
-            desc={isAr ? "جميع المحادثات عبر القنوات المتصلة في لوحة تحكم واحدة فائقة السرعة مع إمكانية التدخل اليدوي." : "Every conversation across connected channels in one clean dashboard. Jump in manually anytime."}
-          />
-          <Feature
-            icon={<Lock className="w-5 h-5" />}
-            title={isAr ? "قفل المتابعة لزيادة المتابعين" : "Follow Gate Conversion"}
-            desc={isAr ? "اقفل الروابط الحصرية حتى يقوم المستخدم بالمتابعة. يتلقى غير المتابعين تذكيراً، ويتم الفتح فور المتابعة." : "Lock exclusive links and resources behind a follow. Non-followers get prompted, unlocking instantly upon following."}
-          />
-          <Feature
-            icon={<Sparkles className="w-5 h-5" />}
-            title={isAr ? "إرسال يحاكي السلوك الطبيعي" : "Natural Rate-Controlled Sending"}
-            desc={isAr ? "مؤشرات الكتابة وفترات التأخير تضمن وصول ردودك بشكل طبيعي وموثوق، مما يحمي أمان حسابك." : "Typing indicators and randomized delay jitter ensure replies land reliably, protecting account health."}
-          />
-          <Feature
-            icon={<Terminal className="w-5 h-5" />}
-            title={isAr ? "بنية سحابية آمنة" : "Secure Cloud Infrastructure"}
-            desc={isAr ? "مبني على Next.js وقواعد بيانات Supabase المعزولة لضمان أمان وسرية بيانات وحسابات المشتركين." : "Next.js + isolated Supabase tenant architecture to safeguard your credentials and conversations."}
-          />
-          <div className="bg-[#0c0c12] p-8 flex flex-col items-center justify-center text-center space-y-2 border-b border-e border-white/[0.05]">
-            <span className="text-xs font-mono-ui text-[#e5a93c] font-bold uppercase tracking-wider">
-              ✦ {isAr ? `منصة ${BRAND.name}` : `${BRAND.name} Platform`}
-            </span>
-            <p className="text-xs text-neutral-400 max-w-xs">
-              {isAr ? "صُممت للشركات الحديثة وصناع المحتوى والوكالات الرقمية." : "Built for high volume creators, modern brands, and marketing agencies."}
-            </p>
-          </div>
+        <div className="grid gap-5 md:grid-cols-3">
+          <Reveal className="md:col-span-2">
+            <SpotlightCard className="h-full p-8">
+              <div className="grid items-center gap-8 md:grid-cols-2">
+                <div>
+                  <div className="mb-5 flex size-12 items-center justify-center rounded-xl border border-[#e5a93c]/30 bg-[#e5a93c]/10 text-[#e5a93c]"><Brain className="size-6" /></div>
+                  <h3 className="mb-2 text-xl font-bold text-white">{isAr ? "محرك وكيل الذكاء الاصطناعي" : "AI Agent Engine"}</h3>
+                  <p className="text-sm leading-relaxed text-neutral-400">{isAr ? "زود الذكاء الاصطناعي بمعلومات حسابك ونبرة صوتك ومنتجاتك، ليفهم مشاعر الجمهور ويجيب كإنسان حقيقي." : "Feed it your real account context — niche, products, tone — and let AI classify sentiment and answer questions naturally."}</p>
+                </div>
+                <div aria-hidden="true" className="space-y-2.5 rounded-xl border border-white/10 bg-black/40 p-4 text-[12px]">
+                  <p className="text-[10px] uppercase tracking-widest text-neutral-500">{isAr ? "مثال توضيحي" : "Illustration"}</p>
+                  <div className="ms-auto w-fit max-w-[85%] rounded-xl rounded-ee-sm bg-white/10 px-3 py-2 text-neutral-200">{isAr ? "هل المنتج متوفر؟" : "Is this in stock?"}</div>
+                  <div className="w-fit max-w-[85%] rounded-xl rounded-es-sm border border-[#e5a93c]/30 bg-[#e5a93c]/10 px-3 py-2 text-neutral-100">{isAr ? "نعم، متوفر. تحب أرسل لك الرابط؟" : "Yes, it is. Want me to send you the link?"}</div>
+                </div>
+              </div>
+            </SpotlightCard>
+          </Reveal>
+          <Reveal delay={80}>
+            <FeatureTile
+              icon={<MessageCircle className="size-5" />}
+              title={isAr ? "مسارات التحويل من التعليق للخاص" : "Comment → DM Funnels"}
+              desc={isAr ? "مشغلات الكلمات المفتاحية أو الرد على الجميع في أي منشور. اختر الرد في الخاص فقط، أو الرد العام فقط، أو كلاهما." : "Keyword or reply-all triggers on any post. Choose DM only, public reply only, or both — with your own rotating public replies."}
+            />
+          </Reveal>
+          <Reveal delay={0}>
+            <FeatureTile
+              icon={<Send className="size-5" />}
+              title={isAr ? "أتمتة الكلمات المفتاحية في الرسائل" : "DM Keyword Automation"}
+              desc={isAr ? "رد تلقائي على الرسائل الخاصة بالنصوص والوسائط وبطاقات الروابط التفاعلية مع أزرار سريعة لتوجيه الزوار." : "Auto-respond to DMs with text, media, or rich cards with clickable buttons. Quick-reply chips guide visitors effortlessly."}
+            />
+          </Reveal>
+          <Reveal delay={80}>
+            <FeatureTile
+              icon={<AtSign className="size-5" />}
+              title={isAr ? "مشغلات تفاعلات القصص" : "Story Triggers"}
+              desc={isAr ? "تفاعل فورياً مع الإشارات في القصص والتفاعلات بالرموز التعبيرية والردود، مع التصفية الذكية." : "React immediately to story mentions, emoji reactions, and story replies. Filter by emoji or specific keyword triggers."}
+            />
+          </Reveal>
+          <Reveal delay={160}>
+            <FeatureTile
+              icon={<Inbox className="size-5" />}
+              title={isAr ? "صندوق وارد حي موحد" : "Unified Live Inbox"}
+              desc={isAr ? "جميع المحادثات عبر القنوات المتصلة في لوحة تحكم واحدة فائقة السرعة مع إمكانية التدخل اليدوي." : "Every conversation across connected channels in one clean dashboard. Jump in manually anytime."}
+            />
+          </Reveal>
+          <Reveal delay={0}>
+            <FeatureTile
+              icon={<Lock className="size-5" />}
+              title={isAr ? "قفل المتابعة لزيادة المتابعين" : "Follow Gate Conversion"}
+              desc={isAr ? "اقفل الروابط الحصرية حتى يقوم المستخدم بالمتابعة. يتلقى غير المتابعين تذكيراً، ويتم الفتح فور المتابعة." : "Lock exclusive links and resources behind a follow. Non-followers get prompted, unlocking instantly upon following."}
+            />
+          </Reveal>
+          <Reveal delay={80}>
+            <FeatureTile
+              icon={<Sparkles className="size-5" />}
+              title={isAr ? "إرسال يحاكي السلوك الطبيعي" : "Natural Rate-Controlled Sending"}
+              desc={isAr ? "مؤشرات الكتابة وفترات التأخير تضمن وصول ردودك بشكل طبيعي وموثوق، مما يحمي أمان حسابك." : "Typing indicators and randomized delay jitter ensure replies land reliably, protecting account health."}
+            />
+          </Reveal>
+          <Reveal delay={160}>
+            <FeatureTile
+              icon={<Terminal className="size-5" />}
+              title={isAr ? "بنية سحابية آمنة" : "Secure Cloud Infrastructure"}
+              desc={isAr ? "مبني على Next.js وقواعد بيانات Supabase المعزولة لضمان أمان وسرية بيانات وحسابات المشتركين." : "Next.js + isolated Supabase tenant architecture to safeguard your credentials and conversations."}
+            />
+          </Reveal>
         </div>
       </section>
 
+      <PlansTeaser isAr={isAr} />
+
       {/* ═══════════════════════════════════════════ UPDATES ═══════════════════════════════════════════ */}
+      {(isLoadingUpdates || updatesContent) && (
       <section id="updates" className="px-5 md:px-10 py-16 max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/[0.08]">
           <div>
@@ -367,9 +393,10 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* ═══════════════════════════════════════════ COMMUNITY / SOCIALS ═══════════════════════════════════════════ */}
-      {Object.keys(BRAND.socials).length > 0 && (
+      {Object.values(BRAND.socials).some(Boolean) && (
         <section className="px-5 md:px-10 py-16 max-w-4xl mx-auto">
           <div className="bg-[#0b0b10] border border-white/10 rounded-2xl p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
             <div>
@@ -418,6 +445,8 @@ export function LandingPage() {
         </section>
       )}
 
+      <FinalCta isAr={isAr} onStart={handleSignup} />
+
       {/* ═════════════════════════════════════════ FOOTER ═══════════════════════════════════════════ */}
       </main>
       <Footer />
@@ -425,20 +454,16 @@ export function LandingPage() {
   )
 }
 
-/* ═══════════════════════════════════════════ FEATURE CARD ═══════════════════════════════════════════ */
-function Feature({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
+/* ═══════════════════════════════════════════ FEATURE TILE ═══════════════════════════════════════════ */
+function FeatureTile({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="feature-card bg-[#03010A] p-7 sm:p-8 group hover:bg-[#0c0c14] transition-colors duration-200 border-b border-e border-white/[0.05] relative">
-      <div className="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center text-neutral-400 group-hover:text-black group-hover:bg-[#e5a93c] group-hover:border-[#e5a93c] transition-all duration-200 mb-5">
+    <SpotlightCard className="h-full p-7">
+      <div className="mb-5 flex size-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-neutral-300 transition-all duration-300 group-hover:border-[#e5a93c] group-hover:bg-[#e5a93c] group-hover:text-black">
         {icon}
       </div>
-      <h3 className="font-mono-ui text-sm font-bold text-white mb-2 group-hover:text-[#e5a93c] transition-colors duration-200">
-        {title}
-      </h3>
-      <p className="text-[13px] text-neutral-400 leading-relaxed group-hover:text-neutral-300 transition-colors duration-200">
-        {desc}
-      </p>
-    </div>
+      <h3 className="mb-2 text-base font-bold text-white transition-colors duration-200 group-hover:text-[#e5a93c]">{title}</h3>
+      <p className="text-[13.5px] leading-relaxed text-neutral-400 transition-colors duration-200 group-hover:text-neutral-300">{desc}</p>
+    </SpotlightCard>
   )
 }
 

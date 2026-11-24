@@ -1,11 +1,11 @@
 "use client"
 
-import Link from "next/link"
 import useSWR from "swr"
 import { LogOut, RefreshCw } from "lucide-react"
 import { fetcher } from "@/lib/fetcher"
 import { formatEgp, type DbPlan } from "@/components/billing/PlansComparisonRow"
 import { Button } from "@/components/ui/button"
+import { PlanCardBody } from "@/components/billing/PlanCardBody"
 
 /**
  * Shown instead of the dashboard when the free trial (or a paid period) has
@@ -48,37 +48,20 @@ export function PlanGate({
             Plans could not be loaded. Refresh in a moment, or contact support.
           </p>
         ) : (
-          <div className={`grid gap-4 ${plans.length >= 3 ? "md:grid-cols-3" : plans.length === 2 ? "md:grid-cols-2" : ""}`}>
-            {plans.map((plan) => {
-              const egp = formatEgp(plan.price_egp)
-              return (
-                <div key={plan.id} className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-5 flex flex-col gap-4">
-                  <div>
-                    <h2 className="text-[15px] font-semibold">{plan.name}</h2>
-                    <p className="mt-2 font-mono text-[22px] font-semibold tabular-nums" dir="ltr">
-                      ${plan.price_usd}
-                      <span className="text-[11px] text-[var(--t3)] ms-1">{plan.billing_cycle === "lifetime" ? "once" : "/mo"}</span>
-                    </p>
-                    {egp && (
-                      <p className="text-[11.5px] text-[var(--t3)]" dir="ltr">
-                        In Egypt: {egp}
-                      </p>
-                    )}
-                  </div>
-                  <ul className="space-y-1 text-[12px] text-[var(--t2)] flex-1">
-                    {[...new Set([...(plan.feature_lines || []), ...(plan.features || [])])].slice(0, 8).map((line) => (
-                      <li key={line}>• {line}</li>
-                    ))}
-                  </ul>
-                  <Link
-                    href={`/checkout/${encodeURIComponent(plan.id)}`}
-                    className="h-[38px] rounded-[8px] bg-[var(--gold)] text-black font-semibold text-[13px] flex items-center justify-center hover:bg-[var(--gold2)] transition-colors"
-                  >
-                    Choose {plan.name}
-                  </Link>
-                </div>
-              )
-            })}
+          <div className={`grid gap-6 ${plans.length >= 3 ? "md:grid-cols-3" : plans.length === 2 ? "md:grid-cols-2" : ""}`}>
+            {plans.map((plan) => (
+              <div key={plan.id} className="flex flex-col rounded-2xl border border-white/[0.12] bg-[#0d0e13] p-7 transition-all duration-300 hover:-translate-y-1 hover:border-white/[0.25]">
+                <PlanCardBody
+                  name={plan.name}
+                  description={plan.description}
+                  usd={plan.price_usd}
+                  egp={formatEgp(plan.price_egp)}
+                  period={plan.billing_cycle === "lifetime" ? "once" : "/mo"}
+                  lines={[...new Set([...(plan.feature_lines || []), ...(plan.features || [])])]}
+                  cta={{ label: `Choose ${plan.name}`, href: `/checkout/${encodeURIComponent(plan.id)}` }}
+                />
+              </div>
+            ))}
           </div>
         )}
 

@@ -2,61 +2,80 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { X, Clock } from "lucide-react"
+import { X, Clock, AlertTriangle } from "lucide-react"
+import { TRIAL_GRACE_MS, trialPhase } from "@/lib/billing/plans"
 
+function countdown(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  return `${h}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`
+}
+
+/**
+ * Running trial: days left (dismissible). Trial over: a live countdown of the
+ * grace window that cannot be dismissed, because access stops when it ends.
+ */
 export function TrialBanner({ plan, trialEndsAt }: { plan: string; trialEndsAt: string | null }) {
   const [dismissed, setDismissed] = useState(true)
-  const [daysRemaining, setDaysRemaining] = useState<number | null>(null)
+  const [now, setNow] = useState<number | null>(null)
 
   useEffect(() => {
-    if (sessionStorage.getItem("trial_banner_dismissed") === "true") {
-      return
-    }
-
-    if (plan !== "trial" || !trialEndsAt) {
-      return
-    }
-
-    const end = new Date(trialEndsAt).getTime()
-    const now = Date.now()
-    const diff = end - now
-
-    if (diff > 0) {
-      const days = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)))
-      setDaysRemaining(days)
+    setNow(Date.now())
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    try {
+      setDismissed(sessionStorage.getItem("trial_banner_dismissed") === "true")
+    } catch {
       setDismissed(false)
     }
-  }, [plan, trialEndsAt])
+    return () => window.clearInterval(timer)
+  }, [])
 
-  if (dismissed || plan !== "trial" || daysRemaining === null) {
-    return null
-  }
+  if (plan !== "trial" || !trialEndsAt || now === null) return null
+  const end = new Date(trialEndsAt).getTime()
+  if (!Number.isFinite(end)) return null
+  const phase = trialPhase(end, now)
+  if (phase === "over") return null
 
-  const handleDismiss = () => {
-    setDismissed(true)
-    sessionStorage.setItem("trial_banner_dismissed", "true")
-  }
-
-  return (
-    <div className="h-9 bg-[var(--s2)] border-b border-[var(--line)] text-[var(--t2)] px-4 flex items-center justify-between text-[12px] select-none z-20 relative">
-      <div className="flex items-center gap-2 mx-auto">
-        <Clock className="size-3.5 text-[var(--t3)] shrink-0" />
+  if (phase === "grace") {
+    return (
+      <div role="alert" className="relative z-20 flex min-h-10 select-none items-center justify-center gap-3 border-b border-[var(--gold)]/40 bg-[var(--gold)]/15 px-4 py-2 text-[12.5px] text-[var(--t1)]">
+        <AlertTriangle className="size-4 shrink-0 text-[var(--gold)]" />
         <span>
-          Your trial has <strong className="font-mono text-[var(--t1)]">{daysRemaining} {daysRemaining === 1 ? "day" : "days"}</strong> remaining.
+          Your free trial has ended. Subscribe within <strong className="font-mono tabular-nums">{countdown(end + TRIAL_GRACE_MS - now)}</strong> to keep your automations running.
+        </span>
+        <Link href="/dashboard/billing" className="rounded-md bg-[var(--gold)] px-3 py-1 text-[12px] font-semibold text-black transition-colors hover:bg-[var(--gold2)]">
+          Choose a plan
+        </Link>
+      </div>
+    )
+  }
+
+  if (dismissed) return null
+  const days = Math.max(1, Math.ceil((end - now) / 86_400_000))
+  return (
+    <div className="relative z-20 flex h-9 select-none items-center justify-between border-b border-[var(--line)] bg-[var(--s2)] px-4 text-[12px] text-[var(--t2)]">
+      <div className="mx-auto flex items-center gap-2">
+        <Clock className="size-3.5 shrink-0 text-[var(--t3)]" />
+        <span>
+          Your trial has <strong className="font-mono text-[var(--t1)]">{days} {days === 1 ? "day" : "days"}</strong> remaining.
         </span>
         <Link
           href="/dashboard/billing"
-          className="ms-2 px-2.5 py-0.5 rounded-[4px] bg-[var(--s3)] border border-[var(--line2)] text-[var(--t1)] hover:bg-[var(--s4)] transition-colors text-[11.5px] font-medium"
+          className="ms-2 rounded-[4px] border border-[var(--line2)] bg-[var(--s3)] px-2.5 py-0.5 text-[11.5px] font-medium text-[var(--t1)] transition-colors hover:bg-[var(--s4)]"
         >
           Choose a plan
         </Link>
       </div>
-
       <button
         type="button"
-        onClick={handleDismiss}
+        onClick={() => {
+          setDismissed(true)
+          try { sessionStorage.setItem("trial_banner_dismissed", "true") } catch {}
+        }}
         aria-label="Dismiss trial banner"
-        className="size-5 rounded-[4px] hover:bg-[var(--s3)] text-[var(--t3)] hover:text-[var(--t1)] flex items-center justify-center transition-colors cursor-pointer shrink-0"
+        className="flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-[4px] text-[var(--t3)] transition-colors hover:bg-[var(--s3)] hover:text-[var(--t1)]"
       >
         <X className="size-3.5" />
       </button>

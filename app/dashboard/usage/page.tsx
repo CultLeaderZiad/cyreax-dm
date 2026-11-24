@@ -60,7 +60,7 @@ export default function UsagePage() {
       </div>
       <section className="border border-white/10 rounded-2xl p-4 text-sm text-neutral-300 space-y-2">
         <p>Soft warnings start at 80% of a limit. Creating another workspace, channel, contact, seat, broadcast, or AI reply past the limit is rejected.</p>
-        <p>An ended trial stays on Creator Free. A failed payment keeps the paid plan during the 7-day grace period, then automations pause.</p>
+        <p>When the free trial ends you have 12 hours to subscribe; after that automations pause until a plan is paid. A subscription that is not renewed pauses at the end of its paid period.</p>
         <Link href="/dashboard/billing" className="inline-block text-white underline">Change plan</Link>
       </section>
     </div>

@@ -222,7 +222,7 @@ them). Everything about a plan is controlled in **Admin → Plans**:
 
 **Free trial:** every new account gets 7 days, no card, with Pro features
 (`TRIAL_DAYS` in `lib/billing/plans.ts`, and the `accounts.trial_ends_at`
-default). When it ends the account is paused at once (no grace period):
+default). When it ends the customer has 12 hours (`TRIAL_GRACE_HOURS`), with a live countdown banner, to subscribe; then the account is paused:
 the dashboard is replaced by a screen with the plans, to pay, or **Log out**.
 The server blocks the same accounts independently. In **Admin → Users** you can
 extend a trial (7 / 14 / 30 days), put an account on a plan for N days, or set

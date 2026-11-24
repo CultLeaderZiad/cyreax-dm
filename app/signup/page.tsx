@@ -1,5 +1,6 @@
 "use client"
 
+import { checkoutNext } from "@/lib/auth-redirect"
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
@@ -22,6 +23,8 @@ function SignupForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const planId = searchParams.get("plan_id")
+  const next = checkoutNext(planId, searchParams.get("cycle"))
+  const carry = planId && next ? `?plan_id=${planId}${searchParams.get("cycle") === "yearly" ? "&cycle=yearly" : ""}` : ""
   
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -44,7 +47,7 @@ function SignupForm() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/api/auth/callback${planId ? `?next=/checkout/${planId}` : ''}`,
+        emailRedirectTo: `${window.location.origin}/api/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`,
       }
     })
 
@@ -63,7 +66,7 @@ function SignupForm() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/api/auth/callback${planId ? `?next=/checkout/${planId}` : ''}`,
+        redirectTo: `${window.location.origin}/api/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`,
       },
     })
     
@@ -94,7 +97,7 @@ function SignupForm() {
             </p>
           </div>
           <Link
-            href="/login"
+            href={`/login${carry}`}
             className="inline-flex items-center justify-center w-full rounded-xl bg-[#e5a93c] hover:bg-[#d4952b] py-2.5 px-4 text-xs font-bold uppercase tracking-wider font-mono-ui text-black transition-all shadow-lg shadow-[#e5a93c]/20"
           >
             Return to login
@@ -242,7 +245,7 @@ function SignupForm() {
 
         <p className="mt-8 text-center text-xs text-zinc-400">
           Already have an account?{" "}
-          <Link href="/login" className="font-semibold text-[#e5a93c] hover:text-[#d4952b] transition-colors">
+          <Link href={`/login${carry}`} className="font-semibold text-[#e5a93c] hover:text-[#d4952b] transition-colors">
             Log in
           </Link>
         </p>
