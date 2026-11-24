@@ -114,14 +114,14 @@ export default function DashboardAdminAgentsPage() {
 
   if (loading) {
     return (
-      <div className="p-8 flex justify-center">
+      <div className="flex justify-center py-16">
         <Loader2 className="w-8 h-8 animate-spin text-white/20" />
       </div>
     )
   }
 
   return (
-    <div className="p-8 animate-in fade-in duration-700 max-w-7xl mx-auto">
+    <div className="animate-in fade-in duration-700">
       <div className="mb-8 flex justify-between items-start sm:items-center">
         <div>
           <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--t1)] mb-2">Agents Catalog</h1>
