@@ -9,6 +9,7 @@ import { ApiKeysSettingsSection } from "@/components/settings/ApiKeysSettingsSec
 import { WebhooksSettingsSection } from "@/components/settings/WebhooksSettingsSection"
 import { AuditLogSettingsSection } from "@/components/settings/AuditLogSettingsSection"
 import { AppearanceSettingsSection } from "@/components/settings/AppearanceSettingsSection"
+import { AnnouncementsSettingsSection } from "@/components/settings/AnnouncementsSettingsSection"
 
 export default async function SettingsSectionPage({
   params,
@@ -39,6 +40,8 @@ export default async function SettingsSectionPage({
       return <AppearanceSettingsSection />
     case "webhooks":
       return <WebhooksSettingsSection />
+    case "announcements":
+      return <AnnouncementsSettingsSection />
     case "audit-log":
       return <AuditLogSettingsSection />
     default:

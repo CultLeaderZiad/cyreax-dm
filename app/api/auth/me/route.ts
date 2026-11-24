@@ -1,3 +1,4 @@
+import { onboardingRequired } from "@/lib/onboarding";
 import { TRIAL_GRACE_MS, trialPhase } from "@/lib/billing/plans"
 import { activePeriodValid } from "@/lib/billing/enforce";
 export const dynamic = 'force-dynamic'
@@ -116,6 +117,20 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // New customers owe the onboarding form (the admin connects their accounts by hand).
+    let needsOnboarding = false;
+    let onboardingStatus: string | null = null;
+    try {
+      const onboardingDb = await getSupabaseBypassClient();
+      needsOnboarding = await onboardingRequired(onboardingDb, account as any);
+      if (!needsOnboarding && userRole !== "admin") {
+        const { data: ob } = await onboardingDb.from("account_onboarding").select("status").eq("account_id", account.id).maybeSingle();
+        onboardingStatus = ob?.status ?? null;
+      }
+    } catch {
+      // Never block the session because of this lookup.
+    }
+
     return NextResponse.json({
       authenticated: true,
       accountId: account.id,
@@ -137,6 +152,8 @@ export async function GET(request: NextRequest) {
       has_valid_payment: hasValidPayment,
       is_trial_expired: isTrialExpired,
       is_past_deadline: isPastDeadline,
+      onboarding_required: needsOnboarding,
+      onboarding_status: onboardingStatus,
       trial_grace_ends_at: effectiveTrialEnds ? new Date(new Date(effectiveTrialEnds).getTime() + TRIAL_GRACE_MS).toISOString() : null,
       is_banned: account.is_banned || false,
       banned_reason: account.banned_reason || null,

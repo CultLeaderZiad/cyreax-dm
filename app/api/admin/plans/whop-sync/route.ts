@@ -9,7 +9,7 @@ import { whopConfig } from "@/lib/billing/whop"
 export async function POST() {
   const admin = await requireAdmin()
   if (admin.response) return admin.response
-  if (!whopConfig()) return NextResponse.json({ error: "WHOP_API_KEY is not set." }, { status: 503 })
+  if (!whopConfig()) return NextResponse.json({ error: "The card checkout key is not set on the server." }, { status: 503 })
   const supabase = await getSupabaseBypassClient()
   return NextResponse.json(await syncWhopPrices(supabase, { force: true }))
 }

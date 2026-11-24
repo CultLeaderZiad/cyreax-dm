@@ -67,9 +67,12 @@ export function startTrial(input: {
   requestedPlan: string
   alreadyTrialed: boolean
   nowMs: number
+  /** Trial length the admin set for this plan; falls back to the catalog default. */
+  trialDays?: number
 }): { ok: true; planId: string; trialEndsAt: string; status: "trialing" } | { ok: false; error: string } {
   const requested = resolvePlan(input.requestedPlan)
-  if (requested.blocked || requested.monthlyUsd <= 0 || requested.trialDays <= 0) {
+  const days = input.trialDays ?? requested.limits.trialDays
+  if (requested.blocked || requested.monthlyUsd <= 0 || days <= 0) {
     return { ok: false, error: "That plan does not include a trial." }
   }
   if (input.alreadyTrialed) return { ok: false, error: "This account has already used a trial." }
@@ -78,7 +81,7 @@ export function startTrial(input: {
   if (!legacyTrial && !current.blocked && current.monthlyUsd > 0) {
     return { ok: false, error: "A paid plan is already active." }
   }
-  const ends = new Date(input.nowMs + requested.trialDays * 24 * 60 * 60 * 1000)
+  const ends = new Date(input.nowMs + days * 24 * 60 * 60 * 1000)
   return { ok: true, planId: requested.id, trialEndsAt: ends.toISOString(), status: "trialing" }
 }
 

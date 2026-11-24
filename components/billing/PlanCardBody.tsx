@@ -19,6 +19,8 @@ export function PlanCardBody({
   cta,
   extra,
   isAr = false,
+  trialDays = 0,
+  secondary,
 }: {
   name: string
   description?: string | null
@@ -31,6 +33,10 @@ export function PlanCardBody({
   cta: { label: string; href?: string; onClick?: () => void; disabled?: boolean }
   extra?: ReactNode
   isAr?: boolean
+  /** Free-trial length for this plan (set by the admin); 0 hides the line. */
+  trialDays?: number
+  /** A quieter second action under the button, for example "Subscribe now". */
+  secondary?: { label: string; href: string }
 }) {
   const muted = featured ? "text-white/80" : "text-neutral-400"
   const button = `block w-full rounded-xl py-3 text-center text-[13px] font-bold uppercase tracking-wider transition-all active:scale-[0.98] ${
@@ -73,6 +79,12 @@ export function PlanCardBody({
 
       {extra}
 
+      {trialDays > 0 && (
+        <p className={`mt-5 text-center text-[13px] font-semibold ${featured ? "text-[#e5a93c]" : "text-emerald-400"}`}>
+          {isAr ? `تجربة مجانية ${trialDays} أيام` : `${trialDays}-day free trial`}
+        </p>
+      )}
+
       {cta.href && !cta.disabled ? (
         <Link href={cta.href} className={`mt-6 ${button}`}>
           {cta.label}
@@ -81,6 +93,12 @@ export function PlanCardBody({
         <button type="button" onClick={cta.onClick} disabled={cta.disabled} className={`mt-6 ${button} cursor-pointer`}>
           {cta.label}
         </button>
+      )}
+
+      {secondary && (
+        <Link href={secondary.href} className={`mt-3 block text-center text-[13px] underline-offset-4 transition-colors hover:underline ${featured ? "text-white/80 hover:text-white" : "text-neutral-400 hover:text-white"}`}>
+          {secondary.label}
+        </Link>
       )}
     </>
   )

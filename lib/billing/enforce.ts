@@ -1,4 +1,4 @@
-import { TRIAL_PLAN_ID, applyEntitlements, featureEnabled, limitFor, meterPeriod, resolvePlan, trialPhase, type FeatureKey, type MeterKey, type ResolvedPlan } from "@/lib/billing/plans"
+import { TRIAL_PLAN_ID, scaleForTrial, applyEntitlements, featureEnabled, limitFor, meterPeriod, resolvePlan, trialPhase, type FeatureKey, type MeterKey, type ResolvedPlan } from "@/lib/billing/plans"
 import { channelSlots, judgeUsage, slotsAfterConnect, type ChannelConnection, type ChannelProfile, type UsageJudgement } from "@/lib/billing/usage"
 
 export class PlanLimitError extends Error {
@@ -87,6 +87,7 @@ async function billingRow(supabase: any, accountId: string): Promise<BillingRow 
 export async function resolveAccountPlan(supabase: any, account: AccountGate, nowMs = Date.now()): Promise<ResolvedPlan> {
   const base = await resolveBasePlan(supabase, account, nowMs)
   if (base.blocked || account.role === "admin") return base
+  let plan: ResolvedPlan = base
   try {
     const { data, error } = await supabase
       .from("plans")
@@ -94,11 +95,12 @@ export async function resolveAccountPlan(supabase: any, account: AccountGate, no
       .eq("catalog_plan_id", base.id)
       .not("entitlements", "is", null)
       .limit(1)
-    if (!error && data?.[0]?.entitlements) return { ...applyEntitlements(base, data[0].entitlements), blocked: false }
+    if (!error && data?.[0]?.entitlements) plan = { ...applyEntitlements(base, data[0].entitlements), blocked: false, trial: base.trial }
   } catch {
     // Before the migration there is no entitlements column: catalog defaults apply.
   }
-  return base
+  // A trial gets the plan's features with the costly quotas scaled down.
+  return plan.trial ? { ...plan, limits: scaleForTrial(plan.limits) } : plan
 }
 
 async function resolveBasePlan(supabase: any, account: AccountGate, nowMs: number): Promise<ResolvedPlan> {
@@ -117,7 +119,7 @@ async function resolveBasePlan(supabase: any, account: AccountGate, nowMs: numbe
   if (billing?.status === "trialing" && billing.trial_ends_at) {
     const phase = trialPhase(Date.parse(billing.trial_ends_at), nowMs)
     if (phase === "over") return resolvePlan("expired")
-    if (phase === "grace") return resolvePlan(TRIAL_PLAN_ID)
+    return { ...resolvePlan(billing.plan_id || TRIAL_PLAN_ID), trial: true }
   }
   if (billing?.status === "active" || billing?.status === "past_due" || billing?.status === "trialing") {
     if (billing.plan_id) return resolvePlan(billing.plan_id)
@@ -125,7 +127,7 @@ async function resolveBasePlan(supabase: any, account: AccountGate, nowMs: numbe
   if (account.plan === "trial" && account.trial_ends_at && !account.trial_exempt) {
     const phase = trialPhase(Date.parse(account.trial_ends_at), nowMs)
     if (phase === "over") return resolvePlan("expired")
-    if (phase === "grace") return resolvePlan(TRIAL_PLAN_ID)
+    return { ...resolvePlan(TRIAL_PLAN_ID), trial: true }
   }
   return resolvePlan(account.plan)
 }

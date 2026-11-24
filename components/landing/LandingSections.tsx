@@ -4,11 +4,11 @@ import Link from "next/link"
 import useSWR from "swr"
 import { ArrowRight, Bot, CheckCircle2, Plug, Rocket, Workflow } from "lucide-react"
 import { ChannelBadge } from "@/components/ui/ChannelBadge"
-import { PlanCardBody } from "@/components/billing/PlanCardBody"
+import { PlansGrid, normalizeApiPlans } from "@/components/pricing/PlansGrid"
+import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { Reveal, SpotlightCard } from "@/components/landing/motion"
 import { fetcher } from "@/lib/fetcher"
-import { TRIAL_DAYS } from "@/lib/billing/plans"
-import type { DbPlan } from "@/components/billing/PlansComparisonRow"
+import { TRIAL_DAYS, TRIAL_PLAN_ID } from "@/lib/billing/plans"
 
 /** The channels the product really connects to. */
 const CHANNELS = [
@@ -70,43 +70,25 @@ export function HowItWorks({ isAr }: { isAr: boolean }) {
   )
 }
 
-/** Plans straight from the plans table (what Admin -> Plans shows), nothing invented. */
+/** Plans straight from the plans table, drawn by the same component as the pricing page. */
 export function PlansTeaser({ isAr }: { isAr: boolean }) {
-  const { data } = useSWR<Array<DbPlan & { feature_lines?: string[] }>>("/api/plans", fetcher, { revalidateOnFocus: false })
-  const plans = Array.isArray(data) ? data.filter((p) => !p.is_contact_sales).slice(0, 3) : []
+  const { t } = useLanguage()
+  const { data } = useSWR<any[]>("/api/plans", fetcher, { revalidateOnFocus: false })
+  const plans = normalizeApiPlans(data)
   if (plans.length === 0) return null
-  const featuredIndex = plans.length >= 3 ? 1 : -1
+  const featured = plans.find((p) => p.catalog_plan_id === TRIAL_PLAN_ID) || plans[Math.floor(plans.length / 2)]
   return (
-    <section id="plans" className="mx-auto max-w-6xl px-5 py-20 md:px-10">
+    <section id="plans" className="mx-auto max-w-7xl px-5 py-20 md:px-10">
       <Reveal>
         <div className="mb-12 text-center">
           <span className="mb-3 block font-mono-ui text-xs font-semibold uppercase tracking-[0.2em] text-[#e5a93c]">{isAr ? "الأسعار" : "Pricing"}</span>
           <h2 className="text-3xl font-bold tracking-tight text-white md:text-5xl">{isAr ? "خطة لكل مرحلة" : "A plan for every stage"}</h2>
-          <p className="mx-auto mt-3 max-w-xl text-neutral-400">{isAr ? `ابدأ بتجربة مجانية ${TRIAL_DAYS} أيام بدون بطاقة.` : `Start with a ${TRIAL_DAYS}-day free trial. No card needed.`}</p>
+          <p className="mx-auto mt-3 max-w-xl text-neutral-400">{isAr ? "جرّب أي خطة مجانًا، بدون بطاقة." : "Try any plan free. No card needed."}</p>
         </div>
       </Reveal>
-      <div className={`grid gap-6 ${plans.length >= 3 ? "md:grid-cols-3" : plans.length === 2 ? "md:grid-cols-2" : ""}`}>
-        {plans.map((plan, i) => {
-          const featured = i === featuredIndex
-          const lines = [...new Set([...(plan.feature_lines || []), ...(plan.features || [])])].slice(0, 6)
-          return (
-            <Reveal key={plan.id} delay={i * 120}>
-              <div className={`flex h-full flex-col rounded-2xl border bg-[#0d0e13] p-7 transition-all duration-300 hover:-translate-y-1 ${featured ? "border-[#e5a93c]/60 shadow-[0_0_60px_-20px_rgba(229,169,60,0.35)]" : "border-white/[0.12] hover:border-white/[0.25]"}`}>
-                <PlanCardBody
-                  name={plan.name}
-                  description={plan.description}
-                  usd={plan.price_usd}
-                  period={plan.billing_cycle === "lifetime" ? (isAr ? "مرة واحدة" : "once") : isAr ? "/شهر" : "/mo"}
-                  lines={lines}
-                  featured={featured}
-                  isAr={isAr}
-                  cta={{ label: `${isAr ? "اختر" : "Select"} ${plan.name}`, href: `/checkout/${plan.id}` }}
-                />
-              </div>
-            </Reveal>
-          )
-        })}
-      </div>
+      <Reveal>
+        <PlansGrid plans={plans} featuredId={featured?.id} isAr={isAr} t={t} mode="public" />
+      </Reveal>
       <Reveal>
         <div className="mt-8 text-center">
           <Link href="/pricing" className="inline-flex items-center gap-2 text-sm font-semibold text-[#e5a93c] transition-all hover:gap-3">

@@ -139,6 +139,7 @@ export const NAV: NavItem[] = [
     adminOnly: true,
     children: [
       { id: "users", label: "Users", href: "/dashboard/admin" },
+      { id: "onboarding", label: "Onboarding", href: "/dashboard/admin/onboarding" },
       { id: "plans", label: "Plans", href: "/dashboard/admin/plans" },
       { id: "payments", label: "Payments", href: "/dashboard/admin/payments" },
       { id: "support", label: "Support inbox", href: "/dashboard/admin/support" },

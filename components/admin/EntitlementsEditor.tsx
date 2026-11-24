@@ -81,6 +81,43 @@ export function EntitlementsEditor({
         ))}
       </div>
 
+      <div className="grid grid-cols-2 gap-3 rounded-md border border-white/10 p-2.5">
+        <div className="space-y-1">
+          <Label className="text-neutral-300 text-xs">Free trial (days)</Label>
+          <Input
+            type="number"
+            min={0}
+            max={90}
+            step={1}
+            className="bg-white/5 border-white/10 text-white"
+            value={current.trialDays}
+            onChange={(e) => {
+              const n = Math.trunc(Number(e.target.value))
+              if (Number.isFinite(n)) set({ trialDays: Math.min(90, Math.max(0, n)) })
+            }}
+            title="0 = no free trial for this plan"
+          />
+          <p className="text-[10px] text-neutral-500">0 = no trial</p>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-neutral-300 text-xs">Trial quota (% of plan)</Label>
+          <Input
+            type="number"
+            min={1}
+            max={100}
+            step={1}
+            className="bg-white/5 border-white/10 text-white"
+            value={current.trialLimitPercent}
+            onChange={(e) => {
+              const n = Math.trunc(Number(e.target.value))
+              if (Number.isFinite(n)) set({ trialLimitPercent: Math.min(100, Math.max(1, n)) })
+            }}
+            title="During the trial, AI replies, AI requests and broadcasts are this percent of the plan's monthly limits"
+          />
+          <p className="text-[10px] text-neutral-500">Caps AI replies, AI requests and broadcasts during the trial</p>
+        </div>
+      </div>
+
       <div className="space-y-1">
         <Label className="text-neutral-300 text-xs">AI recommendations</Label>
         <select

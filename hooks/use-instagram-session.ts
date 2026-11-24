@@ -21,6 +21,8 @@ export interface SessionState {
     isBanned: boolean
     bannedReason: string | null
     instagramReconnectRequired: boolean
+    onboardingRequired: boolean
+    onboardingStatus: string | null
 }
 
 /**
@@ -52,6 +54,8 @@ const initialState: SessionState = {
     isBanned: false,
     bannedReason: null,
     instagramReconnectRequired: false,
+    onboardingRequired: false,
+    onboardingStatus: null,
 }
 
 let snapshot: SessionState = { ...initialState }
@@ -110,6 +114,8 @@ async function fetchMe(): Promise<boolean> {
                     isBanned: data.is_banned || false,
                     bannedReason: data.banned_reason || null,
                     instagramReconnectRequired: data.instagram_reconnect_required || false,
+                    onboardingRequired: data.onboarding_required || false,
+                    onboardingStatus: data.onboarding_status || null,
                 })
                 try {
                     localStorage.setItem("ig_account_id", data.accountId)

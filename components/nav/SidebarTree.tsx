@@ -9,6 +9,7 @@ import { BrandLogo } from "@/components/ui/BrandLogo"
 import { WorkspaceSwitcher } from "@/components/layout/WorkspaceSwitcher"
 import { AccountMenu } from "./AccountMenu"
 import { NotificationDropdown } from "./NotificationDropdown"
+import { OnboardingNavBadge } from "./OnboardingNavBadge"
 import { useWorkspaceUsage } from "@/hooks/use-workspace-usage"
 import { ChevronRight, ChevronDown, MoreHorizontal } from "lucide-react"
 
@@ -340,6 +341,7 @@ export function SidebarTree({
                           )}
                         >
                           <span className="text-[12.5px] truncate">{child.label}</span>
+                          {child.id === "onboarding" && <OnboardingNavBadge />}
                         </Link>
                       </div>
                     )

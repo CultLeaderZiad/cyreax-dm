@@ -21,6 +21,10 @@ export interface PlanLimits {
   aiReplies: number
   /** Monthly AI requests for everything except auto-replies: recommendations, the agent, analytics. */
   aiRequests: number
+  /** Free trial length for this plan in days (0 = no trial). Set per plan by the admin. */
+  trialDays: number
+  /** During a trial the metered quotas (AI replies, AI requests, broadcasts) are this percent of the plan's. */
+  trialLimitPercent: number
   broadcasts: number
   seats: number
   whiteLabel: boolean
@@ -83,6 +87,8 @@ export const PLAN_CATALOG: PlanDefinition[] = [
       contacts: 500,
       aiReplies: 100,
       aiRequests: 100,
+      trialDays: 0,
+      trialLimitPercent: 100,
       broadcasts: 0,
       seats: 1,
       whiteLabel: false,
@@ -107,6 +113,8 @@ export const PLAN_CATALOG: PlanDefinition[] = [
       contacts: 2000,
       aiReplies: 1000,
       aiRequests: 300,
+      trialDays: TRIAL_DAYS,
+      trialLimitPercent: 25,
       broadcasts: 2,
       seats: 1,
       whiteLabel: false,
@@ -130,6 +138,8 @@ export const PLAN_CATALOG: PlanDefinition[] = [
       contacts: 10000,
       aiReplies: 5000,
       aiRequests: 1500,
+      trialDays: TRIAL_DAYS,
+      trialLimitPercent: 25,
       broadcasts: 10,
       seats: 3,
       whiteLabel: false,
@@ -154,6 +164,8 @@ export const PLAN_CATALOG: PlanDefinition[] = [
       contacts: 50000,
       aiReplies: 20000,
       aiRequests: 6000,
+      trialDays: TRIAL_DAYS,
+      trialLimitPercent: 25,
       broadcasts: -1,
       seats: 10,
       whiteLabel: true,
@@ -177,6 +189,8 @@ export const PLAN_CATALOG: PlanDefinition[] = [
       contacts: -1,
       aiReplies: 200000,
       aiRequests: 60000,
+      trialDays: 0,
+      trialLimitPercent: 100,
       broadcasts: 200,
       seats: 30,
       whiteLabel: true,
@@ -198,6 +212,8 @@ for (const plan of PLAN_CATALOG) {
 export interface ResolvedPlan extends PlanDefinition {
   /** Expired subscriptions cannot create new usage. The free tier can. */
   blocked: boolean
+  /** True while the account is on a free trial: the metered quotas are scaled down. */
+  trial?: boolean
 }
 
 export function resolvePlan(slug: string | null | undefined): ResolvedPlan {
@@ -255,6 +271,10 @@ export function sanitizeEntitlements(input: unknown): Partial<PlanLimits> {
   for (const key of BOOLEAN_LIMITS) {
     if (typeof source[key] === "boolean") out[key] = source[key] as boolean
   }
+  const days = source.trialDays
+  if (typeof days === "number" && Number.isInteger(days) && days >= 0 && days <= 90) out.trialDays = days
+  const pct = source.trialLimitPercent
+  if (typeof pct === "number" && Number.isInteger(pct) && pct >= 1 && pct <= 100) out.trialLimitPercent = pct
   if (typeof source.insights === "string" && (INSIGHT_LEVELS as string[]).includes(source.insights)) out.insights = source.insights
   return out as Partial<PlanLimits>
 }
@@ -264,6 +284,21 @@ export function applyEntitlements<T extends PlanDefinition>(plan: T, overrides: 
   const clean = sanitizeEntitlements(overrides)
   if (Object.keys(clean).length === 0) return plan
   return { ...plan, limits: { ...plan.limits, ...clean } }
+}
+
+/** Trial-time unlimited quotas are capped at this many instead of being open-ended. */
+const TRIAL_UNLIMITED_CAP = 1000
+
+/**
+ * What a trial gets: the plan's real features and its structural limits
+ * (channels, contacts, seats, workspaces), with the metered quotas that cost
+ * money (AI replies, AI requests, broadcasts) scaled to the plan's
+ * trialLimitPercent. Paid periods are never scaled.
+ */
+export function scaleForTrial(limits: PlanLimits): PlanLimits {
+  const pct = Math.min(100, Math.max(1, limits.trialLimitPercent || 100))
+  const scale = (n: number) => (n === 0 ? 0 : n < 0 ? TRIAL_UNLIMITED_CAP : Math.max(1, Math.ceil((n * pct) / 100)))
+  return { ...limits, aiReplies: scale(limits.aiReplies), aiRequests: scale(limits.aiRequests), broadcasts: scale(limits.broadcasts) }
 }
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n)

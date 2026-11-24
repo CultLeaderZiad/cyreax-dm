@@ -6,6 +6,7 @@
 * **Telegram bot automation:** Connect unlimited bots via bot token, keyword DM rules per bot.
 * **Unified dashboard:** Live inbox across Instagram, Facebook Messenger, and Telegram.
 * **AI Engine:** Groq-powered auto-replies, sentiment/topic detection, agents, funnels, and growth insights.
+* **Free trial per plan, onboarding, announcements:** each plan has its own free trial (days and quota are set by the admin), every new customer sends the details needed to connect their accounts, and the admin controls the announcement bar and the home-page updates block from Settings.
 * **AI Growth Agent and recommendations:** recommendation cards on the dashboard are computed from real account data; the Growth Agent (Pro and up) answers questions from that data and proposes changes the customer confirms. Per-plan monthly AI request limits are set in Admin → Plans.
 * **Plans:** Starter, Pro and Agency, each with its own features (AI Growth Agent from Pro). The admin controls prices, limits and features per plan from Admin → Plans, with no deploy. Every account starts with a 7-day trial (no card, Pro features); when it ends, the customer chooses a plan and pays, or logs out.
 * **Card payments (Whop):** every customer can pay by card through Whop. Plans are mapped to Whop plan IDs in Admin → Plans; the signed Whop webhook activates, renews, cancels and refunds. Whop subscribers manage their subscription on Whop. Requires `WHOP_API_KEY` and `WHOP_WEBHOOK_SECRET`.
