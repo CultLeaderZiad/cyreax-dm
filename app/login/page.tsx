@@ -20,6 +20,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   
+  // A visitor who picked a plan before logging in goes on to that plan's checkout.
+  const [carry, setCarry] = useState("")
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search)
+    if (checkoutNext(q.get("plan_id"), q.get("cycle"))) setCarry(`?plan_id=${q.get("plan_id")}${q.get("cycle") === "yearly" ? "&cycle=yearly" : ""}`)
+  }, [])
   let supabase: ReturnType<typeof getSupabaseBrowserClient>
   try {
     supabase = getSupabaseBrowserClient()
@@ -35,12 +41,6 @@ export default function LoginPage() {
     )
   }
 
-  // A visitor who picked a plan before logging in goes on to that plan's checkout.
-  const [carry, setCarry] = useState("")
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search)
-    if (checkoutNext(q.get("plan_id"), q.get("cycle"))) setCarry(`?plan_id=${q.get("plan_id")}${q.get("cycle") === "yearly" ? "&cycle=yearly" : ""}`)
-  }, [])
   const nextAfterLogin = () => {
     const q = new URLSearchParams(window.location.search)
     return checkoutNext(q.get("plan_id"), q.get("cycle")) || "/dashboard"
