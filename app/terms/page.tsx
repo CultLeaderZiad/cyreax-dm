@@ -53,7 +53,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">3. Plans and Subscriptions</h2>
                         <p>
-                            We offer self-serve plans (Creator, Creator Pro, Agency Starter, Agency Growth) and bespoke Enterprise tiers.
+                            We offer self-serve plans and bespoke Enterprise tiers. The current plans, prices and what each includes are listed on our Pricing page.
                             Subscription terms, renewal cycles, and pricing tiers are detailed on our Pricing page.
                         </p>
                     </section>
