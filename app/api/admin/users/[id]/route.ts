@@ -3,6 +3,11 @@ import { type NextRequest, NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth"
 import { getSupabaseBypassClient } from "@/lib/supabase-server"
 import { activatePlan, startTrialPlan, deactivatePlan } from "@/lib/billing/activation"
+import { PLAN_CATALOG, TRIAL_DAYS, TRIAL_PLAN_ID } from "@/lib/billing/plans"
+
+/** Plans an admin can put an account on. Everything else stays a legacy value. */
+const TIER_IDS = new Set(PLAN_CATALOG.filter((plan) => !plan.hidden).map((plan) => plan.id))
+const DAY_MS = 24 * 60 * 60 * 1000
 
 /**
  * PATCH /api/admin/users/[id]
@@ -37,6 +42,18 @@ export async function PATCH(
       return NextResponse.json({ error: "No valid fields to update" }, { status: 400 })
     }
 
+    // A real tier (Starter / Pro / Agency) is written by activatePlan, which also
+    // keeps the legacy accounts.plan / users.plan columns valid. Those columns
+    // only accept trial / monthly / one_time / expired.
+    const requestedPlan: string | undefined = updates.plan
+    const isTier = typeof requestedPlan === "string" && TIER_IDS.has(requestedPlan)
+    if (isTier) delete updates.plan
+    // "Grant for N days": the paid period the admin gives (default one month).
+    const grantDays = Number.isInteger(body.grant_days) && body.grant_days >= 1 && body.grant_days <= 3650 ? Number(body.grant_days) : 30
+    if (Object.keys(updates).length === 0 && !isTier) {
+      return NextResponse.json({ error: "No valid fields to update" }, { status: 400 })
+    }
+
     updates.updated_at = new Date().toISOString()
 
     // Fetch current account state for audit diff
@@ -66,6 +83,10 @@ export async function PATCH(
       }
     }
 
+    if (isTier && !targetAccount) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
     // Apply the update to accounts (source of truth)
     const { error: updateError } = await supabase
       .from("accounts")
@@ -84,26 +105,28 @@ export async function PATCH(
     targetUserId = targetUser?.id ?? null
 
     // Synchronize entitlement via shared billing module (billing_accounts source of truth)
-    if (updates.plan !== undefined) {
+    if (requestedPlan !== undefined) {
       try {
-        if (updates.plan === "expired" || updates.plan === "canceled") {
+        if (requestedPlan === "expired" || requestedPlan === "canceled") {
           await deactivatePlan({ accountId: targetAccountId, source: "admin" }, supabase)
-        } else if (updates.plan === "trial") {
+        } else if (requestedPlan === "trial") {
           await startTrialPlan({
             accountId: targetAccountId,
-            planId: "creator",
-            trialEndsAt: updates.trial_ends_at || targetAccount.trial_ends_at || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+            planId: TRIAL_PLAN_ID,
+            trialEndsAt: updates.trial_ends_at || targetAccount.trial_ends_at || new Date(Date.now() + TRIAL_DAYS * DAY_MS).toISOString()
           }, supabase)
         } else {
           await activatePlan({
             accountId: targetAccountId,
-            planId: updates.plan,
+            planId: requestedPlan,
             interval: "month",
-            source: "admin"
+            source: "admin",
+            periodEnd: isTier ? new Date(Date.now() + grantDays * DAY_MS).toISOString() : undefined,
           }, supabase)
         }
       } catch (billingErr: any) {
         console.warn("[admin/users/[id]] billing_accounts sync failed:", billingErr?.message)
+        if (isTier) return NextResponse.json({ error: "Could not change the plan" }, { status: 502 })
       }
     } else if (updates.trial_ends_at !== undefined) {
       await supabase
@@ -155,6 +178,11 @@ export async function PATCH(
 
     // Write to audit log
     const auditDetails: Record<string, any> = { before: {}, after: {} }
+    if (isTier) {
+      auditDetails.before.plan = targetAccount.plan
+      auditDetails.after.plan = requestedPlan
+      auditDetails.after.grant_days = grantDays
+    }
     for (const field of Object.keys(updates)) {
       if (field === "updated_at") continue
       auditDetails.before[field] = (targetAccount as any)[field]
@@ -170,7 +198,7 @@ export async function PATCH(
       })
     }
 
-    return NextResponse.json({ success: true, updated: updates })
+    return NextResponse.json({ success: true, updated: isTier ? { ...updates, plan: requestedPlan } : updates })
   } catch (error: any) {
     console.error("[admin/users/[id]] Error:", error)
     return NextResponse.json({ error: "Failed to update user" }, { status: 500 })

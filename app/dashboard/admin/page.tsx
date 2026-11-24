@@ -1,5 +1,6 @@
 "use client"
 
+import { PLAN_CATALOG } from "@/lib/billing/plans"
 import { useEffect, useState, useCallback } from "react"
 import {
   Users, TrendingUp, AlertTriangle, Shield, RefreshCw,
@@ -102,6 +103,7 @@ export default function AdminPage() {
   const [editBanned, setEditBanned] = useState(false)
   const [editBannedReason, setEditBannedReason] = useState("")
   const [editTrialEndsAt, setEditTrialEndsAt] = useState<string | null>(null)
+  const [editGrantDays, setEditGrantDays] = useState(30)
 
   // Subscribers tab state
   const [subscribers, setSubscribers] = useState<{ id: string; email: string; name: string | null; created_at: string }[]>([])
@@ -359,6 +361,7 @@ export default function AdminPage() {
           is_banned: editBanned,
           banned_reason: editBannedReason || null,
           trial_ends_at: editTrialEndsAt,
+          grant_days: editGrantDays,
         }),
       })
       if (res.ok) {
@@ -712,12 +715,30 @@ export default function AdminPage() {
                     value={editPlan}
                     onChange={e => setEditPlan(e.target.value)}
                   >
-                    <option value="trial">Trial</option>
-                    <option value="monthly">Monthly</option>
-                    <option value="one_time">One-Time</option>
-                    <option value="expired">Expired</option>
+                    <option value="trial">Free trial (Pro features)</option>
+                    {PLAN_CATALOG.filter((plan) => !plan.hidden).map((plan) => (
+                      <option key={plan.id} value={plan.id}>{plan.name}</option>
+                    ))}
+                    <option value="monthly" disabled={editPlan !== "monthly"}>Monthly (legacy)</option>
+                    <option value="one_time" disabled={editPlan !== "one_time"}>One-Time (legacy)</option>
+                    <option value="expired">Expired (blocked)</option>
                   </select>
                 </div>
+
+                {PLAN_CATALOG.some((plan) => !plan.hidden && plan.id === editPlan) && selectedUser && editPlan !== selectedUser.plan && (
+                  <div>
+                    <label className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider block mb-1">Paid period to grant (days)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={3650}
+                      value={editGrantDays}
+                      onChange={(e) => setEditGrantDays(Math.max(1, Math.min(3650, Math.trunc(Number(e.target.value)) || 30)))}
+                      className="w-28 border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-xs text-white outline-none"
+                    />
+                    <p className="text-[10px] text-neutral-500 mt-1">The plan is active for this long, then the account is paused unless the customer pays.</p>
+                  </div>
+                )}
 
                 {editPlan === "trial" && (
                   <div>
@@ -726,16 +747,20 @@ export default function AdminPage() {
                       <span className="font-mono text-xs text-white">
                         {editTrialEndsAt ? new Date(editTrialEndsAt).toLocaleString() : "No trial date"}
                       </span>
-                      <button
-                        onClick={() => {
-                          const future = new Date()
-                          future.setDate(future.getDate() + 3)
-                          setEditTrialEndsAt(future.toISOString())
-                        }}
-                        className="px-2 py-1 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded text-xs font-mono"
-                      >
-                        Reset Trial (3 Days)
-                      </button>
+                      {[7, 14, 30].map((days) => (
+                        <button
+                          key={days}
+                          type="button"
+                          onClick={() => {
+                            const future = new Date()
+                            future.setDate(future.getDate() + days)
+                            setEditTrialEndsAt(future.toISOString())
+                          }}
+                          className="px-2 py-1 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded text-xs font-mono"
+                        >
+                          {days} days from now
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )}
