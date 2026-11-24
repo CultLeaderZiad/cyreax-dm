@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Plus, Mail, Clock, Send, AlertTriangle, ArrowRight, Activity, Users } from "lucide-react"
-import { toast } from "react-hot-toast"
+import { toast } from "sonner"
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { useSearchParams } from "next/navigation"
 
@@ -60,7 +60,7 @@ export default function CampaignsPage() {
   const getStatusBadge = (status: Campaign['status']) => {
     switch (status) {
       case 'draft':
-        return <span className="px-2.5 py-1 text-xs rounded-full bg-zinc-800 text-zinc-300 font-medium border border-zinc-700 flex items-center gap-1.5"><Clock className="w-3 h-3" /> {t.draft}</span>
+        return <span className="px-2.5 py-1 text-xs rounded-full bg-[var(--s2)] text-[var(--t2)] font-medium border border-[var(--line)] flex items-center gap-1.5"><Clock className="w-3 h-3" /> {t.draft}</span>
       case 'scheduled':
         return <span className="px-2.5 py-1 text-xs rounded-full bg-blue-500/10 text-blue-400 font-medium border border-blue-500/20 flex items-center gap-1.5"><Clock className="w-3 h-3" /> Scheduled</span>
       case 'sending':
@@ -101,7 +101,7 @@ export default function CampaignsPage() {
             <Mail className="w-6 h-6 text-[var(--gold)]" />
             {t.communicationCenter}
           </h2>
-          <p className="text-zinc-400 text-sm mt-1">
+          <p className="text-[var(--t2)] text-sm mt-1">
             {t.communicationCenterDesc}
           </p>
         </div>
@@ -116,24 +116,24 @@ export default function CampaignsPage() {
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-[#0a0a0a] border-zinc-800">
+        <Card className="bg-[var(--s1)] border-[var(--line)]">
           <CardContent className="p-6">
             <div className="flex justify-between items-center">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-zinc-400">{t.totalCampaigns}</p>
+                <p className="text-sm font-medium text-[var(--t2)]">{t.totalCampaigns}</p>
                 <p className="text-3xl font-bold text-[var(--t1)]">{campaigns.length}</p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-brand-500/10 flex items-center justify-center">
-                <Mail className="w-5 h-5 text-brand-400" />
+              <div className="w-10 h-10 rounded-full bg-[var(--gold)]/10 flex items-center justify-center">
+                <Mail className="w-5 h-5 text-[var(--gold)]" />
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-[#0a0a0a] border-zinc-800">
+        <Card className="bg-[var(--s1)] border-[var(--line)]">
           <CardContent className="p-6">
             <div className="flex justify-between items-center">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-zinc-400">{t.totalEmailsSent}</p>
+                <p className="text-sm font-medium text-[var(--t2)]">{t.totalEmailsSent}</p>
                 <p className="text-3xl font-bold text-[var(--t1)]">
                   {campaigns.filter(c => c.status === 'completed').reduce((acc, curr) => acc + (curr.recipient_count || 0), 0)}
                 </p>
@@ -144,15 +144,15 @@ export default function CampaignsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-[#0a0a0a] border-zinc-800">
+        <Card className="bg-[var(--s1)] border-[var(--line)]">
           <CardContent className="p-6">
             <div className="flex justify-between items-center">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-zinc-400">{t.activeDrafts}</p>
+                <p className="text-sm font-medium text-[var(--t2)]">{t.activeDrafts}</p>
                 <p className="text-3xl font-bold text-[var(--t1)]">{campaigns.filter(c => c.status === 'draft').length}</p>
               </div>
-              <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center">
-                <Clock className="w-5 h-5 text-zinc-400" />
+              <div className="w-10 h-10 rounded-full bg-[var(--s2)] flex items-center justify-center">
+                <Clock className="w-5 h-5 text-[var(--t2)]" />
               </div>
             </div>
           </CardContent>
@@ -162,32 +162,32 @@ export default function CampaignsPage() {
       {/* Campaigns List */}
       <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); router.replace(`/dashboard/admin/campaigns?tab=${val}`); }} className="w-full">
         <div className="flex justify-between items-center mb-4">
-          <TabsList className="bg-zinc-900 border border-zinc-800">
-            <TabsTrigger value="all" className="data-[state=active]:bg-zinc-800">All Campaigns</TabsTrigger>
-            <TabsTrigger value="scheduled" className="data-[state=active]:bg-zinc-800">Scheduled</TabsTrigger>
-            <TabsTrigger value="drafts" className="data-[state=active]:bg-zinc-800">Drafts</TabsTrigger>
+          <TabsList className="bg-[var(--s2)] border border-[var(--line)]">
+            <TabsTrigger value="all" className="data-[state=active]:bg-[var(--s2)]">All Campaigns</TabsTrigger>
+            <TabsTrigger value="scheduled" className="data-[state=active]:bg-[var(--s2)]">Scheduled</TabsTrigger>
+            <TabsTrigger value="drafts" className="data-[state=active]:bg-[var(--s2)]">Drafts</TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="all" className="m-0">
-          <Card className="bg-[#0a0a0a] border-zinc-800 shadow-xl overflow-hidden">
-            <CardHeader className="border-b border-zinc-800 bg-zinc-900/50">
+          <Card className="bg-[var(--s1)] border-[var(--line)] shadow-xl overflow-hidden">
+            <CardHeader className="border-b border-[var(--line)] bg-[var(--s2)]">
               <CardTitle className="text-lg">{t.recentCampaigns}</CardTitle>
               <CardDescription>{t.recentCampaignsDesc}</CardDescription>
             </CardHeader>
             <div className="overflow-x-auto">
               {loading ? (
-                <div className="p-8 text-center text-zinc-500 flex flex-col items-center">
-                  <Activity className="w-8 h-8 animate-spin text-brand-500 mb-2" />
+                <div className="p-8 text-center text-[var(--t3)] flex flex-col items-center">
+                  <Activity className="w-8 h-8 animate-spin text-[var(--gold)] mb-2" />
                   {t.loadingCampaigns}
                 </div>
               ) : campaigns.length === 0 ? (
                 <div className="p-12 text-center flex flex-col items-center justify-center">
-                  <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center mb-4 border border-zinc-800">
-                    <Mail className="w-8 h-8 text-zinc-600" />
+                  <div className="w-16 h-16 rounded-full bg-[var(--s2)] flex items-center justify-center mb-4 border border-[var(--line)]">
+                    <Mail className="w-8 h-8 text-[var(--t3)]" />
                   </div>
                   <h3 className="text-xl font-medium text-[var(--t1)] mb-2">{t.noCampaignsYet}</h3>
-                  <p className="text-zinc-400 max-w-sm mb-6">{t.createFirstCampaign}</p>
+                  <p className="text-[var(--t2)] max-w-sm mb-6">{t.createFirstCampaign}</p>
                   <Button 
                     onClick={() => router.push("/dashboard/admin/campaigns/create")}
                     className="bg-[#ccff00] hover:bg-[#b3e600] text-black font-semibold"
@@ -197,7 +197,7 @@ export default function CampaignsPage() {
                 </div>
               ) : (
                 <table className="w-full text-sm text-start">
-                  <thead className="text-xs text-zinc-400 uppercase bg-zinc-900/50 border-b border-zinc-800">
+                  <thead className="text-xs text-[var(--t2)] uppercase bg-[var(--s2)] border-b border-[var(--line)]">
                     <tr>
                       <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.campaignName}</th>
                       <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.status}</th>
@@ -207,36 +207,36 @@ export default function CampaignsPage() {
                       <th className={`px-6 py-4 font-medium ${isRtl ? 'text-start' : 'text-end'}`}>{t.actions}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-800">
+                  <tbody className="divide-y divide-[var(--line)]">
                     {campaigns.filter(c => c.status !== 'draft').map((campaign) => (
                       <tr 
                         key={campaign.id} 
-                        className="hover:bg-zinc-900/50 transition-colors group cursor-pointer"
+                        className="hover:bg-[var(--s2)] transition-colors group cursor-pointer"
                         onClick={() => router.push(`/dashboard/admin/campaigns/${campaign.id}`)}
                       >
                         <td className="px-6 py-4">
                           <div className="font-medium text-[var(--t1)]">{campaign.name}</div>
-                          <div className="text-zinc-500 text-xs truncate max-w-xs">{campaign.subject}</div>
+                          <div className="text-[var(--t3)] text-xs truncate max-w-xs">{campaign.subject}</div>
                         </td>
                         <td className="px-6 py-4">
                           {getStatusBadge(campaign.status)}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center text-zinc-300">
-                            <Users className="w-3.5 h-3.5 me-1.5 text-zinc-500" />
+                          <div className="flex items-center text-[var(--t2)]">
+                            <Users className="w-3.5 h-3.5 me-1.5 text-[var(--t3)]" />
                             {formatAudience(campaign.audience_filter)}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-zinc-300">
+                        <td className="px-6 py-4 text-[var(--t2)]">
                           {campaign.recipient_count}
                         </td>
-                        <td className="px-6 py-4 text-zinc-400 text-xs">
+                        <td className="px-6 py-4 text-[var(--t2)] text-xs">
                           {new Date(campaign.created_at).toLocaleDateString(undefined, {
                             month: 'short', day: 'numeric', year: 'numeric'
                           })}
                         </td>
                         <td className="px-6 py-4 text-end">
-                          <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-400 hover:text-brand-300 hover:bg-brand-500/10">
+                          <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--gold)] hover:text-[var(--gold2)] hover:bg-[var(--gold)]/10">
                             View
                             <ArrowRight className="w-4 h-4 ms-1" />
                           </Button>
@@ -245,7 +245,7 @@ export default function CampaignsPage() {
                     ))}
                     {campaigns.filter(c => c.status !== 'draft').length === 0 && !loading && (
                       <tr>
-                        <td colSpan={6} className="px-6 py-8 text-center text-zinc-500">
+                        <td colSpan={6} className="px-6 py-8 text-center text-[var(--t3)]">
                           No active or completed campaigns yet.
                         </td>
                       </tr>
@@ -258,28 +258,28 @@ export default function CampaignsPage() {
         </TabsContent>
 
         <TabsContent value="scheduled" className="m-0">
-          <Card className="bg-[#0a0a0a] border-zinc-800 shadow-xl overflow-hidden">
-            <CardHeader className="border-b border-zinc-800 bg-zinc-900/50">
+          <Card className="bg-[var(--s1)] border-[var(--line)] shadow-xl overflow-hidden">
+            <CardHeader className="border-b border-[var(--line)] bg-[var(--s2)]">
               <CardTitle className="text-lg">Scheduled Campaigns</CardTitle>
               <CardDescription>Campaigns that are scheduled to be sent in the future.</CardDescription>
             </CardHeader>
             <div className="overflow-x-auto">
               {loading ? (
-                <div className="p-8 text-center text-zinc-500 flex flex-col items-center">
-                  <Activity className="w-8 h-8 animate-spin text-brand-500 mb-2" />
+                <div className="p-8 text-center text-[var(--t3)] flex flex-col items-center">
+                  <Activity className="w-8 h-8 animate-spin text-[var(--gold)] mb-2" />
                   {t.loadingCampaigns}
                 </div>
               ) : campaigns.filter(c => c.status === 'scheduled').length === 0 ? (
                 <div className="p-12 text-center flex flex-col items-center justify-center">
-                  <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center mb-4 border border-zinc-800">
-                    <Clock className="w-8 h-8 text-zinc-600" />
+                  <div className="w-16 h-16 rounded-full bg-[var(--s2)] flex items-center justify-center mb-4 border border-[var(--line)]">
+                    <Clock className="w-8 h-8 text-[var(--t3)]" />
                   </div>
                   <h3 className="text-xl font-medium text-[var(--t1)] mb-2">No scheduled campaigns</h3>
-                  <p className="text-zinc-400 max-w-sm mb-6">You don&apos;t have any scheduled campaigns.</p>
+                  <p className="text-[var(--t2)] max-w-sm mb-6">You don&apos;t have any scheduled campaigns.</p>
                 </div>
               ) : (
                 <table className="w-full text-sm text-start">
-                  <thead className="text-xs text-zinc-400 uppercase bg-zinc-900/50 border-b border-zinc-800">
+                  <thead className="text-xs text-[var(--t2)] uppercase bg-[var(--s2)] border-b border-[var(--line)]">
                     <tr>
                       <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.campaignName}</th>
                       <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.status}</th>
@@ -288,23 +288,23 @@ export default function CampaignsPage() {
                       <th className={`px-6 py-4 font-medium ${isRtl ? 'text-start' : 'text-end'}`}>{t.actions}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-800">
+                  <tbody className="divide-y divide-[var(--line)]">
                     {campaigns.filter(c => c.status === 'scheduled').map((campaign) => (
                       <tr 
                         key={campaign.id} 
-                        className="hover:bg-zinc-900/50 transition-colors group cursor-pointer"
+                        className="hover:bg-[var(--s2)] transition-colors group cursor-pointer"
                         onClick={() => router.push(`/dashboard/admin/campaigns/${campaign.id}`)}
                       >
                         <td className="px-6 py-4">
                           <div className="font-medium text-[var(--t1)]">{campaign.name}</div>
-                          <div className="text-zinc-500 text-xs truncate max-w-xs">{campaign.subject}</div>
+                          <div className="text-[var(--t3)] text-xs truncate max-w-xs">{campaign.subject}</div>
                         </td>
                         <td className="px-6 py-4">
                           {getStatusBadge(campaign.status)}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center text-zinc-300">
-                            <Users className="w-3.5 h-3.5 me-1.5 text-zinc-500" />
+                          <div className="flex items-center text-[var(--t2)]">
+                            <Users className="w-3.5 h-3.5 me-1.5 text-[var(--t3)]" />
                             {formatAudience(campaign.audience_filter)}
                           </div>
                         </td>
@@ -312,7 +312,7 @@ export default function CampaignsPage() {
                           {campaign.scheduled_at ? new Date(campaign.scheduled_at).toLocaleString() : "N/A"}
                         </td>
                         <td className="px-6 py-4 text-end">
-                          <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-400 hover:text-brand-300 hover:bg-brand-500/10">
+                          <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--gold)] hover:text-[var(--gold2)] hover:bg-[var(--gold)]/10">
                             View
                             <ArrowRight className="w-4 h-4 ms-1" />
                           </Button>
@@ -327,28 +327,28 @@ export default function CampaignsPage() {
         </TabsContent>
 
         <TabsContent value="drafts" className="m-0">
-          <Card className="bg-[#0a0a0a] border-zinc-800 shadow-xl overflow-hidden">
-            <CardHeader className="border-b border-zinc-800 bg-zinc-900/50">
+          <Card className="bg-[var(--s1)] border-[var(--line)] shadow-xl overflow-hidden">
+            <CardHeader className="border-b border-[var(--line)] bg-[var(--s2)]">
               <CardTitle className="text-lg">Draft Campaigns</CardTitle>
               <CardDescription>Campaigns that are saved as drafts and not yet sent.</CardDescription>
             </CardHeader>
             <div className="overflow-x-auto">
               {loading ? (
-                <div className="p-8 text-center text-zinc-500 flex flex-col items-center">
-                  <Activity className="w-8 h-8 animate-spin text-brand-500 mb-2" />
+                <div className="p-8 text-center text-[var(--t3)] flex flex-col items-center">
+                  <Activity className="w-8 h-8 animate-spin text-[var(--gold)] mb-2" />
                   {t.loadingCampaigns}
                 </div>
               ) : campaigns.filter(c => c.status === 'draft').length === 0 ? (
                 <div className="p-12 text-center flex flex-col items-center justify-center">
-                  <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center mb-4 border border-zinc-800">
-                    <Clock className="w-8 h-8 text-zinc-600" />
+                  <div className="w-16 h-16 rounded-full bg-[var(--s2)] flex items-center justify-center mb-4 border border-[var(--line)]">
+                    <Clock className="w-8 h-8 text-[var(--t3)]" />
                   </div>
                   <h3 className="text-xl font-medium text-[var(--t1)] mb-2">No drafts</h3>
-                  <p className="text-zinc-400 max-w-sm mb-6">You don&apos;t have any drafts.</p>
+                  <p className="text-[var(--t2)] max-w-sm mb-6">You don&apos;t have any drafts.</p>
                 </div>
               ) : (
                 <table className="w-full text-sm text-start">
-                  <thead className="text-xs text-zinc-400 uppercase bg-zinc-900/50 border-b border-zinc-800">
+                  <thead className="text-xs text-[var(--t2)] uppercase bg-[var(--s2)] border-b border-[var(--line)]">
                     <tr>
                       <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.campaignName}</th>
                       <th className={`px-6 py-4 font-medium ${isRtl ? 'text-end' : 'text-start'}`}>{t.status}</th>
@@ -357,33 +357,33 @@ export default function CampaignsPage() {
                       <th className={`px-6 py-4 font-medium ${isRtl ? 'text-start' : 'text-end'}`}>{t.actions}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-800">
+                  <tbody className="divide-y divide-[var(--line)]">
                     {campaigns.filter(c => c.status === 'draft').map((campaign) => (
                       <tr 
                         key={campaign.id} 
-                        className="hover:bg-zinc-900/50 transition-colors group cursor-pointer"
+                        className="hover:bg-[var(--s2)] transition-colors group cursor-pointer"
                         onClick={() => router.push(`/dashboard/admin/campaigns/${campaign.id}`)}
                       >
                         <td className="px-6 py-4">
                           <div className="font-medium text-[var(--t1)]">{campaign.name}</div>
-                          <div className="text-zinc-500 text-xs truncate max-w-xs">{campaign.subject}</div>
+                          <div className="text-[var(--t3)] text-xs truncate max-w-xs">{campaign.subject}</div>
                         </td>
                         <td className="px-6 py-4">
                           {getStatusBadge(campaign.status)}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center text-zinc-300">
-                            <Users className="w-3.5 h-3.5 me-1.5 text-zinc-500" />
+                          <div className="flex items-center text-[var(--t2)]">
+                            <Users className="w-3.5 h-3.5 me-1.5 text-[var(--t3)]" />
                             {formatAudience(campaign.audience_filter)}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-zinc-400 text-xs">
+                        <td className="px-6 py-4 text-[var(--t2)] text-xs">
                           {new Date(campaign.created_at).toLocaleDateString(undefined, {
                             month: 'short', day: 'numeric', year: 'numeric'
                           })}
                         </td>
                         <td className="px-6 py-4 text-end">
-                          <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-400 hover:text-brand-300 hover:bg-brand-500/10">
+                          <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--gold)] hover:text-[var(--gold2)] hover:bg-[var(--gold)]/10">
                             Edit
                             <ArrowRight className="w-4 h-4 ms-1" />
                           </Button>
