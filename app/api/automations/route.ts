@@ -19,7 +19,19 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false })
 
     if (error) throw error
-    return NextResponse.json(data)
+
+    // Real firing counts for the last 7 days, shown in the automations table.
+    const since = new Date(Date.now() - 7 * 86_400_000).toISOString()
+    const { data: events } = await supabase
+      .from("automation_events")
+      .select("automation_id")
+      .eq("user_id", igUserId)
+      .gte("created_at", since)
+      .limit(10000)
+    const runs: Record<string, number> = {}
+    for (const e of events || []) if (e.automation_id) runs[e.automation_id] = (runs[e.automation_id] || 0) + 1
+
+    return NextResponse.json((data || []).map((rule: any) => ({ ...rule, runs_7d: runs[rule.id] || 0 })))
   } catch (error) {
     console.error("[v0] Automations GET error:", error)
     return NextResponse.json({ error: "Failed to fetch" }, { status: 500 })
