@@ -11,6 +11,7 @@ import { GlobalUpdatesListener } from "@/components/layout/GlobalUpdatesListener
 import { WebVitalsReporter } from "@/components/performance/WebVitalsReporter"
 
 import { LanguageProvider } from "@/lib/i18n/LanguageContext"
+import { VoxelArcBackdrop } from "@/components/ui/voxel-arc"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { SWRProvider } from "@/components/swr-provider"
 import SkipLink from "@/components/a11y/SkipLink"
@@ -89,6 +90,7 @@ export default function RootLayout({
           <LanguageProvider>
             <ThemeProvider>
               <SWRProvider>
+                <VoxelArcBackdrop />
                 <GlobalBanner />
                 <GlobalUpdatesListener />
                 <WebVitalsReporter />

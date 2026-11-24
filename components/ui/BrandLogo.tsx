@@ -65,5 +65,4 @@ export function BrandLogo({
 }
 
 // Backwards-compatible alias
-export const HelixaLogo = BrandLogo
 export default BrandLogo

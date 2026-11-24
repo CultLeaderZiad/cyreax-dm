@@ -75,6 +75,7 @@ export const NAV: NavItem[] = [
       { id: "agents-list", label: "Agents", href: "/dashboard/ai-engine?tab=agents", icon: Bot },
       { id: "knowledge", label: "Knowledge", href: "/dashboard/ai-engine?tab=knowledge", icon: FileText },
       { id: "insights", label: "Insights", href: "/dashboard/ai-engine?tab=insights", icon: Sparkles },
+      { id: "growth-agent", label: "Growth Agent", href: "/dashboard/growth-agent", icon: Sparkles },
       { id: "logs", label: "Logs", href: "/dashboard/ai", icon: Bot },
     ],
   },

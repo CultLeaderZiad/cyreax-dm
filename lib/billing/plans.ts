@@ -19,6 +19,8 @@ export interface PlanLimits {
   channels: number
   contacts: number
   aiReplies: number
+  /** Monthly AI requests for everything except auto-replies: recommendations, the agent, analytics. */
+  aiRequests: number
   broadcasts: number
   seats: number
   whiteLabel: boolean
@@ -71,6 +73,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
       channels: 1,
       contacts: 500,
       aiReplies: 100,
+      aiRequests: 100,
       broadcasts: 0,
       seats: 1,
       whiteLabel: false,
@@ -94,6 +97,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
       channels: 2,
       contacts: 2000,
       aiReplies: 1000,
+      aiRequests: 300,
       broadcasts: 2,
       seats: 1,
       whiteLabel: false,
@@ -116,6 +120,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
       channels: 5,
       contacts: 10000,
       aiReplies: 5000,
+      aiRequests: 1500,
       broadcasts: 10,
       seats: 3,
       whiteLabel: false,
@@ -139,6 +144,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
       channels: 25,
       contacts: 50000,
       aiReplies: 20000,
+      aiRequests: 6000,
       broadcasts: -1,
       seats: 10,
       whiteLabel: true,
@@ -161,6 +167,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
       channels: -1,
       contacts: -1,
       aiReplies: 200000,
+      aiRequests: 60000,
       broadcasts: 200,
       seats: 30,
       whiteLabel: true,
@@ -219,7 +226,7 @@ export function meterPeriod(key: MeterKey, now: Date): string {
 
 // ---- Admin-controlled entitlements -----------------------------------------
 
-const NUMERIC_LIMITS: Array<keyof PlanLimits> = ["workspaces", "channels", "contacts", "aiReplies", "broadcasts", "seats"]
+const NUMERIC_LIMITS: Array<keyof PlanLimits> = ["workspaces", "channels", "contacts", "aiReplies", "aiRequests", "broadcasts", "seats"]
 const BOOLEAN_LIMITS: Array<keyof PlanLimits> = ["whiteLabel", "apiAccess", "aiAgent"]
 const INSIGHT_LEVELS: InsightsLevel[] = ["none", "weekly", "daily"]
 
@@ -262,6 +269,7 @@ export function describeEntitlements(limits: PlanLimits): string[] {
     count(limits.channels, "channel", "channels"),
     count(limits.contacts, "contact", "contacts"),
     `${limits.aiReplies < 0 ? "Unlimited" : fmt(limits.aiReplies)} AI replies / month`,
+    `${limits.aiRequests < 0 ? "Unlimited" : fmt(limits.aiRequests)} AI insights & agent requests / month`,
     limits.broadcasts === 0 ? null : `${limits.broadcasts < 0 ? "Unlimited" : fmt(limits.broadcasts)} broadcasts / month`,
     limits.workspaces > 1 || limits.workspaces < 0 ? count(limits.workspaces, "client workspace", "client workspaces") : null,
     limits.seats > 1 || limits.seats < 0 ? count(limits.seats, "team seat", "team seats") : null,

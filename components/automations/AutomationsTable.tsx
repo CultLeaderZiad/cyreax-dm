@@ -9,8 +9,6 @@ import {
   MessageCircle,
   Send,
   Sparkles,
-  Clock,
-  Hash,
   Star,
   Pencil,
   Copy,
@@ -50,13 +48,12 @@ export function AutomationsTable({
               <th className="py-2.5 px-4 font-medium">Automation</th>
               <th className="py-2.5 px-3 font-medium">Channel</th>
               <th className="py-2.5 px-3 font-medium text-end">Runs 7d</th>
-              <th className="py-2.5 px-3 font-medium text-end">→ Lead</th>
               <th className="py-2.5 px-4 font-medium text-center">Status</th>
               <th className="py-2.5 px-3 font-medium text-end sr-only">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--line)]">
-            {automations.map((rule, idx) => {
+            {automations.map((rule) => {
               const isSelected = selectedId === rule.id
               const channel = (rule.platform || "instagram").toLowerCase()
 
@@ -66,36 +63,9 @@ export function AutomationsTable({
                 ? rawKeywords.split(",").map((k: string) => k.trim()).filter(Boolean)
                 : []
 
-              // Heuristic numbers for mockups matching 03-automations.png
-              const runsCount =
-                idx === 0
-                  ? "1,126"
-                  : idx === 1
-                  ? "342"
-                  : idx === 2
-                  ? "88"
-                  : idx === 3
-                  ? "214"
-                  : idx === 4
-                  ? "—"
-                  : idx === 5
-                  ? "57"
-                  : (rule as any).runs || "—"
-
-              const leadRate =
-                idx === 0
-                  ? "14.2%"
-                  : idx === 1
-                  ? "4.1%"
-                  : idx === 2
-                  ? "9.0%"
-                  : idx === 4
-                  ? "—"
-                  : idx === 5
-                  ? "6.8%"
-                  : (rule as any).leads || "—"
-
-              const isDraft = idx === 4 || (!rule.is_active && (rule as any).is_draft)
+              // Real count of times this rule fired in the last 7 days (from automation_events).
+              const runsCount = (rule as any).runs_7d != null ? Number((rule as any).runs_7d).toLocaleString() : "—"
+              const isDraft = !rule.is_active && Boolean((rule as any).is_draft)
 
               return (
                 <tr
@@ -124,43 +94,7 @@ export function AutomationsTable({
                         {rule.name}
                       </span>
                       <div className="flex items-center gap-1.5 text-[11px] text-[var(--t3)] flex-wrap">
-                        {idx === 4 ? (
-                          <>
-                            <Clock className="w-3 h-3 text-[var(--t3)] shrink-0" />
-                            <span>10 PM – 9 AM · AI Agent answers, team gets summary</span>
-                          </>
-                        ) : idx === 1 ? (
-                          <>
-                            <MessageCircle className="w-3 h-3 text-[var(--t3)] shrink-0" />
-                            <span>Any comment on 3 selected posts</span>
-                          </>
-                        ) : idx === 2 ? (
-                          <>
-                            <Star className="w-3 h-3 text-[var(--t3)] shrink-0" />
-                            <span>Story mention · sends 10% code</span>
-                          </>
-                        ) : idx === 3 ? (
-                          <>
-                            <Hash className="w-3 h-3 text-[var(--t3)] shrink-0" />
-                            <span>Keyword</span>
-                            {keywords.map((kw, i) => (
-                              <Tag key={i} className="text-[10.5px]" dir="auto">
-                                {kw}
-                              </Tag>
-                            ))}
-                          </>
-                        ) : idx === 5 ? (
-                          <>
-                            <MessageCircle className="w-3 h-3 text-[var(--t3)] shrink-0" />
-                            <span>Comment contains</span>
-                            {keywords.map((kw, i) => (
-                              <Tag key={i} className="text-[10.5px]" dir="auto">
-                                {kw}
-                              </Tag>
-                            ))}
-                            <span className="text-[var(--t4)]">· region check on</span>
-                          </>
-                        ) : (
+                        {(
                           <>
                             {rule.platform === "telegram" || rule.platform === "whatsapp" || rule.platform === "webchat" ? (
                               <Send className="w-3 h-3 text-[var(--t3)] shrink-0" />
@@ -203,27 +137,12 @@ export function AutomationsTable({
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-1">
                       <ChannelBadge channel={channel} size="sm" className="w-4 h-4 rounded-full" />
-                      {idx === 3 && (
-                        <ChannelBadge channel="facebook" size="sm" className="w-4 h-4 rounded-full" />
-                      )}
-                      {idx === 4 && (
-                        <ChannelBadge channel="instagram" size="sm" className="w-4 h-4 rounded-full" />
-                      )}
                     </div>
                   </td>
 
                   {/* Runs 7d column */}
                   <td className="py-3 px-3 text-end font-mono text-[11.5px] text-[var(--t2)] tabular-nums">
                     {runsCount}
-                  </td>
-
-                  {/* → Lead column */}
-                  <td className="py-3 px-3 text-end font-mono text-[11.5px] tabular-nums">
-                    {leadRate !== "—" ? (
-                      <span className="text-[var(--green)] font-medium">{leadRate}</span>
-                    ) : (
-                      <span className="text-[var(--t4)]">—</span>
-                    )}
                   </td>
 
                   {/* Status column */}

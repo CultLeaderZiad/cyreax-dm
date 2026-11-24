@@ -18,7 +18,7 @@ export const ar = {
   telegramSupport: "الدعم عبر تيليجرام",
 
   // Landing Page
-  heroBadge1: "هيليكسا أوتو دي إم 2.0",
+  heroBadge1: "CYREAX DM",
   heroBadge2: "مبنية على واجهة Meta Graph API الرسمية",
   heroTitle: "حوّل التعليقات والرسائل إلى أرباح",
   heroTitleGradient: "على الطيار الآلي.",
@@ -41,7 +41,7 @@ export const ar = {
   creatorComment: "أطلقنا للتو دليل الأتمتة الاجتماعية لعام 2026! اكتب PLAYBOOK في تعليق وسأرسل لك الملف فوراً في الخاص.",
   triggerMatched: "تم تطابق الكلمة المفتاحية",
   commentUser: "أريد PLAYBOOK لو سمحت!",
-  publicReplyLabel: "هيليكسا (رد عام)",
+  publicReplyLabel: "CYREAX DM (رد عام)",
   publicReplyContent: "تم إرسال الملف مباشرة إلى رسائلك الخاصة! تفقدي صندوق الرسائل 🚀",
   step2Title: "2. رسالة خاصة فورية وجمع بيانات العملاء",
   verifiedBot: "بوت موثق",

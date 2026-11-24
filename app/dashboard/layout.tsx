@@ -148,7 +148,7 @@ export default function DashboardLayout({
     }
 
     return (
-        <div className="flex min-h-[100dvh] bg-[var(--bg)] text-[var(--t1)]">
+        <div className="flex min-h-[100dvh] text-[var(--t1)]">
             {/* ⌘K Command Palette (global) */}
             <CommandPalette />
 

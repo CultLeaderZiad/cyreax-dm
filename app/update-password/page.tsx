@@ -57,7 +57,7 @@ export default function UpdatePasswordPage() {
 
   if (!client.supabase) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#03010A]">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center space-y-4 max-w-md p-8">
           <h1 className="text-2xl font-bold text-red-500">Application Configuration Error</h1>
           <p className="text-neutral-400">This application is not properly configured. Please contact the administrator.</p>
@@ -98,7 +98,7 @@ export default function UpdatePasswordPage() {
 
   if (isValidSession === false) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#03010A] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="flex min-h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         <BackToHome />
         <div className="w-full max-w-md space-y-6 bg-[#03010A]/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 relative z-10 text-center shadow-2xl">
           <div className="flex justify-center mb-1">
@@ -118,7 +118,7 @@ export default function UpdatePasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#03010A] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="flex min-h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       <BackToHome />
       <FrontBackground />
       <div className="absolute inset-0 bg-gradient-to-t from-[#03010A] via-[#03010A]/80 to-[#03010A]/30 pointer-events-none" />

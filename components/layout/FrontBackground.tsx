@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import { VoxelArc } from "@/components/ui/voxel-arc"
 
 export function FrontBackground() {
   return (
@@ -8,6 +9,7 @@ export function FrontBackground() {
       className="fixed inset-0 z-0 pointer-events-none select-none overflow-hidden bg-[#03010A]"
       aria-hidden="true"
     >
+      <VoxelArc intensity={0.5} />
       {/* ─── CSS Keyframe Animations for Fluid GPU-Accelerated Background Motion ─── */}
       <style>{`
         @keyframes bg-orb-gold {

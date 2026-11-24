@@ -158,6 +158,31 @@ export async function createWhopCheckout(
   return { id: String(json.id), purchaseUrl: String(json.purchase_url) }
 }
 
+export interface WhopPlanInfo {
+  id: string
+  title: string | null
+  /** Price per billing period in the plan's currency, as Whop reports it. */
+  price: number | null
+  currency: string | null
+  billingPeriodDays: number | null
+  visibility: string | null
+}
+
+/** What Whop currently says about one of its plans (live, never cached). */
+export async function getWhopPlan(id: string, apiKey: string, fetchImpl: FetchLike = fetch): Promise<WhopPlanInfo> {
+  if (!isWhopVariantId(id)) throw new Error("Not a Whop plan id")
+  const json = await whopRequest(`/plans/${encodeURIComponent(id)}`, {}, apiKey, fetchImpl)
+  const num = (v: unknown) => (v == null || v === "" || Number.isNaN(Number(v)) ? null : Number(v))
+  return {
+    id: String(json?.id || id),
+    title: typeof json?.title === "string" ? json.title : null,
+    price: num(json?.renewal_price ?? json?.initial_price),
+    currency: typeof json?.currency === "string" ? json.currency.toUpperCase() : null,
+    billingPeriodDays: num(json?.billing_period),
+    visibility: typeof json?.visibility === "string" ? json.visibility : null,
+  }
+}
+
 export interface WhopMembership {
   id: string
   status: string

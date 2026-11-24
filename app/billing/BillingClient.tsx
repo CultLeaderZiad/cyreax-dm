@@ -86,7 +86,7 @@ export default function BillingPage() {
 
   if (configError || !supabase) {
     return (
-      <div className="min-h-screen bg-[#03010A] flex items-center justify-center px-6">
+      <div className="min-h-screen flex items-center justify-center px-6">
         <p className="font-mono text-sm text-neutral-400 text-center">Billing is unavailable until the Supabase environment variables are set.</p>
       </div>
     )
@@ -94,7 +94,7 @@ export default function BillingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#03010A] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="font-mono text-neutral-500">Loading...</div>
       </div>
     )
@@ -107,7 +107,7 @@ export default function BillingPage() {
   const daysLeft = trialDaysLeft()
 
   return (
-    <div className="min-h-screen bg-[#03010A] text-[#ededed] relative overflow-hidden">
+    <div className="min-h-screen text-[#ededed] relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-[#e5a93c]/5 via-transparent to-transparent opacity-20 pointer-events-none" />
 
       <div className="relative z-10 max-w-4xl mx-auto px-6 py-16">

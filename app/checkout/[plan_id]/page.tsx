@@ -62,7 +62,7 @@ export default async function CheckoutPage(props: {
   }
 
   return (
-    <div className="min-h-screen bg-[#03010A] text-white py-24 px-6 relative overflow-hidden">
+    <div className="min-h-screen text-white py-24 px-6 relative overflow-hidden">
       <FrontBackground />
       <BackToHome />
       <div className="max-w-xl mx-auto space-y-8 relative z-10">

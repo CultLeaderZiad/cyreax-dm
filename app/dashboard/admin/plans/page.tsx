@@ -3,7 +3,9 @@
 import { PLAN_CATALOG, type PlanLimits } from "@/lib/billing/plans"
 import { EntitlementsEditor } from "@/components/admin/EntitlementsEditor"
 import { useState, useEffect } from "react"
-import { Loader2, Plus, Pencil, Trash2 } from "lucide-react"
+import { Loader2, Plus, Pencil, Trash2, ExternalLink } from "lucide-react"
+import useSWR from "swr"
+import { fetcher } from "@/lib/fetcher"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -100,6 +102,11 @@ export default function DashboardAdminPlansPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ ...EMPTY_FORM })
 
+  const { data: whopStatus } = useSWR<{ configured: boolean; plans: Record<string, { whop: { title: string | null; price: number | null; currency: string | null } | null; error: string | null }> }>(
+    "/api/admin/plans/whop-status",
+    fetcher,
+    { revalidateOnFocus: true },
+  )
   useEffect(() => {
     fetchPlans()
   }, [])
@@ -351,6 +358,8 @@ export default function DashboardAdminPlansPage() {
                     </button>
                   </div>
                 </div>
+
+                <WhopLine id={plan.whop_variant_id} status={plan.whop_variant_id ? whopStatus?.plans?.[plan.whop_variant_id] : undefined} localPrice={plan.price_usd} />
 
                 <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
                   <div className="flex items-baseline gap-1">
@@ -629,6 +638,34 @@ export default function DashboardAdminPlansPage() {
         loading={deleting}
         onConfirm={handleConfirmDelete}
       />
+    </div>
+  )
+}
+
+function WhopLine({ id, status, localPrice }: { id?: string | null; status?: { whop: { title: string | null; price: number | null; currency: string | null } | null; error: string | null }; localPrice: number }) {
+  if (!id) {
+    return <p className="text-[11px] text-amber-400">No Whop plan id: card checkout is off for this plan. Edit the plan to add one.</p>
+  }
+  const live = status?.whop
+  const mismatch = live?.price != null && live.currency === "USD" && Math.abs(live.price - Number(localPrice)) > 0.001
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 space-y-1">
+      <div className="flex items-center justify-between gap-2">
+        <code className="font-mono text-[11px] text-neutral-300 truncate" dir="ltr">{id}</code>
+        <a href={`https://whop.com/checkout/${id}`} target="_blank" rel="noopener noreferrer" className="shrink-0 text-neutral-400 hover:text-white transition-colors" title="Open this plan's checkout on Whop">
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+      </div>
+      {!status ? (
+        <p className="text-[11px] text-neutral-500 animate-pulse">Checking Whop...</p>
+      ) : status.error ? (
+        <p className="text-[11px] text-red-400">{status.error}</p>
+      ) : (
+        <p className="text-[11px] text-neutral-400" dir="ltr">
+          On Whop: {live?.title || "plan"}{live?.price != null ? ` · ${live.price} ${live.currency || ""}` : ""}
+          {mismatch && <span className="text-amber-400"> · differs from the price shown here (${localPrice})</span>}
+        </p>
+      )}
     </div>
   )
 }
