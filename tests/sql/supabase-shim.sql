@@ -35,7 +35,8 @@ CREATE TABLE public.users (
 );
 CREATE TABLE public.plans (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, price_usd numeric(10,2) NOT NULL,
-  billing_cycle text NOT NULL DEFAULT 'monthly', is_active boolean NOT NULL DEFAULT true, price_yearly numeric(10,2)
+  billing_cycle text NOT NULL DEFAULT 'monthly', is_active boolean NOT NULL DEFAULT true, price_yearly numeric(10,2),
+  description text, features jsonb NOT NULL DEFAULT '[]', created_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now()
 );
 CREATE TABLE public.payment_submissions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

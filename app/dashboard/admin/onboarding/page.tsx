@@ -28,7 +28,7 @@ interface Item {
 }
 
 const LABEL: Record<State, { text: string; cls: string }> = {
-  awaiting_form: { text: "Signed up, form not sent", cls: "bg-neutral-500/20 text-neutral-300" },
+  awaiting_form: { text: "Signed up, form not sent", cls: "bg-neutral-500/20 text-[var(--t2)]" },
   submitted: { text: "Details received", cls: "bg-amber-500/20 text-amber-300" },
   link_sent: { text: "Invitation sent", cls: "bg-blue-500/20 text-blue-300" },
   connected: { text: "Connected", cls: "bg-emerald-500/20 text-emerald-300" },
@@ -36,15 +36,15 @@ const LABEL: Record<State, { text: string; cls: string }> = {
 
 function CopyValue({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
+    <div className="flex items-center justify-between gap-2 rounded-md border border-[var(--line)] bg-[var(--s2)] px-3 py-2">
       <div className="min-w-0">
-        <p className="text-[10px] uppercase tracking-wider text-neutral-500">{label}</p>
-        <p className="truncate font-mono text-[13px] text-white" dir="ltr">{value}</p>
+        <p className="text-[10px] uppercase tracking-wider text-[var(--t3)]">{label}</p>
+        <p className="truncate font-mono text-[13px] text-[var(--t1)]" dir="ltr">{value}</p>
       </div>
       <button
         type="button"
         onClick={() => { void navigator.clipboard.writeText(value); toast.success("Copied") }}
-        className="shrink-0 cursor-pointer text-neutral-400 transition-colors hover:text-white"
+        className="shrink-0 cursor-pointer text-[var(--t2)] transition-colors hover:text-white"
         aria-label={`Copy ${label}`}
       >
         <Copy className="size-4" />
@@ -87,17 +87,17 @@ function Row({ item, onChanged }: { item: Item; onChanged: () => void }) {
 
   const label = LABEL[item.state]
   return (
-    <div className="space-y-4 rounded-2xl border border-white/10 bg-[#0d0e13] p-5">
+    <div className="space-y-4 rounded-2xl border border-[var(--line)] bg-[var(--s1)] p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[15px] font-semibold text-white">{item.fullName || item.email || "New customer"}{item.company ? <span className="font-normal text-neutral-400"> · {item.company}</span> : null}</p>
-          <p className="text-xs text-neutral-500">{item.email}{item.accountCreatedAt ? ` · signed up ${new Date(item.accountCreatedAt).toLocaleString()}` : ""}</p>
+          <p className="text-[15px] font-semibold text-[var(--t1)]">{item.fullName || item.email || "New customer"}{item.company ? <span className="font-normal text-[var(--t2)]"> · {item.company}</span> : null}</p>
+          <p className="text-xs text-[var(--t3)]">{item.email}{item.accountCreatedAt ? ` · signed up ${new Date(item.accountCreatedAt).toLocaleString()}` : ""}</p>
         </div>
         <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${label.cls}`}>{label.text}</span>
       </div>
 
       {item.state === "awaiting_form" ? (
-        <p className="text-[13px] text-neutral-400">This customer created an account but has not sent their details yet. They are asked for them as soon as they open the dashboard.</p>
+        <p className="text-[13px] text-[var(--t2)]">This customer created an account but has not sent their details yet. They are asked for them as soon as they open the dashboard.</p>
       ) : (
         <>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -106,8 +106,8 @@ function Row({ item, onChanged }: { item: Item; onChanged: () => void }) {
             {item.telegramToken && (
               <div className="space-y-2 sm:col-span-2">
                 {token ? <CopyValue label="Telegram bot token" value={token} /> : (
-                  <div className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
-                    <div><p className="text-[10px] uppercase tracking-wider text-neutral-500">Telegram bot token</p><p className="font-mono text-[13px] text-white" dir="ltr">{item.telegramToken}</p></div>
+                  <div className="flex items-center justify-between gap-2 rounded-md border border-[var(--line)] bg-[var(--s2)] px-3 py-2">
+                    <div><p className="text-[10px] uppercase tracking-wider text-[var(--t3)]">Telegram bot token</p><p className="font-mono text-[13px] text-[var(--t1)]" dir="ltr">{item.telegramToken}</p></div>
                     <Button type="button" size="sm" variant="secondary" onClick={reveal}><Eye className="me-1.5 size-3.5" /> Show</Button>
                   </div>
                 )}
@@ -116,7 +116,7 @@ function Row({ item, onChanged }: { item: Item; onChanged: () => void }) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs text-neutral-400" htmlFor={`note-${item.accountId}`}>Message shown to the customer (optional)</label>
+            <label className="text-xs text-[var(--t2)]" htmlFor={`note-${item.accountId}`}>Message shown to the customer (optional)</label>
             <Textarea id={`note-${item.accountId}`} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} rows={2} placeholder="For example: open the invitation on Instagram under notifications and tap Accept." />
           </div>
 
@@ -141,15 +141,15 @@ export default function AdminOnboardingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-white">Onboarding</h1>
-        <p className="mt-1 text-xs text-neutral-500">Customers send their account details here. Connect their accounts, send them the invitation, then mark it.</p>
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--t1)]">Onboarding</h1>
+        <p className="mt-1 text-xs text-[var(--t3)]">Customers send their account details here. Connect their accounts, send them the invitation, then mark it.</p>
       </div>
       {isLoading ? (
-        <div className="h-32 animate-pulse rounded-2xl border border-white/10 bg-[#0d0e13]" />
+        <div className="h-32 animate-pulse rounded-2xl border border-[var(--line)] bg-[var(--s1)]" />
       ) : error ? (
         <p className="text-sm text-red-400">Could not load onboarding requests.</p>
       ) : items.length === 0 ? (
-        <p className="rounded-2xl border border-white/10 bg-[#0d0e13] p-6 text-sm text-neutral-400">No new signups in the last 14 days and no pending requests.</p>
+        <p className="rounded-2xl border border-[var(--line)] bg-[var(--s1)] p-6 text-sm text-[var(--t2)]">No new signups in the last 14 days and no pending requests.</p>
       ) : (
         <div className="space-y-4">{items.map((item) => <Row key={item.accountId} item={item} onChanged={() => void mutate()} />)}</div>
       )}

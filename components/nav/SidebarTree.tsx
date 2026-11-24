@@ -310,8 +310,18 @@ export function SidebarTree({
                   />
 
                   {item.children!.map((child) => {
+                    // A child is active on its own path or below it, unless a sibling is a closer match
+                    // (so "Users" at /dashboard/admin is not lit on /dashboard/admin/plans).
+                    const closerSibling = item.children!.some(
+                      (other) =>
+                        other.href &&
+                        child.href &&
+                        other.href !== child.href &&
+                        other.href.length > child.href.length &&
+                        (pathname === other.href || pathname.startsWith(other.href + "/")),
+                    )
                     const isChildRowActive =
-                      child.href && (pathname === child.href || pathname.startsWith(child.href + "/"))
+                      child.href && !closerSibling && (pathname === child.href || pathname.startsWith(child.href + "/"))
 
                     return (
                       <div key={child.id} className="relative flex items-center">

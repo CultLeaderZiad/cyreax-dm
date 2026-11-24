@@ -86,8 +86,8 @@ export default function AdminEnterprisePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">Enterprise Inquiries</h1>
-          <p className="text-xs text-neutral-500 mt-1">
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--t1)]">Enterprise Inquiries</h1>
+          <p className="text-xs text-[var(--t3)] mt-1">
             Review custom plan requests. Approving doesn&apos;t provision anything automatically.
           </p>
         </div>
@@ -101,15 +101,15 @@ export default function AdminEnterprisePage() {
 
       {loading ? (
         <div className="flex items-center justify-center p-12">
-          <Loader2 className="w-8 h-8 animate-spin text-neutral-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-[var(--t3)]" />
         </div>
       ) : inquiries.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/10 bg-[#0a0a0a] p-12 text-center max-w-xl mx-auto my-8">
-          <div className="w-16 h-16 mx-auto mb-4 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-            <CheckCircle className="w-7 h-7 text-neutral-400" />
+        <div className="rounded-2xl border border-dashed border-[var(--line)] bg-[#0a0a0a] p-12 text-center max-w-xl mx-auto my-8">
+          <div className="w-16 h-16 mx-auto mb-4 bg-[var(--s2)] rounded-2xl flex items-center justify-center border border-[var(--line)]">
+            <CheckCircle className="w-7 h-7 text-[var(--t2)]" />
           </div>
-          <h3 className="text-base font-bold text-white mb-1">No Enterprise Inquiries</h3>
-          <p className="text-sm text-neutral-400">
+          <h3 className="text-base font-bold text-[var(--t1)] mb-1">No Enterprise Inquiries</h3>
+          <p className="text-sm text-[var(--t2)]">
             Enterprise custom plan requests submitted from the public pricing page will appear here for review and follow-up.
           </p>
         </div>
@@ -118,15 +118,15 @@ export default function AdminEnterprisePage() {
           {inquiries.map((inq) => (
             <div
               key={inq.id}
-              className={`border border-white/10 bg-white/[0.03] rounded-xl p-6 flex flex-col gap-4 ${
+              className={`border border-[var(--line)] bg-[var(--s2)] rounded-xl p-6 flex flex-col gap-4 ${
                 inq.status !== "pending" ? "opacity-60" : ""
               }`}
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-bold text-white">{inq.full_name}</h3>
-                  <p className="text-sm text-neutral-400">{inq.email}</p>
-                  {inq.company && <p className="text-xs text-[#e5a93c] mt-1">{inq.company}</p>}
+                  <h3 className="font-bold text-[var(--t1)]">{inq.full_name}</h3>
+                  <p className="text-sm text-[var(--t2)]">{inq.email}</p>
+                  {inq.company && <p className="text-xs text-[var(--gold)] mt-1">{inq.company}</p>}
                 </div>
                 <div>
                   <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-full ${
@@ -140,21 +140,21 @@ export default function AdminEnterprisePage() {
               </div>
 
               {inq.needs_description && (
-                <div className="bg-black/30 p-3 rounded-lg border border-white/5 text-sm text-neutral-300">
-                  <p className="font-medium text-xs text-neutral-500 mb-1">Needs:</p>
+                <div className="bg-black/30 p-3 rounded-lg border border-white/5 text-sm text-[var(--t2)]">
+                  <p className="font-medium text-xs text-[var(--t3)] mb-1">Needs:</p>
                   {inq.needs_description}
                 </div>
               )}
 
               {inq.admin_note && (
-                <div className="bg-[#e5a93c]/5 p-3 rounded-lg border border-[#e5a93c]/10 text-sm text-neutral-300">
-                  <p className="font-medium text-xs text-[#e5a93c]/70 mb-1">Admin Note:</p>
+                <div className="bg-[#e5a93c]/5 p-3 rounded-lg border border-[#e5a93c]/10 text-sm text-[var(--t2)]">
+                  <p className="font-medium text-xs text-[var(--gold)]/70 mb-1">Admin Note:</p>
                   {inq.admin_note}
                 </div>
               )}
 
               {inq.status === "pending" && (
-                <div className="mt-auto flex items-center gap-2 pt-4 border-t border-white/10">
+                <div className="mt-auto flex items-center gap-2 pt-4 border-t border-[var(--line)]">
                   <Button
                     onClick={() => openActionDialog(inq, "approved")}
                     className="flex-1 bg-green-500 hover:bg-green-600 text-black"
@@ -174,7 +174,7 @@ export default function AdminEnterprisePage() {
             </div>
           ))}
           {inquiries.length === 0 && (
-            <div className="col-span-full p-12 text-center border border-dashed border-white/10 rounded-xl text-neutral-500">
+            <div className="col-span-full p-12 text-center border border-dashed border-[var(--line)] rounded-xl text-[var(--t3)]">
               No enterprise inquiries yet.
             </div>
           )}
@@ -182,12 +182,12 @@ export default function AdminEnterprisePage() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-[#0B0812] border-white/10 text-white max-w-lg">
+        <DialogContent className="bg-[var(--s1)] border-[var(--line)] text-[var(--t1)] max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {actionType === "approved" ? "Approve Inquiry" : "Reject Inquiry"}
             </DialogTitle>
-            <DialogDescription className="text-neutral-400">
+            <DialogDescription className="text-[var(--t2)]">
               {actionType === "approved" 
                 ? "Marking this as approved indicates you have handled the request. It does not provision anything automatically."
                 : "Marking this as rejected."}
@@ -196,9 +196,9 @@ export default function AdminEnterprisePage() {
 
           <div className="space-y-4 py-4">
             <div className="space-y-1.5">
-              <Label className="text-neutral-300">Admin Note (optional)</Label>
+              <Label className="text-[var(--t2)]">Admin Note (optional)</Label>
               <Textarea
-                className="bg-white/5 border-white/10 text-white"
+                className="bg-[var(--s2)] border-[var(--line)] text-[var(--t1)]"
                 placeholder="Notes for the team..."
                 value={adminNote}
                 onChange={(e) => setAdminNote(e.target.value)}
@@ -207,7 +207,7 @@ export default function AdminEnterprisePage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-white/10 text-neutral-300 hover:bg-white/5">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-[var(--line)] text-[var(--t2)] hover:bg-white/5">
               Cancel
             </Button>
             <Button

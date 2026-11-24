@@ -68,8 +68,8 @@ const PLAN_COLORS: Record<string, string> = {
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  admin: "text-[#e5a93c] bg-[#e5a93c]/10 border-[#e5a93c]/20",
-  user: "text-neutral-400 bg-neutral-400/10 border-neutral-400/20",
+  admin: "text-[var(--gold)] bg-[#e5a93c]/10 border-[#e5a93c]/20",
+  user: "text-[var(--t2)] bg-neutral-400/10 border-neutral-400/20",
 }
 
 /** Days until a trial ends (negative once it has ended). Reads the clock, so it lives outside render code. */
@@ -422,26 +422,21 @@ export default function AdminPage() {
 
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/[0.06]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[var(--line)]">
         <div>
-          <div className="flex items-center gap-2 text-xs text-neutral-400 font-medium mb-1">
-            <span>Dashboard</span>
-            <span>/</span>
-            <span className="text-white font-semibold">Admin</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">Admin Console</h1>
-          <p className="text-xs sm:text-sm text-neutral-400 mt-0.5">Users, payments, plans, and platform health at a glance.</p>
+          <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--t1)]">Admin Console</h1>
+          <p className="text-xs sm:text-sm text-[var(--t2)] mt-0.5">Users, payments, plans, and platform health at a glance.</p>
         </div>
         <div className="flex items-center gap-2.5 self-start sm:self-center">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e5a93c]/10 border border-[#e5a93c]/25 text-[#e5a93c] text-[10px] font-mono font-bold uppercase tracking-wider">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e5a93c]/10 border border-[#e5a93c]/25 text-[var(--gold)] text-[10px] font-mono font-bold uppercase tracking-wider">
             <Shield className="w-3 h-3" /> Admin Access
           </span>
           <button
             onClick={() => { fetchUsers(); fetchStats(); fetchAuditLogs(); fetchPendingPayments() }}
             title="Refresh all"
-            className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.08] text-neutral-300 transition-colors"
+            className="p-2 rounded-lg bg-[var(--s2)] border border-[var(--line)] hover:bg-[var(--s3)] text-[var(--t2)] transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -451,10 +446,10 @@ export default function AdminPage() {
       {/* Live Banner */}
       {trialsThisWeek !== null && (
         <div className="bg-[#e5a93c]/10 border border-[#e5a93c]/20 rounded-xl p-4 flex items-center gap-3 animate-in fade-in duration-500">
-          <Zap className="w-5 h-5 text-[#e5a93c]" />
+          <Zap className="w-5 h-5 text-[var(--gold)]" />
           <div>
-            <p className="text-white font-mono text-sm">
-              <span className="font-bold text-[#e5a93c]">{trialsThisWeek}</span> people started a trial this week.
+            <p className="text-[var(--t1)] font-mono text-sm">
+              <span className="font-bold text-[var(--gold)]">{trialsThisWeek}</span> people started a trial this week.
             </p>
           </div>
         </div>
@@ -465,7 +460,7 @@ export default function AdminPage() {
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 flex items-center gap-3 animate-in fade-in duration-500">
           <CreditCard className="w-5 h-5 text-blue-400" />
           <div className="flex-1">
-            <p className="text-white font-mono text-sm">
+            <p className="text-[var(--t1)] font-mono text-sm">
               <span className="font-bold text-blue-400">{pendingPayments.length}</span> pending payment{pendingPayments.length !== 1 ? 's' : ''} require your review.
             </p>
           </div>
@@ -482,13 +477,13 @@ export default function AdminPage() {
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Total Users", value: stats.totalUsers, icon: Users, color: "text-white", accent: "#ffffff" },
+            { label: "Total Users", value: stats.totalUsers, icon: Users, color: "text-[var(--t1)]", accent: "#ffffff" },
             { label: "Active Trials", value: stats.activeTrials, icon: Clock, color: "text-blue-400", accent: "#60a5fa" },
             { label: "Monthly", value: stats.monthlyUsers, icon: DollarSign, color: "text-green-400", accent: "#34d399" },
             { label: "One-Time", value: stats.oneTimeUsers, icon: Check, color: "text-purple-400", accent: "#c084fc" },
             { label: "Expired", value: stats.expiredUsers, icon: X, color: "text-red-400", accent: "#f87171" },
             { label: "Flagged", value: stats.flaggedUsers, icon: Flag, color: "text-orange-400", accent: "#fb923c" },
-            { label: "Automations Today", value: stats.automationsToday, icon: Activity, color: "text-[#e5a93c]", accent: "#e5a93c" },
+            { label: "Automations Today", value: stats.automationsToday, icon: Activity, color: "text-[var(--gold)]", accent: "#e5a93c" },
           ].map(({ label, value, icon: Icon, color, accent }) => (
             <div
               key={label}
@@ -500,14 +495,14 @@ export default function AdminPage() {
               />
               <div className="relative flex items-center gap-3">
                 <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center border border-white/[0.08] shrink-0"
+                  className="w-9 h-9 rounded-xl flex items-center justify-center border border-[var(--line)] shrink-0"
                   style={{ background: `${accent}14` }}
                 >
                   <Icon className={`w-4.5 h-4.5 w-[18px] h-[18px] ${color}`} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-2xl font-extrabold text-white tracking-tight tabular-nums leading-none">{value}</p>
-                  <p className="font-mono text-[9px] text-neutral-500 uppercase tracking-[0.2em] mt-1.5 truncate">{label}</p>
+                  <p className="text-2xl font-extrabold text-[var(--t1)] tracking-tight tabular-nums leading-none">{value}</p>
+                  <p className="font-mono text-[9px] text-[var(--t3)] uppercase tracking-[0.2em] mt-1.5 truncate">{label}</p>
                 </div>
               </div>
               <div
@@ -520,15 +515,15 @@ export default function AdminPage() {
       )}
 
       {/* Tabs - segmented control */}
-      <div className="inline-flex flex-wrap items-center gap-1 p-1 rounded-2xl bg-white/[0.03] border border-white/[0.07]">
+      <div className="inline-flex flex-wrap items-center gap-1 p-1 rounded-2xl bg-[var(--s2)] border border-white/[0.07]">
         {(["users", "audit", "payments", "matrix", "banner", "smtp", "subscribers"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab as any)}
             className={`relative px-4 py-2 rounded-xl font-mono text-[11px] uppercase tracking-wider transition-all whitespace-nowrap ${
               activeTab === tab
-                ? "bg-[#e5a93c]/15 text-[#e5a93c] border border-[#e5a93c]/25"
-                : "text-neutral-500 hover:text-white border border-transparent hover:bg-white/[0.04]"
+                ? "bg-[#e5a93c]/15 text-[var(--gold)] border border-[#e5a93c]/25"
+                : "text-[var(--t3)] hover:text-white border border-transparent hover:bg-[var(--s3)]"
             }`}
           >
             {tab === "users" ? "Users" : tab === "audit" ? "Audit Log" : tab === "payments" ? "Payments" : tab === "matrix" ? "Plan Matrix" : tab === "banner" ? "Banner" : tab === "smtp" ? "SMTP Settings" : "Subscribers"}
@@ -545,17 +540,17 @@ export default function AdminPage() {
           <div className="flex-1 min-w-0">
             {/* Filters */}
             <div className="flex flex-wrap gap-3 mb-4">
-              <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-2 bg-white/[0.02]">
-                <Search className="w-3.5 h-3.5 text-neutral-500" />
+              <div className="flex items-center gap-2 border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)]">
+                <Search className="w-3.5 h-3.5 text-[var(--t3)]" />
                 <input
-                  className="bg-transparent font-mono text-xs text-white outline-none placeholder:text-neutral-600 w-32"
+                  className="bg-transparent font-mono text-xs text-[var(--t1)] outline-none placeholder:text-[var(--t3)] w-32"
                   placeholder="Search email..."
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(1) }}
                 />
               </div>
               <select
-                className="border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-xs text-neutral-400 outline-none"
+                className="border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-xs text-[var(--t2)] outline-none"
                 value={filterPlan}
                 onChange={e => { setFilterPlan(e.target.value); setPage(1) }}
               >
@@ -566,7 +561,7 @@ export default function AdminPage() {
                 <option value="expired">Expired</option>
               </select>
               <select
-                className="border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-xs text-neutral-400 outline-none"
+                className="border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-xs text-[var(--t2)] outline-none"
                 value={filterFlagged}
                 onChange={e => { setFilterFlagged(e.target.value); setPage(1) }}
               >
@@ -576,26 +571,26 @@ export default function AdminPage() {
               </select>
               <button
                 onClick={() => { fetchUsers(); fetchStats() }}
-                className="border border-white/10 rounded-lg px-3 py-2 text-neutral-400 hover:text-white transition-colors"
+                className="border border-[var(--line)] rounded-lg px-3 py-2 text-[var(--t2)] hover:text-white transition-colors"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <div className="border border-white/[0.08] rounded-xl overflow-hidden">
+            <div className="border border-[var(--line)] rounded-xl overflow-hidden">
               <table className="w-full font-mono text-xs">
                 <thead>
-                  <tr className="border-b border-white/[0.08] bg-white/[0.02]">
+                  <tr className="border-b border-[var(--line)] bg-[var(--s2)]">
                     {["Email", "Plan", "Role", "Trial Left", "Flagged", "Joined"].map(h => (
-                      <th key={h} className="px-4 py-3 text-start text-neutral-500 uppercase tracking-wider text-[10px]">{h}</th>
+                      <th key={h} className="px-4 py-3 text-start text-[var(--t3)] uppercase tracking-wider text-[10px]">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={6} className="px-4 py-8 text-center text-neutral-600">Loading...</td></tr>
+                    <tr><td colSpan={6} className="px-4 py-8 text-center text-[var(--t3)]">Loading...</td></tr>
                   ) : users.length === 0 ? (
-                    <tr><td colSpan={6} className="px-4 py-8 text-center text-neutral-600">No users found</td></tr>
+                    <tr><td colSpan={6} className="px-4 py-8 text-center text-[var(--t3)]">No users found</td></tr>
                   ) : users.map(user => {
                     const daysLeft = trialDaysLeft(user.trial_ends_at)
                     return (
@@ -606,18 +601,18 @@ export default function AdminPage() {
                           selectedUser?.id === user.id ? "bg-white/[0.05]" : ""
                         }`}
                       >
-                        <td className="px-4 py-3 text-white">{user.email}</td>
+                        <td className="px-4 py-3 text-[var(--t1)]">{user.email}</td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] border ${PLAN_COLORS[user.plan] || "text-neutral-400"}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] border ${PLAN_COLORS[user.plan] || "text-[var(--t2)]"}`}>
                             {user.plan}
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] border ${ROLE_COLORS[user.role] || "text-neutral-400"}`}>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] border ${ROLE_COLORS[user.role] || "text-[var(--t2)]"}`}>
                             {user.role}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-neutral-400">
+                        <td className="px-4 py-3 text-[var(--t2)]">
                           {user.plan === "trial" && daysLeft !== null
                             ? <span className={daysLeft <= 0 ? "text-red-400" : daysLeft <= 2 ? "text-orange-400" : "text-blue-400"}>
                                 {daysLeft <= 0 ? "Expired" : `${daysLeft}d`}
@@ -627,9 +622,9 @@ export default function AdminPage() {
                         <td className="px-4 py-3">
                           {user.is_flagged
                             ? <span className="text-orange-400 flex items-center gap-1"><Flag className="w-3 h-3" /> Yes</span>
-                            : <span className="text-neutral-600">—</span>}
+                            : <span className="text-[var(--t3)]">—</span>}
                         </td>
-                        <td className="px-4 py-3 text-neutral-500">
+                        <td className="px-4 py-3 text-[var(--t3)]">
                           {new Date(user.created_at).toLocaleDateString()}
                         </td>
                       </tr>
@@ -642,19 +637,19 @@ export default function AdminPage() {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-4">
-                <span className="font-mono text-xs text-neutral-500">Page {page} of {totalPages}</span>
+                <span className="font-mono text-xs text-[var(--t3)]">Page {page} of {totalPages}</span>
                 <div className="flex gap-2">
                   <button
                     disabled={page <= 1}
                     onClick={() => setPage(p => p - 1)}
-                    className="p-1.5 border border-white/10 rounded-lg disabled:opacity-30 hover:border-white/30 transition-colors"
+                    className="p-1.5 border border-[var(--line)] rounded-lg disabled:opacity-30 hover:border-white/30 transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button
                     disabled={page >= totalPages}
                     onClick={() => setPage(p => p + 1)}
-                    className="p-1.5 border border-white/10 rounded-lg disabled:opacity-30 hover:border-white/30 transition-colors"
+                    className="p-1.5 border border-[var(--line)] rounded-lg disabled:opacity-30 hover:border-white/30 transition-colors"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -665,10 +660,10 @@ export default function AdminPage() {
 
           {/* Detail Panel */}
           {selectedUser && (
-            <div className="w-72 flex-shrink-0 border border-white/[0.08] rounded-xl p-5 bg-white/[0.02] h-fit space-y-5">
+            <div className="w-72 flex-shrink-0 border border-[var(--line)] rounded-xl p-5 bg-[var(--s2)] h-fit space-y-5">
               <div className="flex items-center justify-between">
-                <h3 className="font-mono text-sm font-bold text-white truncate max-w-[200px]" title={selectedUser.email}>{selectedUser.email}</h3>
-                <button onClick={() => setSelectedUser(null)} className="text-neutral-600 hover:text-white flex-shrink-0">
+                <h3 className="font-mono text-sm font-bold text-[var(--t1)] truncate max-w-[200px]" title={selectedUser.email}>{selectedUser.email}</h3>
+                <button onClick={() => setSelectedUser(null)} className="text-[var(--t3)] hover:text-white flex-shrink-0">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -682,16 +677,16 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              <div className="space-y-1 text-[11px] font-mono text-neutral-500">
+              <div className="space-y-1 text-[11px] font-mono text-[var(--t3)]">
                 <p>ID: {selectedUser.id}</p>
                 <p>IP: {selectedUser.signup_ip || "unknown"}</p>
                 <p>Joined: {new Date(selectedUser.created_at).toLocaleDateString()}</p>
               </div>
 
               {/* IP / Fraud Risk Info */}
-              <div className="p-3 border border-white/10 rounded-lg bg-[#03010A] space-y-2">
+              <div className="p-3 border border-[var(--line)] rounded-lg bg-[var(--s2)] space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider">IP Risk</span>
+                  <span className="font-mono text-[10px] text-[var(--t3)] uppercase tracking-wider">IP Risk</span>
                   <span className={`font-mono text-xs font-bold ${
                     (selectedUser.ip_risk_score ?? 0) > 85 ? 'text-red-400' :
                     (selectedUser.ip_risk_score ?? 0) > 50 ? 'text-orange-400' : 'text-green-400'
@@ -700,8 +695,8 @@ export default function AdminPage() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider">VPN/Proxy</span>
-                  <span className={`font-mono text-xs font-bold ${selectedUser.vpn_suspected ? 'text-red-400' : 'text-neutral-400'}`}>
+                  <span className="font-mono text-[10px] text-[var(--t3)] uppercase tracking-wider">VPN/Proxy</span>
+                  <span className={`font-mono text-xs font-bold ${selectedUser.vpn_suspected ? 'text-red-400' : 'text-[var(--t2)]'}`}>
                     {selectedUser.vpn_suspected ? "Yes" : "No"}
                   </span>
                 </div>
@@ -709,9 +704,9 @@ export default function AdminPage() {
 
               <div className="space-y-3">
                 <div>
-                  <label className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider">Plan</label>
+                  <label className="font-mono text-[10px] text-[var(--t3)] uppercase tracking-wider">Plan</label>
                   <select
-                    className="mt-1 w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-xs text-white outline-none"
+                    className="mt-1 w-full border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-xs text-[var(--t1)] outline-none"
                     value={editPlan}
                     onChange={e => setEditPlan(e.target.value)}
                   >
@@ -727,24 +722,24 @@ export default function AdminPage() {
 
                 {PLAN_CATALOG.some((plan) => !plan.hidden && plan.id === editPlan) && selectedUser && editPlan !== selectedUser.plan && (
                   <div>
-                    <label className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider block mb-1">Paid period to grant (days)</label>
+                    <label className="font-mono text-[10px] text-[var(--t3)] uppercase tracking-wider block mb-1">Paid period to grant (days)</label>
                     <input
                       type="number"
                       min={1}
                       max={3650}
                       value={editGrantDays}
                       onChange={(e) => setEditGrantDays(Math.max(1, Math.min(3650, Math.trunc(Number(e.target.value)) || 30)))}
-                      className="w-28 border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-xs text-white outline-none"
+                      className="w-28 border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-xs text-[var(--t1)] outline-none"
                     />
-                    <p className="text-[10px] text-neutral-500 mt-1">The plan is active for this long, then the account is paused unless the customer pays.</p>
+                    <p className="text-[10px] text-[var(--t3)] mt-1">The plan is active for this long, then the account is paused unless the customer pays.</p>
                   </div>
                 )}
 
                 {editPlan === "trial" && (
                   <div>
-                    <label className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider block mb-1">Trial Access</label>
+                    <label className="font-mono text-[10px] text-[var(--t3)] uppercase tracking-wider block mb-1">Trial Access</label>
                     <div className="flex items-center gap-3">
-                      <span className="font-mono text-xs text-white">
+                      <span className="font-mono text-xs text-[var(--t1)]">
                         {editTrialEndsAt ? new Date(editTrialEndsAt).toLocaleString() : "No trial date"}
                       </span>
                       {[7, 14, 30].map((days) => (
@@ -766,9 +761,9 @@ export default function AdminPage() {
                 )}
 
                 <div>
-                  <label className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider">Role</label>
+                  <label className="font-mono text-[10px] text-[var(--t3)] uppercase tracking-wider">Role</label>
                   <select
-                    className="mt-1 w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-xs text-white outline-none"
+                    className="mt-1 w-full border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-xs text-[var(--t1)] outline-none"
                     value={editRole}
                     onChange={e => setEditRole(e.target.value)}
                   >
@@ -778,7 +773,7 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <label className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider">Flagged</label>
+                  <label className="font-mono text-[10px] text-[var(--t3)] uppercase tracking-wider">Flagged</label>
                   <button
                     onClick={() => setEditFlagged(f => !f)}
                     className={`relative w-10 h-5 rounded-full transition-colors ${editFlagged ? "bg-orange-500" : "bg-white/10"}`}
@@ -789,9 +784,9 @@ export default function AdminPage() {
 
                 {editFlagged && (
                   <div>
-                    <label className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider">Reason</label>
+                    <label className="font-mono text-[10px] text-[var(--t3)] uppercase tracking-wider">Reason</label>
                     <input
-                      className="mt-1 w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-xs text-white outline-none placeholder:text-neutral-600"
+                      className="mt-1 w-full border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-xs text-[var(--t1)] outline-none placeholder:text-[var(--t3)]"
                       placeholder="Flag reason..."
                       value={editFlaggedReason}
                       onChange={e => setEditFlaggedReason(e.target.value)}
@@ -811,9 +806,9 @@ export default function AdminPage() {
 
                 {editBanned && (
                   <div>
-                    <label className="font-mono text-[10px] text-neutral-500 uppercase tracking-wider">Ban Reason</label>
+                    <label className="font-mono text-[10px] text-[var(--t3)] uppercase tracking-wider">Ban Reason</label>
                     <input
-                      className="mt-1 w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-xs text-white outline-none placeholder:text-neutral-600"
+                      className="mt-1 w-full border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-xs text-[var(--t1)] outline-none placeholder:text-[var(--t3)]"
                       placeholder="Ban reason..."
                       value={editBannedReason}
                       onChange={e => setEditBannedReason(e.target.value)}
@@ -825,7 +820,7 @@ export default function AdminPage() {
               <button
                 onClick={saveUser}
                 disabled={updating}
-                className="w-full bg-[#e5a93c] text-black font-mono text-xs font-bold py-2.5 rounded-lg hover:bg-[#d4952b] transition-all disabled:opacity-50"
+                className="w-full bg-[var(--gold)] text-black font-mono text-xs font-bold py-2.5 rounded-lg hover:bg-[var(--gold2)] transition-all disabled:opacity-50"
               >
                 {updating ? "Saving..." : "Save Changes"}
               </button>
@@ -835,25 +830,25 @@ export default function AdminPage() {
       )}
 
       {activeTab === "audit" && (
-        <div className="border border-white/[0.08] rounded-xl overflow-hidden">
+        <div className="border border-[var(--line)] rounded-xl overflow-hidden">
           <table className="w-full font-mono text-xs">
             <thead>
-              <tr className="border-b border-white/[0.08] bg-white/[0.02]">
+              <tr className="border-b border-[var(--line)] bg-[var(--s2)]">
                 {["Time", "Admin", "Action", "Target", "Details"].map(h => (
-                  <th key={h} className="px-4 py-3 text-start text-neutral-500 uppercase tracking-wider text-[10px]">{h}</th>
+                  <th key={h} className="px-4 py-3 text-start text-[var(--t3)] uppercase tracking-wider text-[10px]">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {auditLogs.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-neutral-600">No audit logs yet</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-[var(--t3)]">No audit logs yet</td></tr>
               ) : auditLogs.map(log => (
                 <tr key={log.id} className="border-b border-white/[0.04]">
-                  <td className="px-4 py-3 text-neutral-500">{new Date(log.created_at).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-[#e5a93c]">{log.admin?.email || "—"}</td>
-                  <td className="px-4 py-3 text-white">{log.action}</td>
-                  <td className="px-4 py-3 text-neutral-300">{log.target?.email || "—"}</td>
-                  <td className="px-4 py-3 text-neutral-500 max-w-xs truncate">
+                  <td className="px-4 py-3 text-[var(--t3)]">{new Date(log.created_at).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-[var(--gold)]">{log.admin?.email || "—"}</td>
+                  <td className="px-4 py-3 text-[var(--t1)]">{log.action}</td>
+                  <td className="px-4 py-3 text-[var(--t2)]">{log.target?.email || "—"}</td>
+                  <td className="px-4 py-3 text-[var(--t3)] max-w-xs truncate">
                     {JSON.stringify(log.details?.after || {})}
                   </td>
                 </tr>
@@ -864,26 +859,26 @@ export default function AdminPage() {
       )}
 
       {activeTab === "payments" && (
-        <div className="border border-white/[0.08] rounded-xl overflow-hidden">
+        <div className="border border-[var(--line)] rounded-xl overflow-hidden">
           <table className="w-full font-mono text-xs">
             <thead>
-              <tr className="border-b border-white/[0.08] bg-white/[0.02]">
+              <tr className="border-b border-[var(--line)] bg-[var(--s2)]">
                 {["Time", "Email", "Transaction Ref", "Amount", "Ordered Plan", "Note (Client Name)", "Actions"].map(h => (
-                  <th key={h} className="px-4 py-3 text-start text-neutral-500 uppercase tracking-wider text-[10px]">{h}</th>
+                  <th key={h} className="px-4 py-3 text-start text-[var(--t3)] uppercase tracking-wider text-[10px]">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {pendingPayments.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-neutral-600">No pending payments.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-[var(--t3)]">No pending payments.</td></tr>
               ) : pendingPayments.map(payment => (
                 <tr key={payment.id} className="border-b border-white/[0.04]">
-                  <td className="px-4 py-3 text-neutral-500">{new Date(payment.created_at).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-white font-bold">{payment.accounts?.email || `ID: ${payment.user_id}`}</td>
-                  <td className="px-4 py-3 text-[#e5a93c]">{payment.transaction_reference}</td>
+                  <td className="px-4 py-3 text-[var(--t3)]">{new Date(payment.created_at).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-[var(--t1)] font-bold">{payment.accounts?.email || `ID: ${payment.user_id}`}</td>
+                  <td className="px-4 py-3 text-[var(--gold)]">{payment.transaction_reference}</td>
                   <td className="px-4 py-3 text-green-400">${payment.amount}</td>
                   <td className="px-4 py-3 text-blue-400 capitalize">{payment.plan_id || payment.users?.plan || "monthly"}</td>
-                  <td className="px-4 py-3 text-neutral-400 max-w-[200px] truncate" title={payment.note || ""}>
+                  <td className="px-4 py-3 text-[var(--t2)] max-w-[200px] truncate" title={payment.note || ""}>
                     {payment.note || "—"}
                   </td>
                   <td className="px-4 py-3">
@@ -912,15 +907,15 @@ export default function AdminPage() {
       )}
 
       {activeTab === "banner" && (
-        <div className="border border-white/[0.08] rounded-xl overflow-hidden p-6 bg-white/[0.02] space-y-6 max-w-2xl">
+        <div className="border border-[var(--line)] rounded-xl overflow-hidden p-6 bg-[var(--s2)] space-y-6 max-w-2xl">
           <div className="space-y-2">
-            <h2 className="text-xl font-bold text-white font-mono">Global Announcement Banner</h2>
-            <p className="text-neutral-400 font-mono text-xs">Update the banner shown at the top of every page across the app.</p>
+            <h2 className="text-xl font-bold text-[var(--t1)] font-mono">Global Announcement Banner</h2>
+            <p className="text-[var(--t2)] font-mono text-xs">Update the banner shown at the top of every page across the app.</p>
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider w-24">Active</label>
+              <label className="font-mono text-xs text-[var(--t3)] uppercase tracking-wider w-24">Active</label>
               <button
                 onClick={() => setBannerState(s => ({ ...s, isActive: !s.isActive }))}
                 className={`relative w-12 h-6 rounded-full transition-colors ${bannerState.isActive ? "bg-green-500" : "bg-white/10"}`}
@@ -930,9 +925,9 @@ export default function AdminPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider w-24">Message</label>
+              <label className="font-mono text-xs text-[var(--t3)] uppercase tracking-wider w-24">Message</label>
               <input
-                className="flex-1 border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                className="flex-1 border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-sm text-[var(--t1)] outline-none placeholder:text-[var(--t3)]"
                 placeholder={`e.g. ${BRAND.name} v2.0 is now live!`}
                 value={bannerState.message}
                 onChange={e => setBannerState(s => ({ ...s, message: e.target.value }))}
@@ -940,9 +935,9 @@ export default function AdminPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider w-24">Link URL</label>
+              <label className="font-mono text-xs text-[var(--t3)] uppercase tracking-wider w-24">Link URL</label>
               <input
-                className="flex-1 border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                className="flex-1 border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-sm text-[var(--t1)] outline-none placeholder:text-[var(--t3)]"
                 placeholder="e.g. /dashboard/agents"
                 value={bannerState.link}
                 onChange={e => setBannerState(s => ({ ...s, link: e.target.value }))}
@@ -950,9 +945,9 @@ export default function AdminPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider w-24">Banner Type</label>
+              <label className="font-mono text-xs text-[var(--t3)] uppercase tracking-wider w-24">Banner Type</label>
               <select
-                className="flex-1 border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none"
+                className="flex-1 border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-sm text-[var(--t1)] outline-none"
                 value={bannerState.type || "standard"}
                 onChange={e => setBannerState(s => ({ ...s, type: e.target.value }))}
               >
@@ -962,9 +957,9 @@ export default function AdminPage() {
             </div>
 
             <div className="space-y-3 pt-2">
-              <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block">Update Page Content (Markdown)</label>
+              <label className="font-mono text-xs text-[var(--t3)] uppercase tracking-wider block">Update Page Content (Markdown)</label>
               <textarea
-                className="w-full h-48 border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600 resize-none"
+                className="w-full h-48 border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-sm text-[var(--t1)] outline-none placeholder:text-[var(--t3)] resize-none"
                 placeholder="# New Updates\n\n- Feature A..."
                 value={bannerState.content || ""}
                 onChange={e => setBannerState(s => ({ ...s, content: e.target.value }))}
@@ -975,7 +970,7 @@ export default function AdminPage() {
               <button
                 onClick={saveBanner}
                 disabled={savingBanner}
-                className="bg-[#e5a93c] text-black font-mono text-sm font-bold px-6 py-2 rounded-lg hover:bg-[#d4952b] transition-all disabled:opacity-50"
+                className="bg-[var(--gold)] text-black font-mono text-sm font-bold px-6 py-2 rounded-lg hover:bg-[var(--gold2)] transition-all disabled:opacity-50"
               >
                 {savingBanner ? "Saving..." : "Save Banner"}
               </button>
@@ -988,26 +983,26 @@ export default function AdminPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="space-y-2">
-              <h2 className="text-xl font-bold text-white font-mono">Plan-Agent Matrix</h2>
-              <p className="text-neutral-400 font-mono text-xs">Configure which agents are available in each plan.</p>
+              <h2 className="text-xl font-bold text-[var(--t1)] font-mono">Plan-Agent Matrix</h2>
+              <p className="text-[var(--t2)] font-mono text-xs">Configure which agents are available in each plan.</p>
             </div>
             <button
                 onClick={savePlanAgents}
                 disabled={savingMatrix}
-                className="bg-[#e5a93c] text-black font-mono text-sm font-bold px-6 py-2 rounded-lg hover:bg-[#d4952b] transition-all disabled:opacity-50 flex items-center gap-2"
+                className="bg-[var(--gold)] text-black font-mono text-sm font-bold px-6 py-2 rounded-lg hover:bg-[var(--gold2)] transition-all disabled:opacity-50 flex items-center gap-2"
               >
                 {savingMatrix ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 {savingMatrix ? "Saving..." : "Save Matrix"}
             </button>
           </div>
 
-          <div className="border border-white/[0.08] rounded-xl overflow-x-auto">
+          <div className="border border-[var(--line)] rounded-xl overflow-x-auto">
             <table className="w-full font-mono text-sm text-start">
               <thead>
-                <tr className="border-b border-white/[0.08] bg-white/[0.02]">
-                  <th className="px-6 py-4 text-neutral-400 font-medium">Agent</th>
+                <tr className="border-b border-[var(--line)] bg-[var(--s2)]">
+                  <th className="px-6 py-4 text-[var(--t2)] font-medium">Agent</th>
                   {["trial", "monthly", "one_time"].map(plan => (
-                    <th key={plan} className="px-6 py-4 font-medium text-center capitalize text-white">
+                    <th key={plan} className="px-6 py-4 font-medium text-center capitalize text-[var(--t1)]">
                       {plan.replace('_', '-')}
                     </th>
                   ))}
@@ -1015,15 +1010,15 @@ export default function AdminPage() {
               </thead>
               <tbody className="divide-y divide-white/[0.04]">
                 {agents.map(agent => (
-                  <tr key={agent.id} className="hover:bg-white/[0.02] transition-colors">
+                  <tr key={agent.id} className="hover:bg-[var(--s3)] transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-white/[0.05] border border-[var(--line)] flex items-center justify-center shrink-0">
                           {agent.icon && <span className="text-lg">{agent.icon}</span>}
                         </div>
                         <div>
-                          <p className="text-white font-bold">{agent.name}</p>
-                          <p className="text-xs text-neutral-500 max-w-xs truncate">{agent.description}</p>
+                          <p className="text-[var(--t1)] font-bold">{agent.name}</p>
+                          <p className="text-xs text-[var(--t3)] max-w-xs truncate">{agent.description}</p>
                         </div>
                         {!agent.is_active && (
                           <span className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded uppercase tracking-wider ms-2">
@@ -1063,7 +1058,7 @@ export default function AdminPage() {
                 ))}
                 {agents.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-6 py-10 text-center text-neutral-500">
+                    <td colSpan={4} className="px-6 py-10 text-center text-[var(--t3)]">
                       No agents found.
                     </td>
                   </tr>
@@ -1083,30 +1078,30 @@ export default function AdminPage() {
         </div>
       )}
       {activeTab === "smtp" && (
-        <div className="max-w-2xl border border-white/[0.08] rounded-xl p-6 bg-white/[0.02] space-y-6">
-          <div className="flex items-center gap-3 border-b border-white/[0.08] pb-4">
-            <Mail className="w-5 h-5 text-[#e5a93c]" />
+        <div className="max-w-2xl border border-[var(--line)] rounded-xl p-6 bg-[var(--s2)] space-y-6">
+          <div className="flex items-center gap-3 border-b border-[var(--line)] pb-4">
+            <Mail className="w-5 h-5 text-[var(--gold)]" />
             <div>
-              <h2 className="font-mono text-sm font-bold text-white">SMTP Settings</h2>
-              <p className="font-mono text-xs text-neutral-500">Configure outbound email provider credentials.</p>
+              <h2 className="font-mono text-sm font-bold text-[var(--t1)]">SMTP Settings</h2>
+              <p className="font-mono text-xs text-[var(--t3)]">Configure outbound email provider credentials.</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block mb-1">SMTP Host</label>
+                <label className="font-mono text-xs text-[var(--t3)] uppercase tracking-wider block mb-1">SMTP Host</label>
                 <input
-                  className="w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                  className="w-full border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-sm text-[var(--t1)] outline-none placeholder:text-[var(--t3)]"
                   placeholder="smtp.example.com"
                   value={smtpSettings.host}
                   onChange={e => setSmtpSettings(s => ({ ...s, host: e.target.value }))}
                 />
               </div>
               <div>
-                <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block mb-1">SMTP Port</label>
+                <label className="font-mono text-xs text-[var(--t3)] uppercase tracking-wider block mb-1">SMTP Port</label>
                 <input
-                  className="w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                  className="w-full border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-sm text-[var(--t1)] outline-none placeholder:text-[var(--t3)]"
                   placeholder="465"
                   value={smtpSettings.port}
                   onChange={e => setSmtpSettings(s => ({ ...s, port: e.target.value }))}
@@ -1115,7 +1110,7 @@ export default function AdminPage() {
             </div>
 
             <div className="flex items-center gap-3 pt-2">
-              <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider">Use Secure Connection (TLS/SSL)</label>
+              <label className="font-mono text-xs text-[var(--t3)] uppercase tracking-wider">Use Secure Connection (TLS/SSL)</label>
               <button
                 onClick={() => setSmtpSettings(s => ({ ...s, secure: !s.secure }))}
                 className={`relative w-10 h-5 rounded-full transition-colors ${smtpSettings.secure ? "bg-green-500" : "bg-white/10"}`}
@@ -1126,19 +1121,19 @@ export default function AdminPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block mb-1">SMTP User / Email</label>
+                <label className="font-mono text-xs text-[var(--t3)] uppercase tracking-wider block mb-1">SMTP User / Email</label>
                 <input
-                  className="w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                  className="w-full border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-sm text-[var(--t1)] outline-none placeholder:text-[var(--t3)]"
                   placeholder="user@example.com"
                   value={smtpSettings.user}
                   onChange={e => setSmtpSettings(s => ({ ...s, user: e.target.value }))}
                 />
               </div>
               <div>
-                <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block mb-1">SMTP Password / Key</label>
+                <label className="font-mono text-xs text-[var(--t3)] uppercase tracking-wider block mb-1">SMTP Password / Key</label>
                 <input
                   type="password"
-                  className="w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                  className="w-full border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-sm text-[var(--t1)] outline-none placeholder:text-[var(--t3)]"
                   placeholder="••••••••••••••••"
                   value={smtpSettings.pass}
                   onChange={e => setSmtpSettings(s => ({ ...s, pass: e.target.value }))}
@@ -1146,20 +1141,20 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/[0.08]">
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[var(--line)]">
               <div>
-                <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block mb-1">Default From Name</label>
+                <label className="font-mono text-xs text-[var(--t3)] uppercase tracking-wider block mb-1">Default From Name</label>
                 <input
-                  className="w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                  className="w-full border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-sm text-[var(--t1)] outline-none placeholder:text-[var(--t3)]"
                   placeholder={BRAND.name}
                   value={smtpSettings.fromName}
                   onChange={e => setSmtpSettings(s => ({ ...s, fromName: e.target.value }))}
                 />
               </div>
               <div>
-                <label className="font-mono text-xs text-neutral-500 uppercase tracking-wider block mb-1">Default From Email</label>
+                <label className="font-mono text-xs text-[var(--t3)] uppercase tracking-wider block mb-1">Default From Email</label>
                 <input
-                  className="w-full border border-white/10 rounded-lg px-3 py-2 bg-[#03010A] font-mono text-sm text-white outline-none placeholder:text-neutral-600"
+                  className="w-full border border-[var(--line)] rounded-lg px-3 py-2 bg-[var(--s2)] font-mono text-sm text-[var(--t1)] outline-none placeholder:text-[var(--t3)]"
                   placeholder={BRAND.emails.support}
                   value={smtpSettings.fromEmail}
                   onChange={e => setSmtpSettings(s => ({ ...s, fromEmail: e.target.value }))}
@@ -1171,7 +1166,7 @@ export default function AdminPage() {
               <button
                 onClick={saveSmtpSettings}
                 disabled={savingSmtp}
-                className="bg-[#e5a93c] text-black font-mono text-sm font-bold px-6 py-2 rounded-lg hover:bg-[#d4952b] transition-all disabled:opacity-50 flex items-center gap-2"
+                className="bg-[var(--gold)] text-black font-mono text-sm font-bold px-6 py-2 rounded-lg hover:bg-[var(--gold2)] transition-all disabled:opacity-50 flex items-center gap-2"
               >
                 {savingSmtp ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {savingSmtp ? "Saving..." : "Save SMTP Settings"}
@@ -1181,20 +1176,20 @@ export default function AdminPage() {
         </div>
       )}
       {activeTab === "subscribers" && (
-        <div className="border border-white/[0.08] rounded-xl p-6 bg-white/[0.02] space-y-6">
-          <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+        <div className="border border-[var(--line)] rounded-xl p-6 bg-[var(--s2)] space-y-6">
+          <div className="flex items-center justify-between border-b border-[var(--line)] pb-4">
             <div className="flex items-center gap-3">
-              <Mail className="w-5 h-5 text-[#e5a93c]" />
+              <Mail className="w-5 h-5 text-[var(--gold)]" />
               <div>
-                <h2 className="font-mono text-sm font-bold text-white">Newsletter Subscribers</h2>
-                <p className="font-mono text-xs text-neutral-500">View and manage users who subscribed to the weekly newsletter.</p>
+                <h2 className="font-mono text-sm font-bold text-[var(--t1)]">Newsletter Subscribers</h2>
+                <p className="font-mono text-xs text-[var(--t3)]">View and manage users who subscribed to the weekly newsletter.</p>
               </div>
             </div>
             {/* Search Input */}
-            <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-1.5 bg-white/[0.02]">
-              <Search className="w-3.5 h-3.5 text-neutral-500" />
+            <div className="flex items-center gap-2 border border-[var(--line)] rounded-lg px-3 py-1.5 bg-[var(--s2)]">
+              <Search className="w-3.5 h-3.5 text-[var(--t3)]" />
               <input
-                className="bg-transparent font-mono text-xs text-white outline-none placeholder:text-neutral-600 w-48"
+                className="bg-transparent font-mono text-xs text-[var(--t1)] outline-none placeholder:text-[var(--t3)] w-48"
                 placeholder="Search email..."
                 value={subscribersSearch}
                 onChange={e => setSubscribersSearch(e.target.value)}
@@ -1203,12 +1198,12 @@ export default function AdminPage() {
           </div>
 
           {subscribersLoading ? (
-            <div className="text-center font-mono text-neutral-500 text-xs py-8 text-white">Loading subscribers...</div>
+            <div className="text-center font-mono text-[var(--t3)] text-xs py-8 text-[var(--t1)]">Loading subscribers...</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-start border-collapse">
                 <thead>
-                  <tr className="border-b border-white/[0.08] font-mono text-[10px] text-neutral-500 uppercase tracking-wider">
+                  <tr className="border-b border-[var(--line)] font-mono text-[10px] text-[var(--t3)] uppercase tracking-wider">
                     <th className="pb-3 ps-4">Name</th>
                     <th className="pb-3">Email</th>
                     <th className="pb-3">Subscribed At</th>
@@ -1219,9 +1214,9 @@ export default function AdminPage() {
                   {subscribers
                     .filter(s => s.email.toLowerCase().includes(subscribersSearch.toLowerCase()) || (s.name && s.name.toLowerCase().includes(subscribersSearch.toLowerCase())))
                     .map(sub => (
-                      <tr key={sub.id} className="text-xs text-neutral-300 font-mono hover:bg-white/[0.02] transition-colors">
-                        <td className="py-4 ps-4 font-bold text-white">{sub.name || "—"}</td>
-                        <td className="py-4 font-bold text-white">{sub.email}</td>
+                      <tr key={sub.id} className="text-xs text-[var(--t2)] font-mono hover:bg-[var(--s3)] transition-colors">
+                        <td className="py-4 ps-4 font-bold text-[var(--t1)]">{sub.name || "—"}</td>
+                        <td className="py-4 font-bold text-[var(--t1)]">{sub.email}</td>
                         <td className="py-4">{new Date(sub.created_at).toLocaleString()}</td>
                         <td className="py-4 text-end pe-4">
                           <button
@@ -1236,7 +1231,7 @@ export default function AdminPage() {
                     ))}
                   {subscribers.filter(s => s.email.toLowerCase().includes(subscribersSearch.toLowerCase()) || (s.name && s.name.toLowerCase().includes(subscribersSearch.toLowerCase()))).length === 0 && (
                     <tr>
-                      <td colSpan={4} className="text-center py-8 text-neutral-500 font-mono text-xs">No subscribers found.</td>
+                      <td colSpan={4} className="text-center py-8 text-[var(--t3)] font-mono text-xs">No subscribers found.</td>
                     </tr>
                   )}
                 </tbody>

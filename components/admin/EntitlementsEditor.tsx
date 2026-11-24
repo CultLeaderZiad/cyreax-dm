@@ -46,16 +46,16 @@ export function EntitlementsEditor({
   const set = (patch: Partial<PlanLimits>) => onChange({ ...current, ...patch })
 
   return (
-    <div className="space-y-3 rounded-lg border border-white/10 p-3">
+    <div className="space-y-3 rounded-lg border border-[var(--line)] p-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-white">Limits &amp; features</p>
-          <p className="text-[11px] text-neutral-500">
+          <p className="text-sm font-semibold text-[var(--t1)]">Limits &amp; features</p>
+          <p className="text-[11px] text-[var(--t3)]">
             {value ? "Custom for this plan." : "Using the defaults for the selected tier."} Use -1 for unlimited. Changes apply immediately.
           </p>
         </div>
         {value && (
-          <button type="button" onClick={() => onChange(null)} className="text-[11px] text-neutral-400 hover:text-white underline">
+          <button type="button" onClick={() => onChange(null)} className="text-[11px] text-[var(--t2)] hover:text-white underline">
             Reset to defaults
           </button>
         )}
@@ -64,12 +64,12 @@ export function EntitlementsEditor({
       <div className="grid grid-cols-2 gap-3">
         {NUMBERS.map((field) => (
           <div key={field.key} className="space-y-1">
-            <Label className="text-neutral-300 text-xs">{field.label}</Label>
+            <Label className="text-[var(--t2)] text-xs">{field.label}</Label>
             <Input
               type="number"
               min={-1}
               step={1}
-              className="bg-white/5 border-white/10 text-white"
+              className="bg-[var(--s2)] border-[var(--line)] text-[var(--t1)]"
               value={current[field.key]}
               onChange={(e) => {
                 const n = Math.trunc(Number(e.target.value))
@@ -81,15 +81,15 @@ export function EntitlementsEditor({
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 rounded-md border border-white/10 p-2.5">
+      <div className="grid grid-cols-2 gap-3 rounded-md border border-[var(--line)] p-2.5">
         <div className="space-y-1">
-          <Label className="text-neutral-300 text-xs">Free trial (days)</Label>
+          <Label className="text-[var(--t2)] text-xs">Free trial (days)</Label>
           <Input
             type="number"
             min={0}
             max={90}
             step={1}
-            className="bg-white/5 border-white/10 text-white"
+            className="bg-[var(--s2)] border-[var(--line)] text-[var(--t1)]"
             value={current.trialDays}
             onChange={(e) => {
               const n = Math.trunc(Number(e.target.value))
@@ -97,16 +97,16 @@ export function EntitlementsEditor({
             }}
             title="0 = no free trial for this plan"
           />
-          <p className="text-[10px] text-neutral-500">0 = no trial</p>
+          <p className="text-[10px] text-[var(--t3)]">0 = no trial</p>
         </div>
         <div className="space-y-1">
-          <Label className="text-neutral-300 text-xs">Trial quota (% of plan)</Label>
+          <Label className="text-[var(--t2)] text-xs">Trial quota (% of plan)</Label>
           <Input
             type="number"
             min={1}
             max={100}
             step={1}
-            className="bg-white/5 border-white/10 text-white"
+            className="bg-[var(--s2)] border-[var(--line)] text-[var(--t1)]"
             value={current.trialLimitPercent}
             onChange={(e) => {
               const n = Math.trunc(Number(e.target.value))
@@ -114,14 +114,14 @@ export function EntitlementsEditor({
             }}
             title="During the trial, AI replies, AI requests and broadcasts are this percent of the plan's monthly limits"
           />
-          <p className="text-[10px] text-neutral-500">Caps AI replies, AI requests and broadcasts during the trial</p>
+          <p className="text-[10px] text-[var(--t3)]">Caps AI replies, AI requests and broadcasts during the trial</p>
         </div>
       </div>
 
       <div className="space-y-1">
-        <Label className="text-neutral-300 text-xs">AI recommendations</Label>
+        <Label className="text-[var(--t2)] text-xs">AI recommendations</Label>
         <select
-          className="w-full h-9 rounded-md bg-white/5 border border-white/10 text-white px-2 text-sm"
+          className="w-full h-9 rounded-md bg-[var(--s2)] border border-[var(--line)] text-[var(--t1)] px-2 text-sm"
           value={current.insights}
           onChange={(e) => set({ insights: e.target.value as InsightsLevel })}
         >
@@ -133,7 +133,7 @@ export function EntitlementsEditor({
 
       <div className="space-y-2">
         {TOGGLES.map((toggle) => (
-          <label key={toggle.key} className="flex items-start gap-2 text-sm text-neutral-200 cursor-pointer">
+          <label key={toggle.key} className="flex items-start gap-2 text-sm text-[var(--t1)] cursor-pointer">
             <input
               type="checkbox"
               className="mt-1"
@@ -142,15 +142,15 @@ export function EntitlementsEditor({
             />
             <span>
               {toggle.label}
-              <span className="block text-[11px] text-neutral-500">{toggle.hint}</span>
+              <span className="block text-[11px] text-[var(--t3)]">{toggle.hint}</span>
             </span>
           </label>
         ))}
       </div>
 
-      <div className="border-t border-white/10 pt-2">
-        <p className="text-[11px] text-neutral-500 mb-1">Customers will see:</p>
-        <ul className="text-xs text-neutral-300 space-y-0.5">
+      <div className="border-t border-[var(--line)] pt-2">
+        <p className="text-[11px] text-[var(--t3)] mb-1">Customers will see:</p>
+        <ul className="text-xs text-[var(--t2)] space-y-0.5">
           {describeEntitlements(current).map((line) => (
             <li key={line}>• {line}</li>
           ))}

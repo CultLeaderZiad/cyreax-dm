@@ -97,8 +97,8 @@ export default function CampaignsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <Mail className="w-6 h-6 text-[#e5a93c]" />
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--t1)] flex items-center gap-2">
+            <Mail className="w-6 h-6 text-[var(--gold)]" />
             {t.communicationCenter}
           </h2>
           <p className="text-zinc-400 text-sm mt-1">
@@ -121,7 +121,7 @@ export default function CampaignsPage() {
             <div className="flex justify-between items-center">
               <div className="space-y-1">
                 <p className="text-sm font-medium text-zinc-400">{t.totalCampaigns}</p>
-                <p className="text-3xl font-bold text-white">{campaigns.length}</p>
+                <p className="text-3xl font-bold text-[var(--t1)]">{campaigns.length}</p>
               </div>
               <div className="w-10 h-10 rounded-full bg-brand-500/10 flex items-center justify-center">
                 <Mail className="w-5 h-5 text-brand-400" />
@@ -134,7 +134,7 @@ export default function CampaignsPage() {
             <div className="flex justify-between items-center">
               <div className="space-y-1">
                 <p className="text-sm font-medium text-zinc-400">{t.totalEmailsSent}</p>
-                <p className="text-3xl font-bold text-white">
+                <p className="text-3xl font-bold text-[var(--t1)]">
                   {campaigns.filter(c => c.status === 'completed').reduce((acc, curr) => acc + (curr.recipient_count || 0), 0)}
                 </p>
               </div>
@@ -149,7 +149,7 @@ export default function CampaignsPage() {
             <div className="flex justify-between items-center">
               <div className="space-y-1">
                 <p className="text-sm font-medium text-zinc-400">{t.activeDrafts}</p>
-                <p className="text-3xl font-bold text-white">{campaigns.filter(c => c.status === 'draft').length}</p>
+                <p className="text-3xl font-bold text-[var(--t1)]">{campaigns.filter(c => c.status === 'draft').length}</p>
               </div>
               <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center">
                 <Clock className="w-5 h-5 text-zinc-400" />
@@ -186,7 +186,7 @@ export default function CampaignsPage() {
                   <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center mb-4 border border-zinc-800">
                     <Mail className="w-8 h-8 text-zinc-600" />
                   </div>
-                  <h3 className="text-xl font-medium text-white mb-2">{t.noCampaignsYet}</h3>
+                  <h3 className="text-xl font-medium text-[var(--t1)] mb-2">{t.noCampaignsYet}</h3>
                   <p className="text-zinc-400 max-w-sm mb-6">{t.createFirstCampaign}</p>
                   <Button 
                     onClick={() => router.push("/dashboard/admin/campaigns/create")}
@@ -215,7 +215,7 @@ export default function CampaignsPage() {
                         onClick={() => router.push(`/dashboard/admin/campaigns/${campaign.id}`)}
                       >
                         <td className="px-6 py-4">
-                          <div className="font-medium text-white">{campaign.name}</div>
+                          <div className="font-medium text-[var(--t1)]">{campaign.name}</div>
                           <div className="text-zinc-500 text-xs truncate max-w-xs">{campaign.subject}</div>
                         </td>
                         <td className="px-6 py-4">
@@ -274,7 +274,7 @@ export default function CampaignsPage() {
                   <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center mb-4 border border-zinc-800">
                     <Clock className="w-8 h-8 text-zinc-600" />
                   </div>
-                  <h3 className="text-xl font-medium text-white mb-2">No scheduled campaigns</h3>
+                  <h3 className="text-xl font-medium text-[var(--t1)] mb-2">No scheduled campaigns</h3>
                   <p className="text-zinc-400 max-w-sm mb-6">You don&apos;t have any scheduled campaigns.</p>
                 </div>
               ) : (
@@ -296,7 +296,7 @@ export default function CampaignsPage() {
                         onClick={() => router.push(`/dashboard/admin/campaigns/${campaign.id}`)}
                       >
                         <td className="px-6 py-4">
-                          <div className="font-medium text-white">{campaign.name}</div>
+                          <div className="font-medium text-[var(--t1)]">{campaign.name}</div>
                           <div className="text-zinc-500 text-xs truncate max-w-xs">{campaign.subject}</div>
                         </td>
                         <td className="px-6 py-4">
@@ -343,7 +343,7 @@ export default function CampaignsPage() {
                   <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center mb-4 border border-zinc-800">
                     <Clock className="w-8 h-8 text-zinc-600" />
                   </div>
-                  <h3 className="text-xl font-medium text-white mb-2">No drafts</h3>
+                  <h3 className="text-xl font-medium text-[var(--t1)] mb-2">No drafts</h3>
                   <p className="text-zinc-400 max-w-sm mb-6">You don&apos;t have any drafts.</p>
                 </div>
               ) : (
@@ -365,7 +365,7 @@ export default function CampaignsPage() {
                         onClick={() => router.push(`/dashboard/admin/campaigns/${campaign.id}`)}
                       >
                         <td className="px-6 py-4">
-                          <div className="font-medium text-white">{campaign.name}</div>
+                          <div className="font-medium text-[var(--t1)]">{campaign.name}</div>
                           <div className="text-zinc-500 text-xs truncate max-w-xs">{campaign.subject}</div>
                         </td>
                         <td className="px-6 py-4">

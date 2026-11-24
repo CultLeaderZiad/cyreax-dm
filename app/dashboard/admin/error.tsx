@@ -15,12 +15,12 @@ export default function Error({
             <AlertCircle className="w-6 h-6 text-red-500" />
         </div>
         <div className="text-center">
-            <h2 className="text-lg font-medium text-white mb-2">Something went wrong</h2>
-            <p className="text-sm text-neutral-400 max-w-md mx-auto">{error.message || "An unexpected error occurred."}</p>
+            <h2 className="text-lg font-medium text-[var(--t1)] mb-2">Something went wrong</h2>
+            <p className="text-sm text-[var(--t2)] max-w-md mx-auto">{error.message || "An unexpected error occurred."}</p>
         </div>
         <button
             onClick={() => reset()}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-colors mt-4"
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-[var(--t1)] rounded-lg text-sm transition-colors mt-4"
         >
             Try again
         </button>

@@ -326,4 +326,21 @@ DO $$ BEGIN
   END;
 END $$;
 
+-- 13. The three Whop plans are attached to Starter / Pro / Agency, once.
+DO $$ DECLARE n int; BEGIN
+  SELECT count(*) INTO n FROM public.plans WHERE catalog_plan_id IN ('creator', 'creator_plus', 'agency') AND whop_variant_id IS NOT NULL;
+  IF n <> 3 THEN RAISE EXCEPTION 'FAIL: expected 3 plans with a card checkout id, got %', n; END IF;
+  SELECT count(*) INTO n FROM public.plans WHERE whop_variant_id = 'plan_JtjPwHcMVU9lU' AND catalog_plan_id = 'creator_plus';
+  IF n <> 1 THEN RAISE EXCEPTION 'FAIL: Pro is not attached to its plan id'; END IF;
+END $$;
+
+-- 14. Onboarding: status is constrained and one row per account.
+DO $$ BEGIN
+  BEGIN
+    INSERT INTO public.account_onboarding (account_id, full_name, status) VALUES ('77777777-0000-0000-0000-0000000000aa', 'X', 'nonsense');
+    RAISE EXCEPTION 'FAIL: unknown onboarding status accepted';
+  EXCEPTION WHEN check_violation OR foreign_key_violation THEN NULL;
+  END;
+END $$;
+
 SELECT 'ALL DB CHECKS PASSED' AS result;

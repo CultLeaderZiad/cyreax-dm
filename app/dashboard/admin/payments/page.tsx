@@ -101,15 +101,15 @@ export default function AdminPaymentsPage() {
   }
 
   return (
-    <div className="min-h-screen text-white">
-      <div className="max-w-5xl mx-auto px-6 py-12 space-y-8">
+    <div className="text-[var(--t1)]">
+      <div className="space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <Link href="/dashboard/admin" className="font-mono text-xs text-neutral-500 hover:text-white">← Admin</Link>
-            <h1 className="text-3xl font-bold mt-2">Payments</h1>
-            <p className="text-sm text-neutral-500 mt-1">E-wallet and InstaPay transfers waiting for review. A plan activates only when you approve.</p>
+            <Link href="/dashboard/admin" className="font-mono text-xs text-[var(--t3)] hover:text-white">← Admin</Link>
+            <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] mt-2">Payments</h1>
+            <p className="text-sm text-[var(--t3)] mt-1">E-wallet and InstaPay transfers waiting for review. A plan activates only when you approve.</p>
           </div>
-          <button onClick={load} className="inline-flex items-center gap-2 text-sm border border-white/10 rounded-lg px-3 py-2 hover:bg-white/5">
+          <button onClick={load} className="inline-flex items-center gap-2 text-sm border border-[var(--line)] rounded-lg px-3 py-2 hover:bg-white/5">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
         </div>
@@ -117,16 +117,16 @@ export default function AdminPaymentsPage() {
         <div className="flex gap-2" role="tablist">
           {(["pending", "approved", "rejected"] as const).map((s) => (
             <button key={s} role="tab" aria-selected={status === s} onClick={() => setStatus(s)}
-              className={`px-4 py-2 rounded-lg text-sm capitalize border ${status === s ? "border-[#e5a93c] bg-[#e5a93c]/10 text-white" : "border-white/10 text-neutral-400 hover:text-white"}`}>
+              className={`px-4 py-2 rounded-lg text-sm capitalize border ${status === s ? "border-[#e5a93c] bg-[#e5a93c]/10 text-white" : "border-[var(--line)] text-[var(--t2)] hover:text-white"}`}>
               {s}
             </button>
           ))}
         </div>
 
         {payments === null ? (
-          <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-neutral-500" /></div>
+          <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-[var(--t3)]" /></div>
         ) : payments.length === 0 ? (
-          <p className="text-neutral-500 text-sm py-12 text-center">No {status} payments.</p>
+          <p className="text-[var(--t3)] text-sm py-12 text-center">No {status} payments.</p>
         ) : (
           <ul className="space-y-4">
             {payments.map((p) => {
@@ -136,9 +136,9 @@ export default function AdminPaymentsPage() {
               // Mirrors cyreax_review_payment: less than the quote (or unknown) needs an override.
               const underpaid = p.amount_egp != null && (paid == null || Number(paid) < Number(p.amount_egp))
               return (
-                <li key={p.id} className="border border-white/10 rounded-2xl bg-white/[0.02] overflow-hidden">
+                <li key={p.id} className="border border-[var(--line)] rounded-2xl bg-[var(--s2)] overflow-hidden">
                   <div className="grid md:grid-cols-[260px_1fr]">
-                    <div className="bg-black/40 border-b md:border-b-0 md:border-e border-white/10 flex items-center justify-center min-h-48">
+                    <div className="bg-black/40 border-b md:border-b-0 md:border-e border-[var(--line)] flex items-center justify-center min-h-48">
                       {p.proof_url ? (
                         <a href={p.proof_url} target="_blank" rel="noopener noreferrer" className="block w-full h-full relative group">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -148,43 +148,43 @@ export default function AdminPaymentsPage() {
                           </span>
                         </a>
                       ) : (
-                        <span className="text-xs text-neutral-500 p-6 text-center">No screenshot (older form)</span>
+                        <span className="text-xs text-[var(--t3)] p-6 text-center">No screenshot (older form)</span>
                       )}
                     </div>
                     <div className="p-5 space-y-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <p className="font-semibold">{p.accounts?.email || "Unknown account"}</p>
-                          <p className="text-xs text-neutral-500">Submitted {when(p.created_at)}</p>
+                          <p className="text-xs text-[var(--t3)]">Submitted {when(p.created_at)}</p>
                         </div>
-                        {p.reference_code && <code className="font-mono text-[#e5a93c] text-sm border border-[#e5a93c]/30 rounded px-2 py-1">{p.reference_code}</code>}
+                        {p.reference_code && <code className="font-mono text-[var(--gold)] text-sm border border-[#e5a93c]/30 rounded px-2 py-1">{p.reference_code}</code>}
                       </div>
 
                       <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                        <div><dt className="text-neutral-500 text-xs">Plan</dt><dd>{p.plan_name || p.plan_slug || "—"} {p.interval ? <span className="text-neutral-500">· {p.interval}</span> : null}</dd></div>
-                        <div><dt className="text-neutral-500 text-xs">Method</dt><dd>{METHOD_LABEL[p.payment_method || ""] || p.payment_method || "—"}</dd></div>
-                        <div><dt className="text-neutral-500 text-xs">Expected</dt><dd className="font-mono">EGP {expected ?? "—"}</dd></div>
+                        <div><dt className="text-[var(--t3)] text-xs">Plan</dt><dd>{p.plan_name || p.plan_slug || "—"} {p.interval ? <span className="text-[var(--t3)]">· {p.interval}</span> : null}</dd></div>
+                        <div><dt className="text-[var(--t3)] text-xs">Method</dt><dd>{METHOD_LABEL[p.payment_method || ""] || p.payment_method || "—"}</dd></div>
+                        <div><dt className="text-[var(--t3)] text-xs">Expected</dt><dd className="font-mono">EGP {expected ?? "—"}</dd></div>
                         <div>
-                          <dt className="text-neutral-500 text-xs">Customer says they sent</dt>
+                          <dt className="text-[var(--t3)] text-xs">Customer says they sent</dt>
                           <dd className={`font-mono ${mismatch ? "text-red-400" : ""}`}>
                             {paid != null ? `EGP ${paid}` : "—"}
                             {mismatch && <span className="inline-flex items-center gap-1 ms-2 text-xs"><AlertTriangle className="w-3 h-3" />differs</span>}
                           </dd>
                         </div>
-                        <div><dt className="text-neutral-500 text-xs">Sent from</dt><dd className="font-mono" dir="ltr">{p.sender_ref || "—"}</dd></div>
-                        <div><dt className="text-neutral-500 text-xs">Transaction number</dt><dd className="font-mono" dir="ltr">{p.transaction_reference}</dd></div>
-                        <div><dt className="text-neutral-500 text-xs">Transferred at</dt><dd>{when(p.transferred_at)}</dd></div>
-                        {p.note && <div className="sm:col-span-2"><dt className="text-neutral-500 text-xs">Note (older form)</dt><dd className="break-words">{p.note}</dd></div>}
+                        <div><dt className="text-[var(--t3)] text-xs">Sent from</dt><dd className="font-mono" dir="ltr">{p.sender_ref || "—"}</dd></div>
+                        <div><dt className="text-[var(--t3)] text-xs">Transaction number</dt><dd className="font-mono" dir="ltr">{p.transaction_reference}</dd></div>
+                        <div><dt className="text-[var(--t3)] text-xs">Transferred at</dt><dd>{when(p.transferred_at)}</dd></div>
+                        {p.note && <div className="sm:col-span-2"><dt className="text-[var(--t3)] text-xs">Note (older form)</dt><dd className="break-words">{p.note}</dd></div>}
                         {status !== "pending" && (
                           <div className="sm:col-span-2">
-                            <dt className="text-neutral-500 text-xs">{status === "approved" ? "Active until" : "Reason"}</dt>
+                            <dt className="text-[var(--t3)] text-xs">{status === "approved" ? "Active until" : "Reason"}</dt>
                             <dd>{status === "approved" ? when(p.period_end) : p.admin_note || p.rejection_reason || "—"}</dd>
                           </div>
                         )}
                       </dl>
 
                       {status === "pending" && (
-                        <div className="space-y-3 border-t border-white/10 pt-4">
+                        <div className="space-y-3 border-t border-[var(--line)] pt-4">
                           {underpaid && (
                             <p role="alert" className="flex items-start gap-2 text-sm rounded-lg border border-red-500/40 bg-red-500/10 text-red-300 p-3">
                               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -195,10 +195,10 @@ export default function AdminPaymentsPage() {
                             </p>
                           )}
                           <label className="block">
-                            <span className="text-xs text-neutral-500">Note (required to reject, shown to the customer)</span>
+                            <span className="text-xs text-[var(--t3)]">Note (required to reject, shown to the customer)</span>
                             <textarea rows={2} maxLength={500} value={notes[p.id] || ""}
                               onChange={(e) => setNotes((n) => ({ ...n, [p.id]: e.target.value }))}
-                              className="mt-1 w-full rounded-lg bg-white/5 border border-white/10 p-2.5 text-sm outline-none focus:border-[#e5a93c]/50" />
+                              className="mt-1 w-full rounded-lg bg-[var(--s2)] border border-[var(--line)] p-2.5 text-sm outline-none focus:border-[#e5a93c]/50" />
                           </label>
                           <div className="flex flex-wrap gap-3">
                             {underpaid ? (
@@ -226,7 +226,7 @@ export default function AdminPaymentsPage() {
             })}
           </ul>
         )}
-        <p className="text-xs text-neutral-600">Screenshot links expire after 2 minutes. Refresh to get new ones.</p>
+        <p className="text-xs text-[var(--t3)]">Screenshot links expire after 2 minutes. Refresh to get new ones.</p>
       </div>
     </div>
   )

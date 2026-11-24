@@ -84,7 +84,7 @@ export default function CreateCampaignPage() {
           <ArrowLeft className={`w-5 h-5 ${isRtl ? 'rotate-180' : ''}`} />
         </Button>
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-white">{t.newCampaign}</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--t1)]">{t.newCampaign}</h2>
           <p className="text-zinc-400 text-sm mt-1">{t.configureEmail}</p>
         </div>
       </div>
@@ -94,7 +94,7 @@ export default function CreateCampaignPage() {
           
           {/* Section 1: Meta */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-white border-b border-zinc-800 pb-2">{t.campaignSettings}</h3>
+            <h3 className="text-lg font-medium text-[var(--t1)] border-b border-zinc-800 pb-2">{t.campaignSettings}</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -151,7 +151,7 @@ export default function CreateCampaignPage() {
 
           {/* Section 2: Content */}
           <div className="space-y-4 pt-4">
-            <h3 className="text-lg font-medium text-white border-b border-zinc-800 pb-2">{t.emailContent}</h3>
+            <h3 className="text-lg font-medium text-[var(--t1)] border-b border-zinc-800 pb-2">{t.emailContent}</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -240,7 +240,7 @@ export default function CreateCampaignPage() {
               onClick={() => handleSaveDraft('draft')} 
               disabled={loading}
               variant="outline"
-              className="bg-transparent border-zinc-700 text-white hover:bg-zinc-800"
+              className="bg-transparent border-zinc-700 text-[var(--t1)] hover:bg-zinc-800"
             >
               {loading ? <Loader2 className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'} animate-spin`} /> : <Save className={`w-4 h-4 ${isRtl ? 'ms-2' : 'me-2'}`} />}
               Save to drafts page
