@@ -22,6 +22,11 @@ const MIGRATIONS = [
   "supabase/migrations/20261117120200_review_payment_plan_and_lifetime.sql",
   "supabase/migrations/20261123120000_whop_billing.sql",
   "supabase/migrations/20261124120000_plan_entitlements.sql",
+  "supabase/migrations/20261125120000_whop_plan_ids.sql",
+  "supabase/migrations/20261126120000_ai_recommendations.sql",
+  "supabase/migrations/20261127120000_ai_agent_proposals.sql",
+  "supabase/migrations/20261128120000_whop_price_sync.sql",
+  "supabase/migrations/20261129120000_account_onboarding.sql",
 ]
 
 const base = process.env.CYREAX_TEST_PG
