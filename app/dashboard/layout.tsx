@@ -12,6 +12,7 @@ import { CommandPalette } from "@/components/ui/CommandPalette"
 import { BrandLogo } from "@/components/ui/BrandLogo"
 import { BRAND } from "@/lib/brand"
 import { PlanGate } from "@/components/billing/PlanGate"
+import { PlanActivation } from "@/components/billing/PlanActivation"
 import { gateReason as gateReasonFor } from "@/lib/billing/gate"
 
 function MobileTabBarWrapper({
@@ -67,6 +68,11 @@ export default function DashboardLayout({
     const router = useRouter()
     const pathname = usePathname()
     const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
+    // Landed here from the card checkout: confirm the payment before anything else.
+    const [activating, setActivating] = useState(false)
+    useEffect(() => {
+        setActivating(new URLSearchParams(window.location.search).get("checkout") === "whop")
+    }, [])
 
     useEffect(() => {
         if (typeof document !== "undefined") {
@@ -104,6 +110,10 @@ export default function DashboardLayout({
                 <Loader2 className="size-6 animate-spin text-[var(--gold)]" />
             </div>
         )
+    }
+
+    if (activating && role !== 'admin') {
+        return <PlanActivation />
     }
 
     if (gateReason) {
