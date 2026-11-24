@@ -3,6 +3,7 @@ import { llmRateRules, takeRateSlots } from "@/lib/rate-limit"
 import { getSupabaseBypassClient } from "./supabase-server"
 import { historyRole } from "./analytics-metrics"
 import { BRAND } from "./brand"
+import { isModelGone } from "./llm-errors"
 
 // Check for required env vars for Cyreax DM managed models
 const GROQ_API_KEY = process.env.GROQ_API_KEY
@@ -12,14 +13,15 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 
 // Default models per provider (only used when the request doesn't pin one).
-// IMPORTANT: all four IDs below were verified against vendor deprecation pages
-// (Sept 2026). The previous defaults were all RETIRED and returned 404s:
-//   groq      llama-3.3-70b-versatile   -> retired 2026-08-16 (free/dev tier)
-//   gemini    gemini-2.0-flash          -> shut down 2026-06-01
-//   anthropic claude-3-5-haiku-latest    -> retired 2026-02-19
-// Groq retires IDs with little notice, so GROQ_MODEL allows swapping without
-const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.1-8b-instant"
-const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest"
+// Checked against the live provider APIs on 2026-11-24 with real calls:
+//   groq   llama-3.1-8b-instant      -> retired (model_not_found)
+//   groq   openai/gpt-oss-120b       -> OK, good Arabic
+//   gemini gemini-flash-latest       -> OK but often 503 "high demand"
+//   gemini gemini-flash-lite-latest  -> OK, fast, good Arabic
+// Providers retire ids with little notice: override with GROQ_MODEL /
+// GEMINI_MODEL, and a retired pinned model now falls back to these defaults.
+const DEFAULT_GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b"
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-flash-lite-latest"
 const DEFAULT_ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5"
 const DEFAULT_OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "meta-llama/llama-3.3-70b-instruct"
 const DEFAULT_OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini"
@@ -249,8 +251,19 @@ export async function generateCompletion(
 
 // Low-level HTTP Callers
 
-async function callGeminiAPI(options: GroqCompletionRequest, apiKey: string) {
-  const model = options.model || DEFAULT_GEMINI_MODEL
+async function callGeminiAPI(options: GroqCompletionRequest, apiKey: string): Promise<string> {
+  try {
+    return await callGeminiModel(options, apiKey, options.model || DEFAULT_GEMINI_MODEL)
+  } catch (err: any) {
+    if (options.model && options.model !== DEFAULT_GEMINI_MODEL && err?.modelGone) {
+      console.warn(`[llm-provider] Gemini model ${options.model} is gone; using ${DEFAULT_GEMINI_MODEL}`)
+      return callGeminiModel(options, apiKey, DEFAULT_GEMINI_MODEL)
+    }
+    throw err
+  }
+}
+
+async function callGeminiModel(options: GroqCompletionRequest, apiKey: string, model: string): Promise<string> {
 
   // Convert OpenAI-style messages to Gemini's contents format
   const contents: Array<{ role: string; parts: Array<{ text: string }> }> = []
@@ -272,16 +285,19 @@ async function callGeminiAPI(options: GroqCompletionRequest, apiKey: string) {
     generationConfig.responseMimeType = "application/json"
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+  // The key goes in a header: a key in the URL can end up in logs.
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({ contents, generationConfig })
   })
 
   if (!res.ok) {
     const txt = await res.text()
-    throw new Error(`Gemini API Error: ${res.status} - ${txt}`)
+    const error: Error & { modelGone?: boolean } = new Error(`Gemini API Error: ${res.status} - ${txt.slice(0, 300)}`)
+    error.modelGone = isModelGone(res.status, txt)
+    throw error
   }
 
   const data = await res.json()
@@ -292,7 +308,19 @@ async function callGeminiAPI(options: GroqCompletionRequest, apiKey: string) {
   return text
 }
 
-async function callGroqAPI(options: GroqCompletionRequest, apiKey: string) {
+async function callGroqAPI(options: GroqCompletionRequest, apiKey: string): Promise<string | null> {
+  try {
+    return await callGroqModel(options, apiKey, options.model || DEFAULT_GROQ_MODEL)
+  } catch (err: any) {
+    if (options.model && options.model !== DEFAULT_GROQ_MODEL && err?.modelGone) {
+      console.warn(`[llm-provider] Groq model ${options.model} is gone; using ${DEFAULT_GROQ_MODEL}`)
+      return callGroqModel(options, apiKey, DEFAULT_GROQ_MODEL)
+    }
+    throw err
+  }
+}
+
+async function callGroqModel(options: GroqCompletionRequest, apiKey: string, model: string): Promise<string | null> {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -300,7 +328,7 @@ async function callGroqAPI(options: GroqCompletionRequest, apiKey: string) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: options.model || DEFAULT_GROQ_MODEL,
+      model,
       messages: options.messages,
       temperature: options.temperature,
       max_tokens: options.max_tokens,
@@ -310,7 +338,9 @@ async function callGroqAPI(options: GroqCompletionRequest, apiKey: string) {
 
   if (!res.ok) {
     const txt = await res.text()
-    throw new Error(`Groq API Error: ${res.status} - ${txt}`)
+    const error: Error & { modelGone?: boolean } = new Error(`Groq API Error: ${res.status} - ${txt.slice(0, 300)}`)
+    error.modelGone = isModelGone(res.status, txt)
+    throw error
   }
 
   const data = await res.json()
@@ -476,8 +506,9 @@ type ProviderName = "groq" | "gemini" | "openrouter" | "anthropic" | "openai"
 
 function providerChain(primary: string, primaryKey: string): Array<{ provider: ProviderName; key: string }> {
   const managed: Array<{ provider: ProviderName; key: string | undefined }> = [
-    { provider: "groq", key: GROQ_API_KEY },
+    // Gemini first (free tier, strong Arabic), then Groq, then OpenRouter.
     { provider: "gemini", key: GEMINI_API_KEY },
+    { provider: "groq", key: GROQ_API_KEY },
     { provider: "openrouter", key: OPENROUTER_API_KEY },
   ]
   const chain: Array<{ provider: ProviderName; key: string }> = []
