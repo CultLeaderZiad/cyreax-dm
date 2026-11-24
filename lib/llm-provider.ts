@@ -125,10 +125,19 @@ export async function generateCompletion(
     return null
   }
 
-  // 1. Check AI Limit for managed usage
+  // 1. Plan quota: monthly AI requests per plan (set by the admin). Auto-replies
+  // are metered by the message pipeline instead. A safety ceiling per user per
+  // day (AI_CALLS_PER_DAY) still applies against runaway loops.
   const isWithinLimit = await checkAILimit(userId)
   if (!isWithinLimit) {
     throw new GroqRateLimitError("AI limit exceeded for today.")
+  }
+  {
+    const { loadAccount } = await import("@/lib/billing/enforce")
+    const { assertAiQuota } = await import("@/lib/ai/quota")
+    const quotaDb = await getSupabaseBypassClient()
+    const account = await loadAccount(quotaDb, accountUuid)
+    if (account) await assertAiQuota(quotaDb, account, feature)
   }
 
   // 1b. Burst and platform-wide ceilings. The daily count above is cached for

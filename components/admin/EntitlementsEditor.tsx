@@ -10,10 +10,11 @@ export function defaultLimitsFor(catalogPlanId: string | null | undefined): Plan
   return { ...entry.limits }
 }
 
-const NUMBERS: Array<{ key: "channels" | "contacts" | "aiReplies" | "broadcasts" | "workspaces" | "seats"; label: string; hint: string }> = [
+const NUMBERS: Array<{ key: "channels" | "contacts" | "aiReplies" | "aiRequests" | "broadcasts" | "workspaces" | "seats"; label: string; hint: string }> = [
   { key: "channels", label: "Channels", hint: "Connected Instagram / Facebook / WhatsApp / Telegram / TikTok accounts" },
   { key: "contacts", label: "Contacts", hint: "People the inbox can store" },
-  { key: "aiReplies", label: "AI replies / month", hint: "Shared by auto-replies, recommendations and the agent" },
+  { key: "aiReplies", label: "AI replies / month", hint: "Automatic replies to customer messages" },
+  { key: "aiRequests", label: "AI requests / month", hint: "Recommendations, the Growth Agent and analytics (not auto-replies)" },
   { key: "broadcasts", label: "Broadcasts / month", hint: "0 = none" },
   { key: "workspaces", label: "Client workspaces", hint: "Agencies manage one per client" },
   { key: "seats", label: "Team seats", hint: "People who can sign in to the workspace" },
