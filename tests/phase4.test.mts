@@ -34,13 +34,14 @@ const { originAllowed, consumeWebchatRate } = await import("../lib/webchat/secur
 const { hashVisitorSecret } = await import("../lib/webchat/security.ts")
 const { listWebchatMessages, openWebchatSession, postWebchatMessage } = await import("../lib/webchat/service.ts")
 
-function jsonResponse(json, ok = true, status = 200) {
+// Test fakes stand in for fetch/Response; typed loosely on purpose.
+function jsonResponse(json: any, ok = true, status = 200): any {
   return { ok, status, json: async () => json }
 }
 
-function captureFetch(responder) {
-  const calls = []
-  const fetchImpl = async (url, init) => {
+function captureFetch(responder: any): { fetchImpl: any; calls: any[] } {
+  const calls: any[] = []
+  const fetchImpl = async (url: any, init: any) => {
     calls.push({ url: String(url), init })
     const result = await responder(String(url), init, calls.length)
     return jsonResponse(result.json, result.ok !== false, result.status || 200)
@@ -51,8 +52,8 @@ function captureFetch(responder) {
 describe("phase 4 connection routing", () => {
   it("never guesses the first WhatsApp number", () => {
     const rows = [{ page_id: "111" }, { page_id: "222" }]
-    assert.equal(pickChannelConnection(rows, "222").row.page_id, "222")
-    assert.equal(pickChannelConnection([{ page_id: "111" }], null).row.page_id, "111")
+    assert.equal(pickChannelConnection(rows, "222").row!.page_id, "222")
+    assert.equal(pickChannelConnection([{ page_id: "111" }], null).row!.page_id, "111")
     assert.equal(pickChannelConnection(rows, null).ambiguous, true)
     assert.equal(pickChannelConnection(rows, null).row, null)
     assert.equal(pickChannelConnection(rows, "999").row, null)
@@ -89,7 +90,7 @@ describe("WhatsApp adapter and templates", () => {
     assert.equal(media.document.link, "https://example.com/a.pdf")
     assert.equal(media.document.caption, "invoice")
 
-    await adapter.sendList(ctx, {
+    await adapter.sendList!(ctx, {
       body: "Choose",
       button: "Menu",
       sections: [{ title: "Main", rows: [{ id: "a", title: "Alpha", description: "First" }] }],
@@ -129,7 +130,7 @@ describe("WhatsApp adapter and templates", () => {
   it("builds and sends an approved template payload", async () => {
     const components = [{ type: "BODY", text: "Hi {{1}}, code {{2}}" }]
     assert.equal(bodyParameterCount(components), 2)
-    const payload = buildTemplatePayload({ to: "1555", name: "hello", language: "ar", bodyParameters: ["Nour", "9"] })
+    const payload: any = buildTemplatePayload({ to: "1555", name: "hello", language: "ar", bodyParameters: ["Nour", "9"] })
     assert.equal(payload.type, "template")
     assert.equal(payload.template.language.code, "ar")
     assert.equal(payload.template.components[0].parameters.length, 2)
@@ -183,11 +184,11 @@ describe("TikTok adapter", () => {
       assert.equal(body.business_id, "open-1")
       assert.equal(calls[0].init.headers["Access-Token"], "tok")
 
-      const commentOff = await adapter.privateReply({ accessToken: "tok", recipientId: "", senderRef: "open-1", commentId: "c1" }, "thanks")
+      const commentOff = await adapter.privateReply!({ accessToken: "tok", recipientId: "", senderRef: "open-1", commentId: "c1" }, "thanks")
       assert.equal(commentOff.error, "tiktok_comment_to_dm_disabled")
 
       process.env.TIKTOK_COMMENT_TO_DM_ENABLED = "true"
-      const comment = await adapter.privateReply({ accessToken: "tok", recipientId: "", senderRef: "open-1", commentId: "c1" }, "thanks")
+      const comment = await adapter.privateReply!({ accessToken: "tok", recipientId: "", senderRef: "open-1", commentId: "c1" }, "thanks")
       assert.equal(comment.ok, true)
       const direct = JSON.parse(calls[1].init.body)
       assert.equal(direct.direct_reply.reply_type, "COMMENT_REPLY")
@@ -275,19 +276,19 @@ describe("website chat widget", () => {
     }
     const visitors = new Map()
     const rates = new Map()
-    const inbound = []
-    const greetings = []
-    const gateway = {
-      async widgetByKey(key) { return key === widget.public_key ? widget : null },
-      async visitor(_widgetId, visitorId) { return visitors.get(visitorId) || null },
-      async createVisitor(input) { visitors.set(input.visitorId, { secret_hash: input.secretHash }) },
-      async rate(key) { return rates.get(key) || null },
-      async saveRate(key, bucket) { rates.set(key, bucket) },
-      async messages(_widget, visitorId) {
+    const inbound: any[] = []
+    const greetings: any[] = []
+    const gateway: any = {
+      async widgetByKey(key: any) { return key === widget.public_key ? widget : null },
+      async visitor(_widgetId: any, visitorId: any) { return visitors.get(visitorId) || null },
+      async createVisitor(input: any) { visitors.set(input.visitorId, { secret_hash: input.secretHash }) },
+      async rate(key: any) { return rates.get(key) || null },
+      async saveRate(key: any, bucket: any) { rates.set(key, bucket) },
+      async messages(_widget: any, visitorId: any) {
         return [{ id: `m-${visitorId}`, content: "only this visitor", direction: "out", created_at: "2026-09-30T00:00:00.000Z" }]
       },
-      async acceptInbound(_widget, visitorId, text, messageId) { inbound.push({ visitorId, text, messageId }) },
-      async greet(_widget, visitorId, text) { greetings.push({ visitorId, text }) },
+      async acceptInbound(_widget: any, visitorId: any, text: any, messageId: any) { inbound.push({ visitorId, text, messageId }) },
+      async greet(_widget: any, visitorId: any, text: any) { greetings.push({ visitorId, text }) },
     }
     const caller = { origin: "https://example.com", ip: "203.0.113.4", now: 5_000 }
 
@@ -299,8 +300,8 @@ describe("website chat widget", () => {
     assert.equal(opened.status, 200)
     assert.equal(greetings.length, 1)
     assert.equal(typeof opened.body.secret, "string")
-    const visitorId = opened.body.visitorId
-    const secret = opened.body.secret
+    const visitorId = String(opened.body.visitorId)
+    const secret = String(opened.body.secret)
 
     const other = hashVisitorSecret("not-the-secret")
     visitors.set("someone-else", { secret_hash: other })
@@ -308,7 +309,7 @@ describe("website chat widget", () => {
     assert.equal(leaked.status, 401)
 
     const listed = await listWebchatMessages(gateway, caller, { publicKey: widget.public_key, visitorId, secret })
-    assert.equal(listed.body.messages[0].id, `m-${visitorId}`)
+    assert.equal((listed.body.messages as Array<{ id: string }>)[0].id, `m-${visitorId}`)
 
     const sent = await postWebchatMessage(gateway, { ...caller, sendLimit: 1 }, {
       publicKey: widget.public_key,
@@ -425,7 +426,7 @@ describe("WhatsApp Embedded Signup v4 and registration", () => {
       assert.equal(skip.pin, "000042")
       assert.equal(openAccessToken(registrationPinCipherToStore(skip, "skipped")), "000042")
 
-      const { fetchImpl, calls } = captureFetch(async (url) => {
+      const { fetchImpl, calls } = captureFetch(async (url: any) => {
         if (url.includes("/phone-1/register")) return { json: { success: true } }
         if (url.includes("/phone-1?")) {
           return { json: { id: "phone-1", display_phone_number: "+20 100", status: "PENDING", platform_type: "NOT_APPLICABLE" } }
@@ -467,7 +468,7 @@ describe("WhatsApp Embedded Signup v4 and registration", () => {
     assert.equal(shouldUnsubscribeWaba(["waba-2"], "waba-1"), true)
     assert.equal(shouldUnsubscribeWaba([], null), false)
 
-    const { fetchImpl, calls } = captureFetch(async (url, init) => {
+    const { fetchImpl, calls } = captureFetch(async (url: any, init: any) => {
       if (String(init?.method) === "DELETE") return { json: { success: true } }
       if (url.endsWith("/deregister")) return { ok: false, status: 400, json: { error: { message: "rate limited", code: 133016 } } }
       return { json: { success: true } }

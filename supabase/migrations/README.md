@@ -282,3 +282,36 @@ shows (the site URL, and the same `CRON_SECRET` as Vercel). Until both exist,
 the jobs do nothing. The rollback is in the file header. Check that it works with
 `select * from cron.job_run_details order by start_time desc limit 10;` and
 `GET /api/health` (`checks.queue` should be `ok`).
+
+## Review fixes (2026-11-17)
+
+Run after the scheduler migrations, in this order. Each has its rollback in
+the file header.
+
+1. `20261117120000_byok_rpc_lockdown.sql` brings `set_agent_byok_key` /
+   `get_agent_byok_key` into the chain and makes them service-role only.
+2. `20261117120100_review_payment_underpay_guard.sql` replaces
+   `cyreax_review_payment` (new `p_override` argument): approving less than
+   the quote needs an override and a note.
+3. `20261117120200_review_payment_plan_and_lifetime.sql` replaces it again so
+   approval grants the plan that was bought, stores lifetime as
+   `interval = 'lifetime'`, adds `billing_accounts.display_plan_id`, and
+   backfills both from approved payments.
+
+Deploy the app code from the same release together with 2 and 3: the admin
+route passes `p_override`, which the old function does not accept.
+
+## Whop billing (2026-11-23)
+
+`20261123120000_whop_billing.sql`: Whop plan IDs on `plans`,
+`accounts.country`, `billing_accounts.payment_provider`, the service-only
+`whop_checkouts` and `whop_webhook_events` tables, and
+`cyreax_review_payment` recording `payment_provider = 'manual'`. Run it after
+the review migrations; rollback in the header.
+
+## Plan entitlements (2026-11-24)
+
+`20261124120000_plan_entitlements.sql` adds `plans.entitlements` (jsonb object
+or NULL): the limits and features Admin -> Plans can override per plan, read by
+`resolveAccountPlan` on every request. Run it before the Admin -> Plans page
+is used; until then the code defaults apply. Rollback in the header.

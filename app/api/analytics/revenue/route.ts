@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
     const prevCommentsCount = prevComments.count
 
     // 2. DM conversations started (conversations)
-    let [curConv, prevConv] = await Promise.all([
+    const [curConv, prevConv] = await Promise.all([
       runScopedQuery((sb) =>
         sb
           .from("conversations")

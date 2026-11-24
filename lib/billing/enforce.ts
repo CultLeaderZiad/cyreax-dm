@@ -1,4 +1,4 @@
-import { featureEnabled, limitFor, meterPeriod, resolvePlan, type FeatureKey, type MeterKey, type ResolvedPlan } from "@/lib/billing/plans"
+import { applyEntitlements, featureEnabled, limitFor, meterPeriod, resolvePlan, type FeatureKey, type MeterKey, type ResolvedPlan } from "@/lib/billing/plans"
 import { channelSlots, judgeUsage, slotsAfterConnect, type ChannelConnection, type ChannelProfile, type UsageJudgement } from "@/lib/billing/usage"
 
 export class PlanLimitError extends Error {
@@ -42,8 +42,37 @@ export async function accountIdForProfile(supabase: any, userId: string | number
   return String(data.account_id)
 }
 
-async function billingRow(supabase: any, accountId: string): Promise<{ plan_id?: string; status?: string; trial_ends_at?: string | null } | null> {
-  const { data, error } = await supabase.from("billing_accounts").select("plan_id, status, trial_ends_at").eq("account_id", accountId).maybeSingle()
+export interface BillingRow {
+  plan_id?: string
+  status?: string
+  interval?: string | null
+  current_period_end?: string | null
+  trial_ends_at?: string | null
+}
+
+/** Marker for a one-time purchase that never renews (billing_accounts.interval). */
+export const LIFETIME_INTERVAL = "lifetime"
+
+/**
+ * Is a paid ("active") billing row still inside what was paid for?
+ * Checked on every request, so access ends on time even when the dunning
+ * cron that flips status to expired runs late or not at all.
+ * Lifetime is only the explicit interval marker; a missing end date is not
+ * "forever".
+ */
+export function activePeriodValid(billing: BillingRow, nowMs = Date.now()): boolean {
+  if (billing.interval === LIFETIME_INTERVAL) return true
+  if (!billing.current_period_end) return false
+  const end = Date.parse(billing.current_period_end)
+  return Number.isFinite(end) && end > nowMs
+}
+
+async function billingRow(supabase: any, accountId: string): Promise<BillingRow | null> {
+  const { data, error } = await supabase
+    .from("billing_accounts")
+    .select("plan_id, status, interval, current_period_end, trial_ends_at")
+    .eq("account_id", accountId)
+    .maybeSingle()
   if (error) {
     if (missing(error)) return null
     return null
@@ -51,22 +80,48 @@ async function billingRow(supabase: any, accountId: string): Promise<{ plan_id?:
   return data
 }
 
-/** The plan that limits apply to right now, including an ended trial. */
+/**
+ * The plan that limits and features apply to right now, including an ended
+ * trial and any overrides the admin set in Admin -> Plans.
+ */
 export async function resolveAccountPlan(supabase: any, account: AccountGate, nowMs = Date.now()): Promise<ResolvedPlan> {
+  const base = await resolveBasePlan(supabase, account, nowMs)
+  if (base.blocked || account.role === "admin") return base
+  try {
+    const { data, error } = await supabase
+      .from("plans")
+      .select("entitlements")
+      .eq("catalog_plan_id", base.id)
+      .not("entitlements", "is", null)
+      .limit(1)
+    if (!error && data?.[0]?.entitlements) return { ...applyEntitlements(base, data[0].entitlements), blocked: false }
+  } catch {
+    // Before the migration there is no entitlements column: catalog defaults apply.
+  }
+  return base
+}
+
+async function resolveBasePlan(supabase: any, account: AccountGate, nowMs: number): Promise<ResolvedPlan> {
   if (account.role === "admin") {
     const pro = resolvePlan("agency_pro")
     return { ...pro, limits: { ...pro.limits, workspaces: -1, channels: -1, contacts: -1, aiReplies: -1, broadcasts: -1, seats: -1 } }
   }
   const billing = await billingRow(supabase, account.id)
   if (billing?.status === "expired" || billing?.status === "canceled") return resolvePlan("expired")
+  // Paid access ends at the period end. past_due is the dunning reminder
+  // stage, not extra paid time, so it gets the same check.
+  if ((billing?.status === "active" || billing?.status === "past_due") && !activePeriodValid(billing, nowMs)) {
+    return resolvePlan("expired")
+  }
+  // A finished trial is not a free tier: access is paused until a plan is paid.
   if (billing?.status === "trialing" && billing.trial_ends_at && Date.parse(billing.trial_ends_at) <= nowMs) {
-    return resolvePlan("creator_free")
+    return resolvePlan("expired")
   }
   if (billing?.status === "active" || billing?.status === "past_due" || billing?.status === "trialing") {
     if (billing.plan_id) return resolvePlan(billing.plan_id)
   }
   if (account.plan === "trial" && account.trial_ends_at && !account.trial_exempt && Date.parse(account.trial_ends_at) <= nowMs) {
-    return resolvePlan("creator_free")
+    return resolvePlan("expired")
   }
   return resolvePlan(account.plan)
 }
@@ -188,7 +243,7 @@ export async function assertChannelConnect(
 export async function assertFeature(supabase: any, account: AccountGate, feature: FeatureKey): Promise<void> {
   const plan = await resolveAccountPlan(supabase, account)
   if (featureEnabled(plan, feature)) return
-  const label = feature === "whiteLabel" ? "White-label" : "API access"
+  const label = feature === "whiteLabel" ? "White-label" : feature === "aiAgent" ? "The AI Growth Agent" : "API access"
   throw new PlanLimitError({
     metric: "workspaces",
     used: 0,

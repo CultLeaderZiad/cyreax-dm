@@ -8,11 +8,14 @@ import { beforeEach, describe, it } from "node:test"
 import sharp from "sharp"
 
 process.env.BYOK_ENCRYPTION_SECRET ||= "test-secret-for-token-sealing-0123456789"
+// Test-only payout numbers (the app has no built-in fallback).
+process.env.PAYMENT_WALLET_NUMBER = "01111111111"
+process.env.PAYMENT_INSTAPAY_NUMBER = "01222222222"
 
 const { fakeDb } = await import("./fakes/supabase-server.ts")
 const { NextRequest } = await import("next/server")
 const { signQuote, verifyQuote, checkoutTerms, validateSubmission, detectImageType, customerStatus } = await import("../lib/billing/manual-payments.ts")
-const { paymentDestinations } = await import("../lib/billing/payment-methods.ts")
+const { paymentDestinations, availableMethods } = await import("../lib/billing/payment-methods.ts")
 const manual = await import("../app/api/payments/manual/route.ts")
 const adminList = await import("../app/api/admin/payments/route.ts")
 const adminReview = await import("../app/api/admin/payments/[id]/route.ts")
@@ -67,7 +70,9 @@ async function png(withExif = false) {
   return new Uint8Array(await img.toBuffer())
 }
 
-async function submit(fields: Record<string, string | Blob | null>, headers: Record<string, string> = {}) {
+// Manual payments are Egypt-only: requests look like they come from Egypt
+// unless a test says otherwise.
+async function submit(fields: Record<string, string | Blob | null>, headers: Record<string, string> = { "x-vercel-ip-country": "EG" }) {
   const form = new FormData()
   for (const [key, value] of Object.entries(fields)) if (value !== null) form.set(key, value as any)
   return manual.POST(new NextRequest("https://app.test/api/payments/manual", { method: "POST", body: form, headers }))
@@ -93,14 +98,17 @@ const review = (id: string, body: unknown) =>
   )
 
 describe("payment config and pure rules", () => {
-  it("destinations come from env with the documented defaults", () => {
-    const d = paymentDestinations({})
-    assert.equal(d.wallet.local, "01007019031")
-    assert.equal(d.wallet.international, "+201007019031")
-    assert.equal(d.instapay.local, "01069647929")
-    assert.equal(d.instapay.international, "+201069647929")
-    assert.equal(paymentDestinations({ PAYMENT_WALLET_NUMBER: "+201111111111" }).wallet.local, "01111111111")
-    assert.equal(paymentDestinations({ PAYMENT_WALLET_NUMBER: "not-a-number" }).wallet.local, "01007019031")
+  it("payout numbers come only from env and fail closed", () => {
+    const none = paymentDestinations({})
+    assert.equal(none.wallet, null, "no hardcoded fallback number")
+    assert.equal(none.instapay, null)
+    assert.deepEqual(availableMethods({}), [])
+    const d = paymentDestinations({ PAYMENT_WALLET_NUMBER: "+201111111111", PAYMENT_INSTAPAY_NUMBER: "01222222222" })
+    assert.equal(d.wallet!.local, "01111111111")
+    assert.equal(d.wallet!.international, "+201111111111")
+    assert.equal(d.instapay!.local, "01222222222")
+    assert.equal(paymentDestinations({ PAYMENT_WALLET_NUMBER: "not-a-number" }).wallet, null, "invalid hides the method")
+    assert.deepEqual(availableMethods({ PAYMENT_INSTAPAY_NUMBER: "01222222222" }), ["instapay"])
   })
   it("amount is decided on the server from EGP prices, and blocked without one", () => {
     const plan = { id: PLAN, name: "Creator", price_usd: 29, price_yearly: 290, price_egp: 1450, price_yearly_egp: 14500, billing_cycle: "monthly" }
@@ -138,6 +146,30 @@ describe("submitting proof", () => {
   beforeEach(() => {
     seed()
     as(A)
+  })
+
+  it("is Egypt-only on the server: other countries are refused", async () => {
+    assert.equal((await submit(await validFields(), {})).status, 403, "unknown country")
+    assert.equal((await submit(await validFields(), { "x-vercel-ip-country": "SA" })).status, 403, "non-EG IP")
+    // A saved non-EG country wins over an Egyptian IP.
+    fakeDb().tables.accounts.find((a) => a.id === A)!.country = "US"
+    assert.equal((await submit(await validFields(), { "x-vercel-ip-country": "EG" })).status, 403, "saved country wins")
+    // A saved EG country works even from another IP (travelling customer).
+    fakeDb().tables.accounts.find((a) => a.id === A)!.country = "EG"
+    assert.equal((await submit(await validFields(), { "x-vercel-ip-country": "AE" })).status, 201)
+    assert.equal(fakeDb().tables.payment_submissions.length, 1)
+  })
+
+  it("refuses a method whose payout number is not configured", async () => {
+    const saved = process.env.PAYMENT_WALLET_NUMBER
+    delete process.env.PAYMENT_WALLET_NUMBER
+    try {
+      const res = await submit(await validFields())
+      assert.equal(res.status, 503)
+      assert.equal(fakeDb().tables.payment_submissions?.length ?? 0, 0)
+    } finally {
+      process.env.PAYMENT_WALLET_NUMBER = saved
+    }
   })
 
   it("stores a pending payment with the quoted amount and a sanitized private proof", async () => {
@@ -277,6 +309,57 @@ describe("admin review", () => {
     assert.equal(calls.length, 2)
     assert.equal(calls[0].p_admin_account, ADMIN, "reviewer identity comes from the session")
     assert.equal(fakeDb().tables.notifications.filter((n) => n.account_id === A && n.title === "Payment approved").length, 1, "customer notified once")
+  })
+
+  it("1 EGP against a 1450 quote is refused without override; override needs a note", async () => {
+    // Fresh submission that reports paying 1 EGP. The fake RPC mirrors the
+    // guard in cyreax_review_payment (tested for real in tests/sql).
+    seed()
+    as(A)
+    await submit({ ...(await validFields()), amountPaid: "1" })
+    const row = fakeDb().tables.payment_submissions[0]
+    assert.equal(row.amount_paid_egp, 1)
+    const calls: any[] = []
+    const rpc = {
+      cyreax_review_payment: (args: any) => {
+        calls.push(args)
+        const pay = fakeDb().tables.payment_submissions.find((r) => r.id === args.p_payment_id)!
+        if (pay.status !== "pending") return { data: { result: "already_reviewed", status: pay.status }, error: null }
+        const short = pay.amount_egp != null && (pay.amount_paid_egp == null || pay.amount_paid_egp < pay.amount_egp)
+        if (short && !args.p_override) return { data: { result: "underpaid", expected_egp: pay.amount_egp, paid_egp: pay.amount_paid_egp }, error: null }
+        if (short && !args.p_note) return { data: { result: "override_needs_note", expected_egp: pay.amount_egp, paid_egp: pay.amount_paid_egp }, error: null }
+        pay.status = "approved"
+        return { data: { result: "approved", account_id: A }, error: null }
+      },
+    }
+    fakeDb().rpc = rpc
+    as(ADMIN)
+    const plain = await review(row.id, { action: "approve" })
+    assert.equal(plain.status, 409)
+    const body = await plain.json()
+    assert.equal(body.code, "underpaid")
+    assert.equal(body.expectedEgp, 1450)
+    assert.equal(body.paidEgp, 1)
+    assert.equal(row.status, "pending")
+    assert.equal(calls[0].p_override, false, "override is never assumed")
+
+    const noNote = await review(row.id, { action: "approve", override: true })
+    assert.equal(noNote.status, 409)
+    assert.equal((await noNote.json()).code, "override_needs_note")
+
+    const ok = await review(row.id, { action: "approve", override: true, note: "Rest paid in cash" })
+    assert.equal(ok.status, 200)
+    assert.equal(row.status, "approved")
+    assert.equal(calls.at(-1).p_override, true)
+
+    // A truthy-but-not-true value is not an override.
+    seed()
+    as(A)
+    await submit({ ...(await validFields()), amountPaid: "1" })
+    fakeDb().rpc = rpc
+    as(ADMIN)
+    await review(fakeDb().tables.payment_submissions[0].id, { action: "approve", override: "yes", note: "x" })
+    assert.equal(calls.at(-1).p_override, false)
   })
 
   it("reject requires a reason", async () => {

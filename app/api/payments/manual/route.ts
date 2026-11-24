@@ -9,6 +9,8 @@
 // plan: rows start 'pending' and only cyreax_review_payment (admin) changes them.
 export const dynamic = "force-dynamic"
 
+import { paymentDestinations } from "@/lib/billing/payment-methods"
+import { isEgyptianCustomer } from "@/lib/billing/region"
 import { randomUUID } from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { forbidBelow, requireSessionUser } from "@/lib/auth"
@@ -39,6 +41,10 @@ export async function POST(request: NextRequest) {
   const denied = forbidBelow(session.user.workspace_role, "owner")
   if (denied) return denied
   const account = session.user
+  // Wallet / InstaPay are for Egyptian customers only; everyone else pays by card (Whop).
+  if (!isEgyptianCustomer({ accountCountry: account.country, headers: request.headers })) {
+    return fail(403, "E-wallet and InstaPay are only available in Egypt. Please pay by card.")
+  }
 
   const declared = Number(request.headers.get("content-length") || 0)
   if (declared > PROOF_MAX_BYTES + 256 * 1024) return fail(413, "The screenshot must be 5 MB or smaller.", "proof")
@@ -66,6 +72,10 @@ export async function POST(request: NextRequest) {
     transferredAt: form.get("transferredAt"),
   })
   if (!parsed.ok) return fail(400, parsed.error, parsed.field)
+  // A method whose payout number is not configured cannot be paid to.
+  if (!paymentDestinations()[parsed.value.method]) {
+    return fail(503, "This payment method is temporarily unavailable. Please choose another or contact support.", "method")
+  }
 
   const file = form.get("proof")
   const proofFile = file && typeof file === "object" && "arrayBuffer" in file ? (file as File) : null

@@ -9,12 +9,14 @@ INSERT INTO public.accounts (id, email, role) VALUES
 INSERT INTO public.users (id, account_id, username) VALUES (1001, :A, 'a'), (2002, :B, 'b'), (9009, :ADM, 'admin');
 INSERT INTO public.app_settings (key, value) VALUES
   ('update_banner', '{"isActive":false}'), ('updates_page', '{"isEnabled":true}'), ('smtp_settings', '{"user":"u","pass_encrypted":"x"}');
-INSERT INTO public.payment_submissions (id, user_id, account_id, transaction_reference, amount, amount_egp, payment_method, interval, plan_slug, reference_code, proof_path)
+INSERT INTO public.payment_submissions (id, user_id, account_id, transaction_reference, amount, amount_egp, payment_method, interval, plan_slug, reference_code, proof_path, amount_paid_egp)
 VALUES
-  ('11111111-0000-0000-0000-000000000001', 1001, :A, 'TX-1001', 1450, 1450, 'wallet',   'month', 'creator', 'CX-AAAAA1', :A || '/11111111-0000-0000-0000-000000000001.png'),
-  ('11111111-0000-0000-0000-000000000002', 1001, :A, 'TX-1002', 1450, 1450, 'instapay', 'month', 'creator', 'CX-AAAAA2', NULL),
-  ('11111111-0000-0000-0000-000000000003', 1001, :A, 'TX-1003', 1450, 1450, 'wallet',   'month', 'creator', 'CX-AAAAA3', NULL),
-  ('22222222-0000-0000-0000-000000000001', 2002, :B, 'TX-2001', 1450, 1450, 'wallet',   'year',  'creator_plus', 'CX-BBBBB1', NULL);
+  ('11111111-0000-0000-0000-000000000001', 1001, :A, 'TX-1001', 1450, 1450, 'wallet',   'month', 'creator', 'CX-AAAAA1', :A || '/11111111-0000-0000-0000-000000000001.png', 1450),
+  ('11111111-0000-0000-0000-000000000002', 1001, :A, 'TX-1002', 1450, 1450, 'instapay', 'month', 'creator', 'CX-AAAAA2', NULL, 1450),
+  ('11111111-0000-0000-0000-000000000003', 1001, :A, 'TX-1003', 1450, 1450, 'wallet',   'month', 'creator', 'CX-AAAAA3', NULL, 1450),
+  ('22222222-0000-0000-0000-000000000001', 2002, :B, 'TX-2001', 1450, 1450, 'wallet',   'year',  'creator_plus', 'CX-BBBBB1', NULL, 1450),
+  ('33333333-0000-0000-0000-0000000000a1', 1001, :A, 'TX-1004', 1450, 1450, 'wallet', 'month', 'creator', 'CX-AAAAA4', NULL, 1),
+  ('33333333-0000-0000-0000-0000000000a2', 1001, :A, 'TX-1005', 1450, 1450, 'wallet', 'month', 'creator', 'CX-AAAAA5', NULL, NULL);
 INSERT INTO storage.objects (bucket_id, name) VALUES ('payment-proofs', 'aaaaaaaa-0000-0000-0000-00000000000a/11111111-0000-0000-0000-000000000001.png');
 
 -- 1. The same transaction number cannot be reused for the same method (any case).
@@ -137,7 +139,7 @@ DO $$ BEGIN
 END $$;
 SELECT set_config('request.jwt.claim.sub', 'aaaaaaaa-0000-0000-0000-00000000000a', false);
 DO $$ BEGIN
-  IF (SELECT count(*) FROM public.payment_submissions) <> 3 THEN RAISE EXCEPTION 'FAIL: user A should see their 3 payments'; END IF;
+  IF (SELECT count(*) FROM public.payment_submissions) <> 5 THEN RAISE EXCEPTION 'FAIL: user A should see their 5 payments'; END IF;
   IF (SELECT count(*) FROM storage.objects WHERE bucket_id = 'payment-proofs') <> 1 THEN RAISE EXCEPTION 'FAIL: owner cannot read own proof'; END IF;
 END $$;
 RESET ROLE;
@@ -195,5 +197,133 @@ DO $$ BEGIN
   IF (SELECT count(*) FROM public.support_messages) <> 1 THEN RAISE EXCEPTION 'FAIL: owner cannot read own ticket messages'; END IF;
 END $$;
 RESET ROLE;
+
+-- 9b. Underpayment: 1 EGP against a 1450 quote is refused without an override.
+DO $$
+DECLARE r jsonb; before timestamptz;
+BEGIN
+  SELECT current_period_end INTO before FROM public.billing_accounts WHERE account_id = 'aaaaaaaa-0000-0000-0000-00000000000a';
+  r := public.cyreax_review_payment('33333333-0000-0000-0000-0000000000a1', 'approve', 'dddddddd-0000-0000-0000-00000000000d');
+  IF r->>'result' <> 'underpaid' THEN RAISE EXCEPTION 'FAIL: 1 EGP approved without override: %', r; END IF;
+  IF (SELECT status FROM public.payment_submissions WHERE id = '33333333-0000-0000-0000-0000000000a1') <> 'pending'
+     OR (SELECT current_period_end FROM public.billing_accounts WHERE account_id = 'aaaaaaaa-0000-0000-0000-00000000000a') IS DISTINCT FROM before THEN
+    RAISE EXCEPTION 'FAIL: refused underpayment still changed state';
+  END IF;
+  -- Unknown paid amount counts as underpaid.
+  r := public.cyreax_review_payment('33333333-0000-0000-0000-0000000000a2', 'approve', 'dddddddd-0000-0000-0000-00000000000d');
+  IF r->>'result' <> 'underpaid' THEN RAISE EXCEPTION 'FAIL: unknown paid amount approved: %', r; END IF;
+  -- Override without a note is refused.
+  r := public.cyreax_review_payment('33333333-0000-0000-0000-0000000000a1', 'approve', 'dddddddd-0000-0000-0000-00000000000d', NULL, NULL, true);
+  IF r->>'result' <> 'override_needs_note' THEN RAISE EXCEPTION 'FAIL: override without note: %', r; END IF;
+  -- Override with a note works once and is recorded.
+  r := public.cyreax_review_payment('33333333-0000-0000-0000-0000000000a1', 'approve', 'dddddddd-0000-0000-0000-00000000000d', 'Paid rest in cash', NULL, true);
+  IF r->>'result' <> 'approved' THEN RAISE EXCEPTION 'FAIL: override approve returned %', r; END IF;
+  IF (SELECT note FROM public.payment_events WHERE payment_id = '33333333-0000-0000-0000-0000000000a1' AND action = 'approved') NOT LIKE '[override: paid 1.00 of 1450.00 EGP]%' THEN
+    RAISE EXCEPTION 'FAIL: override not recorded';
+  END IF;
+  r := public.cyreax_review_payment('33333333-0000-0000-0000-0000000000a1', 'approve', 'dddddddd-0000-0000-0000-00000000000d', 'again', NULL, true);
+  IF r->>'result' <> 'already_reviewed' THEN RAISE EXCEPTION 'FAIL: second override approve: %', r; END IF;
+END $$;
+
+-- 9c. Approval grants the plan that was bought: monthly, yearly, lifetime.
+INSERT INTO public.accounts (id, email, role) VALUES
+  ('cccccccc-0000-0000-0000-00000000000c', 'c@test.local', 'customer'),
+  ('eeeeeeee-0000-0000-0000-00000000000e', 'e@test.local', 'customer'),
+  ('ffffffff-0000-0000-0000-00000000000f', 'f@test.local', 'customer');
+INSERT INTO public.users (id, account_id, username) VALUES
+  (3003, 'cccccccc-0000-0000-0000-00000000000c', 'c'), (5005, 'eeeeeeee-0000-0000-0000-00000000000e', 'e'), (6006, 'ffffffff-0000-0000-0000-00000000000f', 'f');
+INSERT INTO public.plans (id, name, price_usd, catalog_plan_id) VALUES
+  ('55555555-0000-0000-0000-000000000001', 'Agency Pro', 99, 'agency_pro');
+INSERT INTO public.payment_submissions (id, user_id, account_id, transaction_reference, amount, amount_egp, amount_paid_egp, payment_method, interval, plan_id, plan_slug, reference_code)
+VALUES
+  ('66666666-0000-0000-0000-000000000001', 3003, 'cccccccc-0000-0000-0000-00000000000c', 'TX-C1', 5000, 5000, 5000, 'wallet', 'month', '55555555-0000-0000-0000-000000000001', 'creator', 'CX-CCCCC1'),
+  ('66666666-0000-0000-0000-000000000002', 5005, 'eeeeeeee-0000-0000-0000-00000000000e', 'TX-E1', 50000, 50000, 50000, 'wallet', 'year', '55555555-0000-0000-0000-000000000001', 'agency_pro', 'CX-EEEEE1'),
+  ('66666666-0000-0000-0000-000000000003', 6006, 'ffffffff-0000-0000-0000-00000000000f', 'TX-F1', 90000, 90000, 90000, 'instapay', 'lifetime', '55555555-0000-0000-0000-000000000001', 'agency_pro', 'CX-FFFFF1');
+DO $$
+DECLARE b public.billing_accounts%ROWTYPE;
+BEGIN
+  PERFORM public.cyreax_review_payment('66666666-0000-0000-0000-000000000001', 'approve', 'dddddddd-0000-0000-0000-00000000000d');
+  SELECT * INTO b FROM public.billing_accounts WHERE account_id = 'cccccccc-0000-0000-0000-00000000000c';
+  IF b.plan_id <> 'agency_pro' THEN RAISE EXCEPTION 'FAIL: monthly got plan % instead of the bought plan', b.plan_id; END IF;
+  IF b.interval <> 'month' OR abs(extract(epoch FROM b.current_period_end - (now() + interval '1 month'))) > 5 THEN
+    RAISE EXCEPTION 'FAIL: monthly interval/end % %', b.interval, b.current_period_end;
+  END IF;
+  IF b.display_plan_id <> '55555555-0000-0000-0000-000000000001' THEN RAISE EXCEPTION 'FAIL: display plan not stored'; END IF;
+
+  PERFORM public.cyreax_review_payment('66666666-0000-0000-0000-000000000002', 'approve', 'dddddddd-0000-0000-0000-00000000000d');
+  SELECT * INTO b FROM public.billing_accounts WHERE account_id = 'eeeeeeee-0000-0000-0000-00000000000e';
+  IF b.interval <> 'year' OR abs(extract(epoch FROM b.current_period_end - (now() + interval '1 year'))) > 5 THEN
+    RAISE EXCEPTION 'FAIL: yearly interval/end % %', b.interval, b.current_period_end;
+  END IF;
+  IF (SELECT plan FROM public.accounts WHERE id = 'eeeeeeee-0000-0000-0000-00000000000e') <> 'monthly' THEN
+    RAISE EXCEPTION 'FAIL: yearly legacy marker';
+  END IF;
+
+  PERFORM public.cyreax_review_payment('66666666-0000-0000-0000-000000000003', 'approve', 'dddddddd-0000-0000-0000-00000000000d');
+  SELECT * INTO b FROM public.billing_accounts WHERE account_id = 'ffffffff-0000-0000-0000-00000000000f';
+  IF b.interval <> 'lifetime' OR b.current_period_end IS NOT NULL OR b.plan_id <> 'agency_pro' THEN
+    RAISE EXCEPTION 'FAIL: lifetime stored as % / % / %', b.interval, b.current_period_end, b.plan_id;
+  END IF;
+  IF (SELECT plan FROM public.accounts WHERE id = 'ffffffff-0000-0000-0000-00000000000f') <> 'one_time' THEN
+    RAISE EXCEPTION 'FAIL: lifetime legacy marker';
+  END IF;
+END $$;
+
+-- 10. BYOK RPCs: only the service role may execute them.
+DO $$
+DECLARE r text;
+BEGIN
+  FOREACH r IN ARRAY ARRAY['anon', 'authenticated'] LOOP
+    IF has_function_privilege(r, 'public.set_agent_byok_key(uuid, uuid, text, text, text)', 'EXECUTE')
+       OR has_function_privilege(r, 'public.get_agent_byok_key(uuid, uuid, text)', 'EXECUTE') THEN
+      RAISE EXCEPTION 'FAIL: % can execute a BYOK RPC', r;
+    END IF;
+  END LOOP;
+  IF NOT has_function_privilege('service_role', 'public.set_agent_byok_key(uuid, uuid, text, text, text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'FAIL: service_role cannot set BYOK keys';
+  END IF;
+END $$;
+SET ROLE authenticated;
+DO $$ BEGIN
+  PERFORM public.set_agent_byok_key('bbbbbbbb-0000-0000-0000-00000000000b', gen_random_uuid(), 'sk-x', 'openai', 's');
+  RAISE EXCEPTION 'FAIL: authenticated replaced a BYOK key';
+EXCEPTION WHEN insufficient_privilege THEN NULL;
+END $$;
+RESET ROLE;
+-- Round trip still works for the server.
+SET ROLE service_role;
+DO $$ BEGIN
+  PERFORM public.set_agent_byok_key('aaaaaaaa-0000-0000-0000-00000000000a', '44444444-0000-0000-0000-000000000001', 'sk-test', 'openai', 'sec');
+  IF public.get_agent_byok_key('aaaaaaaa-0000-0000-0000-00000000000a', '44444444-0000-0000-0000-000000000001', 'sec') <> 'sk-test' THEN
+    RAISE EXCEPTION 'FAIL: BYOK round trip';
+  END IF;
+END $$;
+RESET ROLE;
+
+-- 11. Whop: manual approvals record the provider; Whop tables are service-only.
+DO $$ BEGIN
+  IF (SELECT payment_provider FROM public.billing_accounts WHERE account_id = 'ffffffff-0000-0000-0000-00000000000f') <> 'manual' THEN
+    RAISE EXCEPTION 'FAIL: manual approval did not record payment_provider';
+  END IF;
+  IF has_table_privilege('authenticated', 'public.whop_checkouts', 'SELECT')
+     OR has_table_privilege('anon', 'public.whop_webhook_events', 'INSERT') THEN
+    RAISE EXCEPTION 'FAIL: Whop tables are readable/writable by clients';
+  END IF;
+  BEGIN
+    UPDATE public.accounts SET country = 'egypt' WHERE id = 'aaaaaaaa-0000-0000-0000-00000000000a';
+    RAISE EXCEPTION 'FAIL: invalid country accepted';
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+END $$;
+
+-- 12. Plan entitlements are a jsonb object (or NULL), nothing else.
+DO $$ BEGIN
+  INSERT INTO public.plans (id, name, price_usd, entitlements) VALUES ('77777777-0000-0000-0000-000000000001', 'E', 1, '{"channels": 3}');
+  BEGIN
+    INSERT INTO public.plans (id, name, price_usd, entitlements) VALUES ('77777777-0000-0000-0000-000000000002', 'E2', 1, '"channels"');
+    RAISE EXCEPTION 'FAIL: non-object entitlements accepted';
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+END $$;
 
 SELECT 'ALL DB CHECKS PASSED' AS result;

@@ -1,3 +1,4 @@
+import { activePeriodValid } from "@/lib/billing/enforce";
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
 import { getSessionInstagramUser } from "@/lib/auth"
@@ -38,10 +39,8 @@ export async function GET(request: NextRequest) {
       const now = new Date();
       if (trialDate < now) {
         isTrialExpired = true;
-        // 24 hour deadline after expiration
-        if (now.getTime() - trialDate.getTime() > 24 * 60 * 60 * 1000) {
-          isPastDeadline = true;
-        }
+        // No grace period: the account is paused the moment the trial ends.
+        isPastDeadline = true;
       }
     }
 
@@ -56,7 +55,7 @@ export async function GET(request: NextRequest) {
       // Check billing_accounts (entitlement source of truth)
       const { data: billingAccount } = await supabase
         .from("billing_accounts")
-        .select("plan_id, status, trial_ends_at, current_period_end")
+        .select("plan_id, status, interval, trial_ends_at, current_period_end")
         .eq("account_id", account.id)
         .maybeSingle();
 
@@ -66,7 +65,12 @@ export async function GET(request: NextRequest) {
           effectiveTrialEnds = billingAccount.trial_ends_at;
         }
 
-        if (billingAccount.status === "active") {
+        if (billingAccount.status === "active" && !activePeriodValid(billingAccount)) {
+          // Paid period is over (the dunning cron may not have run yet).
+          hasValidPayment = false;
+          isTrialExpired = true;
+          isPastDeadline = true;
+        } else if (billingAccount.status === "active") {
           hasValidPayment = true;
           isTrialExpired = false;
           isPastDeadline = false;
@@ -76,9 +80,7 @@ export async function GET(request: NextRequest) {
             const now = new Date();
             if (trialDate < now) {
               isTrialExpired = true;
-              if (now.getTime() - trialDate.getTime() > 24 * 60 * 60 * 1000) {
-                isPastDeadline = true;
-              }
+              isPastDeadline = true;
             } else {
               isTrialExpired = false;
               isPastDeadline = false;

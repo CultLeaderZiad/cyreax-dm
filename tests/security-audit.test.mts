@@ -133,19 +133,45 @@ const { metaVerifyTokenMatches } = await import("../lib/webhooks/verify-token.ts
 describe("meta webhook verify token", () => {
   it("accepts only an exact configured token", () => {
     const env = { FACEBOOK_WEBHOOK_VERIFY_TOKEN: "Configured-Token-123" }
-    assert.equal(metaVerifyTokenMatches("Configured-Token-123", env), true)
-    assert.equal(metaVerifyTokenMatches("configured-token-123", env), false)
-    assert.equal(metaVerifyTokenMatches("Configured-Token-12", env), false)
-    assert.equal(metaVerifyTokenMatches(null, env), false)
+    assert.equal(metaVerifyTokenMatches("facebook", "Configured-Token-123", env), true)
+    assert.equal(metaVerifyTokenMatches("facebook", "configured-token-123", env), false)
+    assert.equal(metaVerifyTokenMatches("facebook", "Configured-Token-12", env), false)
+    assert.equal(metaVerifyTokenMatches("facebook", null, env), false)
+  })
+  it("each product accepts only its own token", () => {
+    const env = {
+      INSTAGRAM_WEBHOOK_VERIFY_TOKEN: "ig-token-000001",
+      FACEBOOK_WEBHOOK_VERIFY_TOKEN: "fb-token-000002",
+      WHATSAPP_WEBHOOK_VERIFY_TOKEN: "wa-token-000003",
+      META_VERIFY_TOKEN: "shared-meta-04",
+      WEBHOOK_VERIFY_TOKEN: "shared-hook-05",
+    }
+    assert.equal(metaVerifyTokenMatches("whatsapp", "wa-token-000003", env), true)
+    for (const other of ["ig-token-000001", "fb-token-000002", "shared-meta-04", "shared-hook-05"]) {
+      assert.equal(metaVerifyTokenMatches("whatsapp", other, env), false, `WhatsApp accepted ${other}`)
+    }
+    assert.equal(metaVerifyTokenMatches("instagram", "ig-token-000001", env), true)
+    assert.equal(metaVerifyTokenMatches("instagram", "wa-token-000003", env), false)
+    assert.equal(metaVerifyTokenMatches("instagram", "fb-token-000002", env), false)
+    assert.equal(metaVerifyTokenMatches("facebook", "fb-token-000002", env), true)
+    assert.equal(metaVerifyTokenMatches("facebook", "ig-token-000001", env), false)
+    // WhatsApp unset: no fallback to another product's token.
+    assert.equal(metaVerifyTokenMatches("whatsapp", "ig-token-000001", { INSTAGRAM_WEBHOOK_VERIFY_TOKEN: "ig-token-000001" }), false)
   })
   it("has no built-in fallback tokens and fails closed when none is configured", () => {
     for (const leaked of ["GlymL4xsz3vkDEZ0FwS6XHpN2aUTICJ1", "cyreax_dm_verify_2026", "cyreax_verify_token"]) {
-      assert.equal(metaVerifyTokenMatches(leaked, {}), false)
+      for (const product of ["instagram", "facebook", "whatsapp"] as const) {
+        assert.equal(metaVerifyTokenMatches(product, leaked, {}), false)
+      }
     }
-    for (const file of ["app/api/instagram/webhook/route.ts", "app/api/facebook/webhook/route.ts", "app/api/whatsapp/webhook/route.ts"]) {
+    for (const [file, product] of [["app/api/instagram/webhook/route.ts", "instagram"], ["app/api/facebook/webhook/route.ts", "facebook"], ["app/api/whatsapp/webhook/route.ts", "whatsapp"]]) {
       const source = readFileSync(file, "utf8")
       assert.doesNotMatch(source, /cyreax_dm_verify_2026|cyreax_verify_token|GlymL4/, file)
       assert.doesNotMatch(source, /toLowerCase\(\) === candidate/, file)
+      assert.ok(source.includes(`metaVerifyTokenMatches("${product}"`), `${file} checks only its own token`)
+      // POST still requires the HMAC.
+      assert.match(source, /x-hub-signature-256/, file)
+      assert.match(source, /status: 401/, file)
     }
   })
 })

@@ -18,7 +18,7 @@ export const en = {
   telegramSupport: "Telegram support",
 
   // Landing Page
-  heroBadge1: "Helix Auto DM 2.0",
+  heroBadge1: "CYREAX DM",
   heroBadge2: "Built on the official Meta Graph API",
   heroTitle: "Turn Comments & DMs Into Revenue",
   heroTitleGradient: "on Autopilot.",
@@ -41,7 +41,7 @@ export const en = {
   creatorComment: "Just dropped our 2026 Social Automation Blueprint! Comment PLAYBOOK and I’ll DM you the free file.",
   triggerMatched: "Trigger Matched",
   commentUser: "PLAYBOOK please!",
-  publicReplyLabel: "Helix Auto DM (Public Reply)",
+  publicReplyLabel: "CYREAX DM (Public Reply)",
   publicReplyContent: "Sent straight to your DMs, Sarah! Check your requests 🚀",
   step2Title: "2. Instant Private DM & Lead Capture",
   verifiedBot: "Automated",

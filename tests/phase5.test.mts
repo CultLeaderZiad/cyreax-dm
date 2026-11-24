@@ -1,3 +1,11 @@
+import type { FlowGraph } from "../lib/flows/types.ts"
+
+/** The first effect of a type; fails the test (instead of returning undefined) when absent. */
+function effectOf(result: { effects: Array<{ type: string }> }, type: string): any {
+  const found = result.effects.find((effect) => effect.type === type)
+  if (!found) throw new Error(`no ${type} effect in ${JSON.stringify(result.effects)}`)
+  return found
+}
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
@@ -13,7 +21,7 @@ const { HUMAN_AGENT_WINDOW_MS, STANDARD_WINDOW_MS } = await import("../lib/chann
 
 const NOW = Date.parse("2026-09-30T12:00:00.000Z")
 
-function contact(overrides = {}) {
+function contact(overrides: Record<string, any> = {}): any {
   return {
     channel: "instagram",
     externalId: "user-1",
@@ -28,7 +36,7 @@ function contact(overrides = {}) {
   }
 }
 
-function run(overrides = {}) {
+function run(overrides: Record<string, any> = {}): any {
   const id = overrides.id || "run-1"
   return {
     id,
@@ -48,12 +56,12 @@ function run(overrides = {}) {
   }
 }
 
-function edge(source, target, handle = "default") {
+function edge(source: any, target: any, handle = "default") {
   return { id: `${source}-${target}-${handle}`, source, target, sourceHandle: handle }
 }
 
 describe("flow engine branching", () => {
-  const graph = {
+  const graph: FlowGraph = {
     nodes: [
       { id: "trigger", type: "trigger", position: { x: 0, y: 0 }, data: { trigger: { type: "keyword_dm" } } },
       { id: "check", type: "condition", position: { x: 0, y: 0 }, data: { match: "all", clauses: [{ type: "tag", tag: "vip", present: true }] } },
@@ -71,7 +79,7 @@ describe("flow engine branching", () => {
       signal: { kind: "start", eventId: "e1", text: "hi", inboundJustNow: true },
       now: NOW,
     })
-    assert.equal(vip.effects.find((effect) => effect.type === "send").content.message, "welcome vip")
+    assert.equal(effectOf(vip, "send").content.message, "welcome vip")
 
     const guest = applyIncoming({
       graph,
@@ -80,11 +88,11 @@ describe("flow engine branching", () => {
       signal: { kind: "start", eventId: "e2", text: "hi", inboundJustNow: true },
       now: NOW,
     })
-    assert.equal(guest.effects.find((effect) => effect.type === "send").content.message, "hello")
+    assert.equal(effectOf(guest, "send").content.message, "hello")
   })
 
   it("branches on channel and follower status", () => {
-    const follower = {
+    const follower: FlowGraph = {
       nodes: [
         { id: "trigger", type: "trigger", position: { x: 0, y: 0 }, data: {} },
         { id: "check", type: "condition", position: { x: 0, y: 0 }, data: { match: "all", clauses: [{ type: "channel", channel: "instagram" }, { type: "follower", isFollower: true }] } },
@@ -100,7 +108,7 @@ describe("flow engine branching", () => {
       signal: { kind: "start", eventId: "e", inboundJustNow: true },
       now: NOW,
     })
-    assert.equal(unknown.effects.find((effect) => effect.type === "send").content.message, "unknown")
+    assert.equal(effectOf(unknown, "send").content.message, "unknown")
     const yes = applyIncoming({
       graph: follower,
       run: run({ id: "run-f" }),
@@ -108,12 +116,12 @@ describe("flow engine branching", () => {
       signal: { kind: "start", eventId: "e", inboundJustNow: true },
       now: NOW,
     })
-    assert.equal(yes.effects.find((effect) => effect.type === "send").content.message, "follower")
+    assert.equal(effectOf(yes, "send").content.message, "follower")
   })
 })
 
 describe("flow engine delays, resume, and idempotency", () => {
-  const graph = {
+  const graph: FlowGraph = {
     nodes: [
       { id: "trigger", type: "trigger", position: { x: 0, y: 0 }, data: {} },
       { id: "hello", type: "send_message", position: { x: 0, y: 0 }, data: { text: "hello", waitFor: "none" } },
@@ -131,9 +139,9 @@ describe("flow engine delays, resume, and idempotency", () => {
       signal: { kind: "start", eventId: "m1", text: "price", inboundJustNow: true },
       now: NOW,
     })
-    assert.equal(started.effects.find((effect) => effect.type === "send").content.message, "hello")
+    assert.equal(effectOf(started, "send").content.message, "hello")
     assert.equal(started.effects.some((effect) => effect.type === "send" && effect.content.message === "still there?"), false)
-    const scheduled = started.effects.find((effect) => effect.type === "schedule")
+    const scheduled = effectOf(started, "schedule")
     assert.equal(scheduled.resumeAt, NOW + 2 * 60 * 60 * 1000)
     assert.equal(started.run.status, "waiting")
     assert.equal(started.run.waitKind, "delay")
@@ -148,7 +156,7 @@ describe("flow engine delays, resume, and idempotency", () => {
       signal: { kind: "start", eventId: "m1", inboundJustNow: true },
       now: NOW,
     })
-    const token = started.effects.find((effect) => effect.type === "schedule").stepToken
+    const token = effectOf(started, "schedule").stepToken
     assert.equal(signalAccepted(started.run.stepToken, token), true)
     const resumed = applyIncoming({
       graph,
@@ -159,7 +167,7 @@ describe("flow engine delays, resume, and idempotency", () => {
       now: NOW + 2 * 60 * 60 * 1000,
     })
     assert.equal(resumed.stale, false)
-    assert.equal(resumed.effects.find((effect) => effect.type === "send").content.message, "still there?")
+    assert.equal(effectOf(resumed, "send").content.message, "still there?")
     const again = applyIncoming({
       graph,
       run: resumed.run,
@@ -203,7 +211,7 @@ describe("flow engine delays, resume, and idempotency", () => {
   })
 
   it("resumes on the button edge and counts the click once", () => {
-    const buttons = {
+    const buttons: FlowGraph = {
       nodes: [
         { id: "trigger", type: "trigger", position: { x: 0, y: 0 }, data: {} },
         { id: "ask", type: "send_message", position: { x: 0, y: 0 }, data: { text: "Size?", buttons: [{ title: "M", payload: "SIZE_M" }], waitFor: "button" } },
@@ -228,7 +236,7 @@ describe("flow engine delays, resume, and idempotency", () => {
       now: NOW + 1000,
     })
     assert.equal(clicked.effects.some((effect) => effect.type === "stat" && effect.stat === "click"), true)
-    assert.equal(clicked.effects.find((effect) => effect.type === "send").content.message, "Medium is in stock")
+    assert.equal(effectOf(clicked, "send").content.message, "Medium is in stock")
     const duplicate = applyIncoming({
       graph: buttons,
       run: clicked.run,
@@ -241,7 +249,7 @@ describe("flow engine delays, resume, and idempotency", () => {
   })
 
   it("ignores a duplicate queue row", () => {
-    const job = {
+    const job: any = {
       idempotencyKey: "start:flow:user:m1",
       kind: "start",
       contactExternalId: "user",
@@ -264,7 +272,7 @@ describe("flow engine delays, resume, and idempotency", () => {
 })
 
 describe("flow window rules and pause", () => {
-  const graph = {
+  const graph: FlowGraph = {
     nodes: [
       { id: "trigger", type: "trigger", position: { x: 0, y: 0 }, data: {} },
       { id: "send", type: "send_message", position: { x: 0, y: 0 }, data: { text: "ping", waitFor: "none" } },
@@ -272,7 +280,7 @@ describe("flow window rules and pause", () => {
     edges: [edge("trigger", "send")],
   }
 
-  function proactive(channel, lastInboundAt, extra = {}) {
+  function proactive(channel: any, lastInboundAt: any, extra: { templateApproved?: boolean; templateName?: string } = {}) {
     const waiting = run({
       id: "run-w",
       channel,
@@ -281,7 +289,7 @@ describe("flow window rules and pause", () => {
       currentNodeId: "wait",
       stepToken: "run-w:wait:1",
     })
-    const withDelay = {
+    const withDelay: FlowGraph = {
       nodes: [
         { id: "wait", type: "smart_delay", position: { x: 0, y: 0 }, data: { delayMs: 1000, respectWindow: false, skipIfReplied: false } },
         { id: "send", type: "send_message", position: { x: 0, y: 0 }, data: { text: "ping", waitFor: "none", ...extra } },
@@ -307,20 +315,20 @@ describe("flow window rules and pause", () => {
       signal: { kind: "start", eventId: "e", inboundJustNow: true },
       now: NOW,
     })
-    assert.equal(open.effects.find((effect) => effect.type === "send").messagingType, "RESPONSE")
+    assert.equal(effectOf(open, "send").messagingType, "RESPONSE")
 
     const human = proactive("instagram", new Date(NOW - STANDARD_WINDOW_MS - 60_000).toISOString())
-    const sent = human.effects.find((effect) => effect.type === "send")
+    const sent = effectOf(human, "send")
     assert.equal(sent.tag, "HUMAN_AGENT")
 
     const closed = proactive("instagram", new Date(NOW - HUMAN_AGENT_WINDOW_MS - 60_000).toISOString())
     assert.equal(closed.effects.some((effect) => effect.type === "send"), false)
-    assert.equal(closed.effects.find((effect) => effect.type === "blocked").reason, "outside_window")
+    assert.equal(effectOf(closed, "blocked").reason, "outside_window")
   })
 
   it("blocks WhatsApp outside 24h unless an approved template is going to an opted-in contact", () => {
     const blocked = proactive("whatsapp", new Date(NOW - STANDARD_WINDOW_MS - 1000).toISOString())
-    assert.equal(blocked.effects.find((effect) => effect.type === "blocked").reason, "whatsapp_template_required")
+    assert.equal(effectOf(blocked, "blocked").reason, "whatsapp_template_required")
     const allowed = proactive("whatsapp", new Date(NOW - STANDARD_WINDOW_MS - 1000).toISOString(), {
       templateName: "order_update",
       templateApproved: true,
@@ -358,7 +366,7 @@ describe("flow window rules and pause", () => {
   })
 
   it("stops a jump loop", () => {
-    const loop = {
+    const loop: FlowGraph = {
       nodes: [
         { id: "trigger", type: "trigger", position: { x: 0, y: 0 }, data: {} },
         { id: "a", type: "jump", position: { x: 0, y: 0 }, data: { targetId: "b" } },
@@ -409,7 +417,7 @@ describe("broadcast compliance", () => {
   })
 
   it("matches a segment and spaces the queue", () => {
-    const people = [
+    const people: any[] = [
       { id: "1", channel: "instagram", externalId: "a", tags: ["vip"], customFields: { city: "Riyadh" }, optedIn: false, optedOut: false, lastInboundAt: new Date(NOW).toISOString() },
       { id: "2", channel: "instagram", externalId: "b", tags: ["new"], customFields: { city: "Cairo" }, optedIn: false, optedOut: false, lastInboundAt: new Date(NOW).toISOString() },
       { id: "3", channel: "telegram", externalId: "c", tags: ["vip"], customFields: {}, optedIn: false, optedOut: false, lastInboundAt: null },
@@ -456,7 +464,7 @@ describe("sequences and opt-out", () => {
 
   it("enrolls, sends the due step, and stops on opt-out", () => {
     const enrollment = enrollContact({ id: "en-1", sequenceId: "seq", contactExternalId: "u", channel: "telegram", steps, now: NOW })
-    assert.equal(dueStep(enrollment, steps, NOW).id, "s1")
+    assert.equal(dueStep(enrollment, steps, NOW)!.id, "s1")
     const next = markStepSent(enrollment, steps, NOW)
     assert.equal(next.stepIndex, 1)
     assert.equal(next.nextSendAt, NOW + 86_400_000)
@@ -512,8 +520,8 @@ describe("automation migration", () => {
       now: NOW,
       random: () => 0,
     })
-    assert.equal(result.effects.find((effect) => effect.type === "public_reply").text, "Check your DMs")
-    assert.equal(result.effects.find((effect) => effect.type === "send").content.message, "The serum is 120 SAR")
+    assert.equal(effectOf(result, "public_reply").text, "Check your DMs")
+    assert.equal(effectOf(result, "send").content.message, "The serum is 120 SAR")
   })
 
   it("does not create a second flow for an automation that was already migrated", () => {
@@ -540,7 +548,7 @@ describe("automation migration", () => {
       signal: { kind: "start", eventId: "m", text: "hello", inboundJustNow: true },
       now: NOW,
     })
-    assert.equal(sent.effects.find((effect) => effect.type === "send").content.message, "hey")
+    assert.equal(effectOf(sent, "send").content.message, "hey")
     const story = automationToFlow({
       id: "st-1",
       name: "Mention",
@@ -554,7 +562,7 @@ describe("automation migration", () => {
 
 describe("growth tools", () => {
   it("builds comment-to-DM, ref links, leads, and a stable winner list", () => {
-    const flow = commentToDmFlow({ templateId: "price", mediaId: "reel-1" })
+    const flow = commentToDmFlow({ templateId: "price", mediaId: "reel-1" })!
     assert.equal(flow.trigger.keywords, "PRICE")
     assert.equal(flow.trigger.mediaId, "reel-1")
     assert.equal(flow.graph.nodes.some((node) => node.type === "public_reply"), true)

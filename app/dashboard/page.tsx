@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 
 import { useInstagramSession } from "@/hooks/use-instagram-session"
+import { AiRecommendations } from "@/components/dashboard/AiRecommendations"
 import { KPICard } from "@/components/ui/KPICard"
 import { Pill } from "@/components/ui/Pill"
 import { ChannelBadge } from "@/components/ui/ChannelBadge"
@@ -275,6 +276,8 @@ export default function DashboardOverviewPage() {
           )}
         </div>
       </div>
+
+      <AiRecommendations />
 
       {/* ─── KPI Row (4 Equal Cards) ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">

@@ -231,6 +231,14 @@ export const MACHINES = {
     transitions: { invited: ["active"], active: [] },
     writers: ["app/api/team/route.ts", "app/api/team/accept/route.ts"],
   }),
+  aiAgentProposal: machine({
+    table: "ai_agent_proposals",
+    column: "status",
+    initial: "pending",
+    // confirmed/failed are set by the confirm step after an atomic pending -> confirmed claim.
+    transitions: { pending: ["confirmed", "dismissed"], confirmed: ["failed"], dismissed: [], failed: [] },
+    writers: ["lib/ai/agent/proposals.ts"],
+  }),
 } as const
 
 export type MachineName = keyof typeof MACHINES

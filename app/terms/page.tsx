@@ -13,7 +13,7 @@ export const metadata = {
 
 export default function TermsPage() {
     return (
-        <main id="main-content" className="min-h-screen bg-[#03010A] text-white selection:bg-[#e5a93c] selection:text-black relative">
+        <main id="main-content" className="min-h-screen text-white selection:bg-[#e5a93c] selection:text-black relative">
             <FrontBackground />
             <Header activeHref="/terms" />
             <div className="max-w-3xl mx-auto px-4 py-24 sm:py-32 relative z-10">
@@ -53,7 +53,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-2xl font-bold text-white mb-4">3. Plans and Subscriptions</h2>
                         <p>
-                            We offer self-serve plans (Creator, Creator Pro, Agency Starter, Agency Growth) and bespoke Enterprise tiers.
+                            We offer self-serve plans and bespoke Enterprise tiers. The current plans, prices and what each includes are listed on our Pricing page.
                             Subscription terms, renewal cycles, and pricing tiers are detailed on our Pricing page.
                         </p>
                     </section>

@@ -11,6 +11,8 @@ import { UsageNotice } from "@/components/layout/UsageNotice"
 import { CommandPalette } from "@/components/ui/CommandPalette"
 import { BrandLogo } from "@/components/ui/BrandLogo"
 import { BRAND } from "@/lib/brand"
+import { PlanGate } from "@/components/billing/PlanGate"
+import { gateReason as gateReasonFor } from "@/lib/billing/gate"
 
 function MobileTabBarWrapper({
     username,
@@ -81,16 +83,12 @@ export default function DashboardLayout({
             if (role === 'admin') {
                 return
             }
-            if (!trialExempt && plan === 'trial' && isTrialExpired && isPastDeadline) {
-                router.replace('/dashboard/billing')
-                return
-            }
-            if (plan && plan !== 'trial' && !hasValidPayment && isPastDeadline) {
-                router.replace('/dashboard/billing')
-                return
-            }
         }
-    }, [isLoading, accountId, plan, trialExempt, isTrialExpired, isPastDeadline, hasValidPayment, role, router])
+    }, [isLoading, accountId, role, router])
+
+    // A finished trial or subscription pauses the account: the customer picks a
+    // plan and pays, or logs out. (The server blocks these accounts too.)
+    const gateReason = gateReasonFor({ role, trialExempt, plan, isTrialExpired, isPastDeadline, hasValidPayment })
 
     if (isLoading) {
         return (
@@ -106,6 +104,10 @@ export default function DashboardLayout({
                 <Loader2 className="size-6 animate-spin text-[var(--gold)]" />
             </div>
         )
+    }
+
+    if (gateReason) {
+        return <PlanGate reason={gateReason} onLogout={logout} email={email} />
     }
 
     if (isBanned) {
@@ -146,7 +148,7 @@ export default function DashboardLayout({
     }
 
     return (
-        <div className="flex min-h-[100dvh] bg-[var(--bg)] text-[var(--t1)]">
+        <div className="flex min-h-[100dvh] text-[var(--t1)]">
             {/* ⌘K Command Palette (global) */}
             <CommandPalette />
 

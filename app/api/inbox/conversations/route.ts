@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
         // Fetch last message for each conversation to show preview
         const convIds = (conversations || []).map((c: any) => c.id)
-        let lastMessages: Record<string, string> = {}
+        const lastMessages: Record<string, string> = {}
 
         if (convIds.length > 0) {
             // Get the latest message per conversation using a subquery

@@ -6,26 +6,59 @@ import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { toast } from "sonner"
 
-export interface CurrentPlanCardProps {
-  planName?: string
-  status?: "active" | "trialing" | "past_due" | "expired"
-  renewsText?: string
-  trialEndsAt?: string | null
-  currency?: "EGP" | "SAR" | "USD"
-  onAddWorkspaces?: () => void
-  onChangePlan?: () => void
-  onCancelSubscription?: () => void
+export interface PlanMetric {
+  metric: string
+  used: number
+  limit: number
+  level?: string
 }
 
+export interface CurrentPlanCardProps {
+  /** Real plan name (plans.name, or the entitlement plan's name). */
+  planName: string
+  status?: "active" | "trialing" | "past_due" | "expired"
+  /** e.g. "Renews Dec 1" / "Lifetime"; empty when unknown. */
+  renewsText?: string
+  /** e.g. "EGP 1,450 / mo" from the plans table; null when the plan has no EGP price. */
+  priceText?: string | null
+  trialEndsAt?: string | null
+  /** Real usage from /api/billing/usage. */
+  metrics?: PlanMetric[]
+  /** Formatted end of the paid period, for the cancel dialog. */
+  periodEndLabel?: string | null
+  onChangePlan?: () => void
+  onCancelSubscription?: () => void
+  /** Who collects payment: 'whop' (card) or 'manual' (wallet / InstaPay). */
+  paymentProvider?: "whop" | "manual" | null
+  /** Whop subscription set to end at the period end. */
+  cancelAtPeriodEnd?: boolean
+  /** Where a Whop subscriber manages or cancels (Whop's orders page). */
+  manageUrl?: string | null
+}
+
+const METRIC_LABEL: Record<string, string> = {
+  workspaces: "Client workspaces",
+  aiReplies: "AI replies",
+  seats: "Team seats",
+  channels: "Channels",
+  contacts: "Contacts",
+  broadcasts: "Broadcasts",
+}
+const SHOWN_METRICS = ["workspaces", "aiReplies", "seats"]
+
 export function CurrentPlanCard({
-  planName = "Agency Growth",
+  planName,
   status = "active",
-  renewsText = "Renews Nov 1 · EGP 11,900 / mo",
+  renewsText = "",
+  priceText = null,
   trialEndsAt,
-  currency = "EGP",
-  onAddWorkspaces,
+  metrics = [],
+  periodEndLabel = null,
   onChangePlan,
   onCancelSubscription,
+  paymentProvider = null,
+  cancelAtPeriodEnd = false,
+  manageUrl = null,
 }: CurrentPlanCardProps) {
   const [cancelOpen, setCancelOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
@@ -54,28 +87,6 @@ export function CurrentPlanCard({
       setCancelOpen(false)
     }
   }
-
-  // Price calculations based on currency
-  const nextInvoiceText =
-    currency === "SAR"
-      ? "SAR 920 + 4 × 75 = SAR 1,220"
-      : currency === "USD"
-      ? "$249 + 4 × 20 = $329"
-      : "EGP 11,900 + 4 × 950 = EGP 15,700"
-
-  const nextInvoiceTotal =
-    currency === "SAR"
-      ? "SAR 1,220"
-      : currency === "USD"
-      ? "$329"
-      : "EGP 15,700"
-
-  const nextInvoiceFormula =
-    currency === "SAR"
-      ? "SAR 920 + 4 × 75 = "
-      : currency === "USD"
-      ? "$249 + 4 × 20 = "
-      : "EGP 11,900 + 4 × 950 = "
 
   return (
     <div className="rounded-xl border border-[var(--line)] bg-[var(--s1)] p-5 select-none space-y-4 flex flex-col justify-between">
@@ -119,62 +130,61 @@ export function CurrentPlanCard({
           </p>
         )}
 
-        {/* 3 Progress Bars (4px bar height) */}
-        <div className="space-y-3 pt-1">
-          {/* Workspaces */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-[11.5px]">
-              <span className="text-[var(--t2)] font-medium">Client workspaces</span>
-              <span className="font-mono text-[11px] tabular-nums text-[var(--t1)]">
-                <bdi>
-                  14 / 10 · <span className="text-[var(--amber)]">4 extra</span>
-                </bdi>
-              </span>
-            </div>
-            <div className="h-[4px] rounded-full bg-[var(--s3)] overflow-hidden">
-              <div className="h-full rounded-full bg-[var(--amber)] w-full" />
-            </div>
+        {/* Usage from the server; no placeholder numbers. */}
+        {metrics.filter((m) => SHOWN_METRICS.includes(m.metric)).length > 0 && (
+          <div className="space-y-3 pt-1">
+            {metrics
+              .filter((m) => SHOWN_METRICS.includes(m.metric))
+              .map((m) => {
+                const unlimited = m.limit < 0
+                const pct = unlimited || m.limit === 0 ? 0 : Math.min(100, Math.round((m.used / m.limit) * 100))
+                const over = !unlimited && m.limit > 0 && m.used > m.limit
+                return (
+                  <div key={m.metric} className="space-y-1">
+                    <div className="flex items-center justify-between text-[11.5px]">
+                      <span className="text-[var(--t2)] font-medium">{METRIC_LABEL[m.metric] || m.metric}</span>
+                      <span className="font-mono text-[11px] tabular-nums text-[var(--t1)]">
+                        <bdi>
+                          {new Intl.NumberFormat("en-US").format(m.used)} / {unlimited ? "∞" : new Intl.NumberFormat("en-US").format(m.limit)}
+                        </bdi>
+                      </span>
+                    </div>
+                    {!unlimited && (
+                      <div className="h-[4px] rounded-full bg-[var(--s3)] overflow-hidden">
+                        <div
+                          className={over ? "h-full rounded-full bg-[var(--amber)]" : "h-full rounded-full bg-[var(--gold)]"}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
           </div>
+        )}
 
-          {/* AI Replies */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-[11.5px]">
-              <span className="text-[var(--t2)] font-medium">AI replies</span>
-              <span className="font-mono text-[11px] tabular-nums text-[var(--t1)]">
-                <bdi>8,240 / 12,000</bdi>
-              </span>
-            </div>
-            <div className="h-[4px] rounded-full bg-[var(--s3)] overflow-hidden">
-              <div className="h-full rounded-full bg-[var(--gold)] w-[68%]" />
-            </div>
+        {paymentProvider && (
+          <div className="flex items-center justify-between text-[11.5px]">
+            <span className="text-[var(--t3)]">Paid with</span>
+            <span className="text-[var(--t1)] font-medium">
+              {paymentProvider === "whop" ? "Card (Whop)" : "E-wallet / InstaPay"}
+            </span>
           </div>
+        )}
+        {paymentProvider === "whop" && cancelAtPeriodEnd && (
+          <p className="text-[11.5px] text-[var(--amber)]">
+            Set to cancel{periodEndLabel ? ` on ${periodEndLabel}` : " at the end of the period"}. Manage it on Whop to keep it.
+          </p>
+        )}
 
-          {/* Team Seats */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-[11.5px]">
-              <span className="text-[var(--t2)] font-medium">Team seats</span>
-              <span className="font-mono text-[11px] tabular-nums text-[var(--t1)]">
-                <bdi>6 / 8</bdi>
-              </span>
-            </div>
-            <div className="h-[4px] rounded-full bg-[var(--s3)] overflow-hidden">
-              <div className="h-full rounded-full bg-[var(--t2)] w-[75%]" />
-            </div>
+        {priceText && (
+          <div className="pt-2 border-t border-[var(--line)] flex items-center justify-between text-[11.5px]">
+            <span className="text-[var(--t3)]">Plan price</span>
+            <span className="font-mono font-medium text-[var(--gold2)] tabular-nums">
+              <bdi>{priceText}</bdi>
+            </span>
           </div>
-        </div>
-
-        {/* Next invoice breakdown */}
-        <div className="pt-2 border-t border-[var(--line)] flex items-center justify-between text-[11.5px]">
-          <span className="text-[var(--t3)]">Next invoice</span>
-          <span className="font-mono font-medium text-[var(--t1)] tabular-nums">
-            <bdi>
-              {nextInvoiceFormula}
-              <strong className="text-[var(--gold2)] font-semibold">
-                {nextInvoiceTotal}
-              </strong>
-            </bdi>
-          </span>
-        </div>
+        )}
       </div>
 
       {/* Footer Actions */}
@@ -196,33 +206,38 @@ export function CurrentPlanCard({
             Change plan
           </Button>
 
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={
-              onAddWorkspaces ||
-              (() => toast.info("Add extra client workspaces (EGP 950 / client / mo)"))
-            }
-            className="h-[28px] px-2.5 text-[11.5px] font-medium"
-          >
-            Add workspaces
-          </Button>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setCancelOpen(true)}
-          className="text-[11.5px] text-[var(--t3)] hover:text-[var(--red)] transition-colors cursor-pointer"
-        >
-          Cancel subscription
-        </button>
+        {paymentProvider === "whop" && manageUrl ? (
+          // Whop owns the card subscription: renew, update the card or cancel there.
+          <a
+            href={manageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11.5px] font-medium text-[var(--gold2)] hover:underline"
+          >
+            Manage subscription
+          </a>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setCancelOpen(true)}
+            className="text-[11.5px] text-[var(--t3)] hover:text-[var(--red)] transition-colors cursor-pointer"
+          >
+            Cancel subscription
+          </button>
+        )}
       </div>
 
       <ConfirmDialog
         open={cancelOpen}
         onOpenChange={setCancelOpen}
-        title="Cancel Agency Subscription?"
-        description="Your client workspaces, AI automations, and white-label settings remain active until the end of your billing cycle on Nov 1."
+        title={`Cancel ${planName}?`}
+        description={
+          periodEndLabel
+            ? `Everything stays active until the end of your paid period on ${periodEndLabel}.`
+            : "Everything stays active until the end of your paid period."
+        }
         confirmLabel="Cancel Subscription"
         cancelLabel="Keep Subscription"
         loading={cancelling}

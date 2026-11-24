@@ -86,7 +86,7 @@ export default function BillingPage() {
 
   if (configError || !supabase) {
     return (
-      <div className="min-h-screen bg-[#03010A] flex items-center justify-center px-6">
+      <div className="min-h-screen flex items-center justify-center px-6">
         <p className="font-mono text-sm text-neutral-400 text-center">Billing is unavailable until the Supabase environment variables are set.</p>
       </div>
     )
@@ -94,7 +94,7 @@ export default function BillingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#03010A] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="font-mono text-neutral-500">Loading...</div>
       </div>
     )
@@ -107,7 +107,7 @@ export default function BillingPage() {
   const daysLeft = trialDaysLeft()
 
   return (
-    <div className="min-h-screen bg-[#03010A] text-[#ededed] relative overflow-hidden">
+    <div className="min-h-screen text-[#ededed] relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-[#e5a93c]/5 via-transparent to-transparent opacity-20 pointer-events-none" />
 
       <div className="relative z-10 max-w-4xl mx-auto px-6 py-16">
@@ -164,7 +164,7 @@ export default function BillingPage() {
           <div className="border border-white/[0.08] rounded-2xl p-8 bg-white/[0.02] flex items-center gap-4">
             <Shield className="w-8 h-8 text-green-400 flex-shrink-0" />
             <div>
-              <h3 className="font-mono text-lg font-bold text-white mb-1">You're all set!</h3>
+              <h3 className="font-mono text-lg font-bold text-white mb-1">You&apos;re all set!</h3>
               <p className="font-mono text-xs text-neutral-500">
                 Your automations are running with full access. 
                 {user.plan === "monthly" && " To manage your subscription, contact support."}

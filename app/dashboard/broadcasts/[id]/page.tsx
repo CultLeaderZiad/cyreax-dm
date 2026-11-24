@@ -1,4 +1,5 @@
 "use client"
+import Link from "next/link"
 
 import { use } from "react"
 import useSWR from "swr"
@@ -12,7 +13,7 @@ export default function BroadcastDetailPage({ params }: { params: Promise<{ id: 
   const stats = data.stats || {}
   return (
     <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-4">
-      <a href="/dashboard/broadcasts" className="text-xs text-neutral-500">Broadcasts</a>
+      <Link href="/dashboard/broadcasts" className="text-xs text-neutral-500">Broadcasts</Link>
       <h1 className="text-2xl text-white font-semibold">{data.broadcast.name}</h1>
       <p className="text-sm text-neutral-400">{data.broadcast.channel} · {data.broadcast.status}</p>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

@@ -15,8 +15,8 @@ interface StickyCTAProps {
 }
 
 export function StickyCTA({
-  targetPlanTitle = "Upgrade to Agency",
-  priceText = "EGP 3,900/mo",
+  targetPlanTitle = "See plans",
+  priceText = "",
   methodName = "Vodafone Cash",
   loading = false,
   disabled = false,

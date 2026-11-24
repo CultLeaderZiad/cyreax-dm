@@ -19,6 +19,7 @@ import {
 import { useLanguage } from "@/lib/i18n/LanguageContext"
 import { toast } from "sonner"
 import { ChannelBadge } from "@/components/ui/ChannelBadge"
+import { TRIAL_DAYS, TRIAL_PLAN_ID } from "@/lib/billing/plans"
 
 export default function PricingClient({ plans }: { plans: any[] }) {
   const { t, language } = useLanguage()
@@ -35,8 +36,13 @@ export default function PricingClient({ plans }: { plans: any[] }) {
     needs_description: ""
   })
 
-  const mainPlan = plans.find(p => !p.is_contact_sales && p.billing_cycle === "monthly") || plans[0]
+  // Every sellable plan the admin has set up, in the order they created them.
+  const sellable = plans.filter(p => !p.is_contact_sales)
   const enterprisePlan = plans.find(p => p.is_contact_sales)
+  // The featured card is the tier a running trial uses (Pro); otherwise the middle plan.
+  const featured = sellable.find(p => p.catalog_plan_id === TRIAL_PLAN_ID) || sellable[Math.floor(sellable.length / 2)]
+  const mainPlan = featured
+  const money = (n: unknown) => new Intl.NumberFormat("en-US").format(Math.round(Number(n)))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -97,13 +103,13 @@ export default function PricingClient({ plans }: { plans: any[] }) {
           {t.pricingTitle || "Simple, transparent pricing"}
         </h1>
         <p className="text-neutral-400 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed">
-          {t.pricingSubtitle || "Start for free, then choose a plan that fits your needs. We offer payments via Vodafone Cash or Email payment request."}
+          {t.pricingSubtitle || "Start for free, then choose a plan that fits your needs. Pay by card, or by e-wallet / InstaPay in Egypt."}
         </p>
       </div>
 
       <div className="relative z-[1]">
         {/* Billing Cycle Toggle */}
-        {mainPlan && mainPlan.price_yearly && (
+        {sellable.some(p => p.price_yearly) && (
           <div className="flex items-center justify-center gap-4 mb-8">
             <div className="bg-white/5 border border-white/10 p-1 rounded-2xl flex items-center shadow-lg">
               <button 
@@ -125,156 +131,148 @@ export default function PricingClient({ plans }: { plans: any[] }) {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4 items-stretch">
-          {/* Free Trial Plan */}
-          <div className="relative pt-4 flex flex-col h-full">
-            <div className="p-8 flex flex-col h-full bg-[#0d0e13]/85 border border-white/[0.08] hover:border-white/[0.16] rounded-2xl relative shadow-xl backdrop-blur-md transition-all duration-300">
-              <div className="mb-8">
-                <h3 className="text-xl font-bold text-white mb-2">
-                  {t.freeTrialTitle || "Free Trial"}
-                </h3>
-                <p className="text-neutral-400 text-sm">
-                  {t.freeTrialDesc || "To test the waters."}
-                </p>
-                <div className="mt-4 text-3xl font-bold text-white font-mono-ui">$0</div>
-              </div>
-              
-              <ul className="space-y-4 mb-8 flex-1">
-                {[
-                  t.freeTrialFeature1 || "Full access to all features",
-                  t.freeTrialFeature2 || "7-day limit",
-                  t.freeTrialFeature3 || "No credit card required"
-                ].map(f => (
-                  <li key={f} className="flex items-start gap-3 text-sm text-neutral-300">
-                    <CheckCircle className="w-5 h-5 text-neutral-500 shrink-0" />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                href="/login"
-                className="w-full block text-center bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-colors mt-auto font-mono-ui text-xs uppercase tracking-wider"
-              >
-                {t.startFreeTrial || "Start Free Trial"}
-              </Link>
-            </div>
-          </div>
-
-          {/* Main / Featured Plan */}
-          {mainPlan && (
-            <div className="relative pt-4 flex flex-col h-full">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#e5a93c] text-black px-4 py-1.5 rounded-full text-[11px] font-mono-ui font-bold uppercase tracking-widest z-30 whitespace-nowrap shadow-xl">
-                {t.bestValue || "BEST VALUE"}
-              </div>
-              {/* Gold-tinted brushed metal card (React Bits ReflectiveCard). data-keep-dark:
-                  the metal is dark in every theme, so the light-mode remap must not darken its text. */}
-              <ReflectiveCard
-                tint="#E8B84A"
-                metalness={1}
-                roughness={0.35}
-                blurStrength={6}
-                shine={1.1}
-                glare={0.55}
-                tiltStrength={6}
-                width="100%"
-                height="100%"
-                radius={18}
-                className="flex-1 min-h-[600px]"
-              >
-                <div className="p-4 flex flex-col h-full [text-shadow:0_1px_2px_rgba(0,0,0,0.45)]" data-keep-dark>
-                <div className="mb-8">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Star className="w-5 h-5 text-[#e5a93c]" />
-                    <h3 className="text-xl font-bold text-[#e5a93c]">
-                      {mainPlan.name === "Monthly Plan" || mainPlan.name === "Pro Plan" ? (t.monthlyPlanTitle || mainPlan.name) : mainPlan.name}
-                    </h3>
-                  </div>
-                  <p className="text-white/80 text-sm">
-                    {t.monthlyPlanDesc || mainPlan.description}
-                  </p>
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-3xl font-bold text-white font-mono-ui">
-                      {(() => {
-                        // Customers pay in EGP; show it whenever the admin set an EGP price.
-                        const egp = isAnnual ? mainPlan.price_yearly_egp : mainPlan.price_egp
-                        if (egp) return `EGP ${new Intl.NumberFormat("en-US").format(Math.round(Number(egp)))}`
-                        return `$${isAnnual ? mainPlan.price_yearly : mainPlan.price_usd}`
-                      })()}
-                    </span>
-                    <span className="text-white/75 text-xs">/{isAnnual ? (isAr ? 'سنة' : 'yr') : (isAr ? 'شهر' : 'mo')}</span>
-                  </div>
-                </div>
-                
-                <ul className="space-y-4 mb-8 flex-1">
-                  {(mainPlan.features || [])
-                    .filter((f: string) => !f.toLowerCase().includes("only one platform"))
-                    .map((f: string) => (
-                    <li key={f} className="flex items-start gap-3 text-sm text-white/90">
-                      <CheckCircle className="w-5 h-5 text-[#e5a93c] shrink-0" />
-                      <span>{translateFeature(f)}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                {renderPlatformIcons(mainPlan)}
-
-                <Link 
-                  href={`/checkout/${mainPlan.id}${isAnnual ? '?cycle=yearly' : '?cycle=monthly'}`} 
-                  className="mt-6 w-full block text-center font-bold py-3 rounded-xl transition-all bg-[#e5a93c] hover:bg-[#d4952b] text-black shadow-lg font-mono-ui text-xs uppercase tracking-wider"
-                >
-                  {t.selectMonthlyPlan || `${t.selectPlan || "Select"} ${mainPlan.name}`}
-                </Link>
-                </div>
-              </ReflectiveCard>
-            </div>
-          )}
-
-          {/* Enterprise / Lifetime Plan */}
-          <div className="relative pt-4 flex flex-col h-full">
-            <div className="p-8 flex flex-col h-full bg-[#0d0e13]/85 border border-white/[0.08] hover:border-white/[0.16] rounded-2xl relative shadow-xl backdrop-blur-md transition-all duration-300">
-              <div className="mb-8">
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap className="w-5 h-5 text-white" />
-                  <h3 className="text-xl font-bold text-white">
-                    {enterprisePlan?.name === "Lifetime Deal" || enterprisePlan?.name === "Enterprise"
-                      ? (t.enterprisePlanTitle || enterprisePlan?.name || "Enterprise")
-                      : (enterprisePlan?.name || "Enterprise")}
-                  </h3>
-                </div>
-                <p className="text-neutral-400 text-sm">
-                  {t.enterprisePlanDesc || enterprisePlan?.description || "For large teams and custom needs."}
-                </p>
-                <div className="mt-4 text-3xl font-bold text-white font-mono-ui">
-                  {t.customPricing || "Custom pricing"}
-                </div>
-              </div>
-              
-              <ul className="space-y-4 mb-8 flex-1">
-                {(enterprisePlan?.features || [
-                  "Custom integrations",
-                  "Dedicated account manager",
-                  "SLA guarantees",
-                  "Custom limits"
-                ]).map((f: string) => (
-                  <li key={f} className="flex items-start gap-3 text-sm text-neutral-300">
-                    <CheckCircle className="w-5 h-5 text-neutral-500 shrink-0" />
-                    <span>{translateFeature(f)}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {renderPlatformIcons(enterprisePlan)}
-
-              <button 
-                onClick={() => setDialogOpen(true)}
-                className="mt-6 w-full block text-center bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-colors font-mono-ui text-xs uppercase tracking-wider cursor-pointer"
-              >
-                {t.contactSales || "Contact Sales"}
-              </button>
-            </div>
-          </div>
+        {/* Trial banner: the length comes from the same constant the server enforces. */}
+        <div className="max-w-2xl mx-auto mb-10 text-center rounded-2xl border border-[#e5a93c]/30 bg-[#e5a93c]/[0.06] px-5 py-4">
+          <p className="text-sm text-neutral-200">
+            <span className="font-semibold text-[#e5a93c]">
+              {isAr ? `${TRIAL_DAYS} أيام تجربة مجانية` : `${TRIAL_DAYS}-day free trial`}
+            </span>
+            {" · "}
+            {isAr ? "بدون بطاقة، وبمميزات Pro كاملة." : "No card needed, with the full Pro features."}
+          </p>
+          <Link
+            href="/login"
+            className="inline-block mt-3 bg-white/10 hover:bg-white/20 text-white font-semibold py-2 px-5 rounded-xl transition-colors font-mono-ui text-xs uppercase tracking-wider"
+          >
+            {t.startFreeTrial || "Start Free Trial"}
+          </Link>
         </div>
+
+        {sellable.length === 0 && !enterprisePlan ? (
+          <p role="status" className="text-center text-neutral-400 py-16">
+            {isAr ? "الخطط غير متاحة مؤقتاً. حاول بعد قليل." : "Plans are temporarily unavailable. Please try again shortly."}
+          </p>
+        ) : (
+          <div
+            className={`grid grid-cols-1 gap-8 pt-4 items-stretch ${
+              sellable.length + (enterprisePlan ? 1 : 0) >= 4 ? "md:grid-cols-2 xl:grid-cols-4" : "md:grid-cols-3"
+            }`}
+          >
+            {sellable.map((plan) => {
+              const isFeatured = plan.id === featured?.id
+              const usd = isAnnual && plan.price_yearly ? plan.price_yearly : plan.price_usd
+              const egp = isAnnual ? plan.price_yearly_egp : plan.price_egp
+              const lines: string[] = (plan.features || []).filter((f: string) => !f.toLowerCase().includes("only one platform"))
+              const body = (
+                <>
+                  <div className="mb-8">
+                    <div className="flex items-center gap-2 mb-2">
+                      {isFeatured && <Star className="w-5 h-5 text-[#e5a93c]" />}
+                      <h3 className={`text-xl font-bold ${isFeatured ? "text-[#e5a93c]" : "text-white"}`}>{plan.name}</h3>
+                    </div>
+                    {plan.description && <p className={`${isFeatured ? "text-white/80" : "text-neutral-400"} text-sm`}>{plan.description}</p>}
+                    <div className="mt-4 flex items-baseline gap-1">
+                      <span className="text-3xl font-bold text-white font-mono-ui" dir="ltr">${usd}</span>
+                      <span className={`${isFeatured ? "text-white/75" : "text-neutral-500"} text-xs`}>
+                        {plan.billing_cycle === "lifetime" ? (isAr ? "مرة واحدة" : "once") : `/${isAnnual ? (isAr ? "سنة" : "yr") : (isAr ? "شهر" : "mo")}`}
+                      </span>
+                    </div>
+                    {egp ? (
+                      <p className={`mt-1 text-xs ${isFeatured ? "text-white/70" : "text-neutral-500"}`} dir="ltr">
+                        {isAr ? "في مصر: " : "In Egypt: "}EGP {money(egp)}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <ul className="space-y-3 mb-8 flex-1">
+                    {lines.map((f) => (
+                      <li key={f} className={`flex items-start gap-3 text-sm ${isFeatured ? "text-white/90" : "text-neutral-300"}`}>
+                        <CheckCircle className={`w-5 h-5 shrink-0 ${isFeatured ? "text-[#e5a93c]" : "text-neutral-500"}`} />
+                        <span>{translateFeature(f)}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {renderPlatformIcons(plan)}
+
+                  <Link
+                    href={`/checkout/${plan.id}${isAnnual ? "?cycle=yearly" : ""}`}
+                    className={`mt-6 w-full block text-center font-bold py-3 rounded-xl transition-all font-mono-ui text-xs uppercase tracking-wider ${
+                      isFeatured ? "bg-[#e5a93c] hover:bg-[#d4952b] text-black shadow-lg" : "bg-white/10 hover:bg-white/20 text-white"
+                    }`}
+                  >
+                    {`${t.selectPlan || "Select"} ${plan.name}`}
+                  </Link>
+                </>
+              )
+              return (
+                <div key={plan.id} className="relative pt-4 flex flex-col h-full">
+                  {isFeatured && (
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#e5a93c] text-black px-4 py-1.5 rounded-full text-[11px] font-mono-ui font-bold uppercase tracking-widest z-30 whitespace-nowrap shadow-xl">
+                      {t.bestValue || "BEST VALUE"}
+                    </div>
+                  )}
+                  {isFeatured ? (
+                    // Gold-tinted brushed metal card (React Bits ReflectiveCard). data-keep-dark:
+                    // the metal is dark in every theme, so the light-mode remap must not darken its text.
+                    <ReflectiveCard
+                      tint="#E8B84A"
+                      metalness={1}
+                      roughness={0.35}
+                      blurStrength={6}
+                      shine={1.1}
+                      glare={0.55}
+                      tiltStrength={6}
+                      width="100%"
+                      height="100%"
+                      radius={18}
+                      className="flex-1 min-h-[600px]"
+                    >
+                      <div className="p-4 flex flex-col h-full [text-shadow:0_1px_2px_rgba(0,0,0,0.45)]" data-keep-dark>
+                        {body}
+                      </div>
+                    </ReflectiveCard>
+                  ) : (
+                    <div className="p-8 flex flex-col h-full bg-[#0d0e13]/85 border border-white/[0.08] hover:border-white/[0.16] rounded-2xl relative shadow-xl backdrop-blur-md transition-all duration-300">
+                      {body}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+
+            {/* Enterprise / contact sales: only when the admin created such a plan. */}
+            {enterprisePlan && (
+              <div className="relative pt-4 flex flex-col h-full">
+                <div className="p-8 flex flex-col h-full bg-[#0d0e13]/85 border border-white/[0.08] hover:border-white/[0.16] rounded-2xl relative shadow-xl backdrop-blur-md transition-all duration-300">
+                  <div className="mb-8">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Zap className="w-5 h-5 text-white" />
+                      <h3 className="text-xl font-bold text-white">{enterprisePlan.name}</h3>
+                    </div>
+                    {enterprisePlan.description && <p className="text-neutral-400 text-sm">{enterprisePlan.description}</p>}
+                    <div className="mt-4 text-3xl font-bold text-white font-mono-ui">{t.customPricing || "Custom pricing"}</div>
+                  </div>
+                  <ul className="space-y-3 mb-8 flex-1">
+                    {(enterprisePlan.features || []).map((f: string) => (
+                      <li key={f} className="flex items-start gap-3 text-sm text-neutral-300">
+                        <CheckCircle className="w-5 h-5 text-neutral-500 shrink-0" />
+                        <span>{translateFeature(f)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {renderPlatformIcons(enterprisePlan)}
+                  <button
+                    onClick={() => setDialogOpen(true)}
+                    className="mt-6 w-full block text-center bg-white/10 hover:bg-white/20 text-white font-semibold py-3 rounded-xl transition-colors font-mono-ui text-xs uppercase tracking-wider cursor-pointer"
+                  >
+                    {t.contactSales || "Contact Sales"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Contact Sales Modal */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

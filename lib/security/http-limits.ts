@@ -67,6 +67,7 @@ export function classify(pathname: string, method: string): TierRule {
   if (has(p, /^\/api\/cron\//)) return rule("cron")
   if (has(p, /^\/api\/(instagram|facebook|whatsapp|tiktok)\/webhook$/) || has(p, /^\/api\/telegram\/webhook\//)) return rule("webhook")
   if (has(p, /^\/api\/payments\/(paymob|tap|stripe)$/) || has(p, /^\/api\/meta\/(deauthorize|data-deletion)$/)) return rule("webhook")
+  if (has(p, /^\/api\/webhooks\/whop$/)) return rule("webhook")
   if (!read && has(p, /^\/api\/(payments\/manual|ai-agent\/knowledge)$/)) return rule("upload")
   if (
     has(p, /^\/api\/auth\//) ||

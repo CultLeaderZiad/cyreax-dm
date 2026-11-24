@@ -1,8 +1,11 @@
 "use client"
 
-import { PLAN_CATALOG } from "@/lib/billing/plans"
+import { PLAN_CATALOG, type PlanLimits } from "@/lib/billing/plans"
+import { EntitlementsEditor } from "@/components/admin/EntitlementsEditor"
 import { useState, useEffect } from "react"
-import { Loader2, Plus, Pencil, Trash2 } from "lucide-react"
+import { Loader2, Plus, Pencil, Trash2, ExternalLink } from "lucide-react"
+import useSWR from "swr"
+import { fetcher } from "@/lib/fetcher"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,6 +39,9 @@ interface Plan {
   price_egp?: number | null
   price_yearly_egp?: number | null
   catalog_plan_id?: string | null
+  whop_variant_id?: string | null
+  whop_variant_id_yearly?: string | null
+  entitlements?: PlanLimits | null
   billing_cycle: "monthly" | "yearly" | "lifetime"
   features: string[] | null
   is_active: boolean
@@ -68,6 +74,9 @@ const EMPTY_FORM = {
   price_egp: "",
   price_yearly_egp: "",
   catalog_plan_id: "",
+  whop_variant_id: "",
+  whop_variant_id_yearly: "",
+  entitlements: null as PlanLimits | null,
   billing_cycle: "monthly" as Plan["billing_cycle"],
   features: "",
   stripe_price_id: "",
@@ -93,11 +102,16 @@ export default function DashboardAdminPlansPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ ...EMPTY_FORM })
 
+  const { data: whopStatus } = useSWR<{ configured: boolean; plans: Record<string, { whop: { title: string | null; price: number | null; currency: string | null } | null; error: string | null }> }>(
+    "/api/admin/plans/whop-status",
+    fetcher,
+    { revalidateOnFocus: true },
+  )
   useEffect(() => {
     fetchPlans()
   }, [])
 
-  const fetchPlans = async () => {
+  async function fetchPlans() {
     try {
       setError("")
       const [plansRes, agentsRes, planAgentsRes] = await Promise.all([
@@ -163,6 +177,9 @@ export default function DashboardAdminPlansPage() {
       price_egp: plan.price_egp != null ? String(plan.price_egp) : "",
       price_yearly_egp: plan.price_yearly_egp != null ? String(plan.price_yearly_egp) : "",
       catalog_plan_id: plan.catalog_plan_id || "",
+      whop_variant_id: plan.whop_variant_id || "",
+      whop_variant_id_yearly: plan.whop_variant_id_yearly || "",
+      entitlements: plan.entitlements || null,
       billing_cycle: plan.billing_cycle,
       features: Array.isArray(plan.features) ? plan.features.join(", ") : "",
       stripe_price_id: plan.stripe_price_id || "",
@@ -194,6 +211,9 @@ export default function DashboardAdminPlansPage() {
         price_egp: form.price_egp ? Math.round(parseFloat(form.price_egp)) : null,
         price_yearly_egp: form.price_yearly_egp ? Math.round(parseFloat(form.price_yearly_egp)) : null,
         catalog_plan_id: form.catalog_plan_id || null,
+        whop_variant_id: form.whop_variant_id.trim() || null,
+        whop_variant_id_yearly: form.whop_variant_id_yearly.trim() || null,
+        entitlements: form.entitlements,
         billing_cycle: form.billing_cycle,
         features: form.features
           .split(",")
@@ -339,6 +359,8 @@ export default function DashboardAdminPlansPage() {
                   </div>
                 </div>
 
+                <WhopLine id={plan.whop_variant_id} status={plan.whop_variant_id ? whopStatus?.plans?.[plan.whop_variant_id] : undefined} localPrice={plan.price_usd} />
+
                 <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
                   <div className="flex items-baseline gap-1">
                     <span className="font-mono text-2xl text-white font-bold">${plan.price_usd}</span>
@@ -482,12 +504,30 @@ export default function DashboardAdminPlansPage() {
                 <select className="w-full h-9 rounded-md bg-white/5 border border-white/10 text-white px-2 text-sm"
                   value={form.catalog_plan_id} onChange={(e) => setForm({ ...form, catalog_plan_id: e.target.value })}>
                   <option value="">Default (monthly → Creator, other → Creator Plus)</option>
-                  {PLAN_CATALOG.filter((entry) => entry.monthlyUsd > 0).map((entry) => (
+                  {PLAN_CATALOG.filter((entry) => !entry.hidden).map((entry) => (
                     <option key={entry.id} value={entry.id}>{entry.name}</option>
                   ))}
                 </select>
-                <p className="text-[11px] text-neutral-500">Customers pay the EGP price by e-wallet or InstaPay. Without an EGP price the checkout asks them to contact support.</p>
+                <p className="text-[11px] text-neutral-500">Egyptian customers can pay the EGP price by e-wallet or InstaPay.</p>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-neutral-300">Whop plan ID (Mo / one-time)</Label>
+                  <Input dir="ltr" className="bg-white/5 border-white/10 text-white font-mono" placeholder="plan_XXXXXXXX"
+                    value={form.whop_variant_id} onChange={(e) => setForm({ ...form, whop_variant_id: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-neutral-300">Whop plan ID (Yr)</Label>
+                  <Input dir="ltr" className="bg-white/5 border-white/10 text-white font-mono" placeholder="plan_XXXXXXXX"
+                    value={form.whop_variant_id_yearly} onChange={(e) => setForm({ ...form, whop_variant_id_yearly: e.target.value })} />
+                </div>
+              </div>
+              <p className="text-[11px] text-neutral-500">From Whop → Products → your product → the pricing option. Card checkout (Whop) is offered only when this is set.</p>
+              <EntitlementsEditor
+                catalogPlanId={form.catalog_plan_id}
+                value={form.entitlements}
+                onChange={(next) => setForm({ ...form, entitlements: next })}
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -545,7 +585,7 @@ export default function DashboardAdminPlansPage() {
               <div className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
                 <div>
                   <p className="text-sm text-white">Contact Sales / Enterprise Plan</p>
-                  <p className="text-xs text-neutral-500">Enable this if it's a custom/enterprise plan without fixed pricing.</p>
+                  <p className="text-xs text-neutral-500">Enable this if it&apos;s a custom/enterprise plan without fixed pricing.</p>
                 </div>
                 <Switch
                   checked={form.is_contact_sales}
@@ -598,6 +638,34 @@ export default function DashboardAdminPlansPage() {
         loading={deleting}
         onConfirm={handleConfirmDelete}
       />
+    </div>
+  )
+}
+
+function WhopLine({ id, status, localPrice }: { id?: string | null; status?: { whop: { title: string | null; price: number | null; currency: string | null } | null; error: string | null }; localPrice: number }) {
+  if (!id) {
+    return <p className="text-[11px] text-amber-400">No Whop plan id: card checkout is off for this plan. Edit the plan to add one.</p>
+  }
+  const live = status?.whop
+  const mismatch = live?.price != null && live.currency === "USD" && Math.abs(live.price - Number(localPrice)) > 0.001
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 space-y-1">
+      <div className="flex items-center justify-between gap-2">
+        <code className="font-mono text-[11px] text-neutral-300 truncate" dir="ltr">{id}</code>
+        <a href={`https://whop.com/checkout/${id}`} target="_blank" rel="noopener noreferrer" className="shrink-0 text-neutral-400 hover:text-white transition-colors" title="Open this plan's checkout on Whop">
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+      </div>
+      {!status ? (
+        <p className="text-[11px] text-neutral-500 animate-pulse">Checking Whop...</p>
+      ) : status.error ? (
+        <p className="text-[11px] text-red-400">{status.error}</p>
+      ) : (
+        <p className="text-[11px] text-neutral-400" dir="ltr">
+          On Whop: {live?.title || "plan"}{live?.price != null ? ` · ${live.price} ${live.currency || ""}` : ""}
+          {mismatch && <span className="text-amber-400"> · differs from the price shown here (${localPrice})</span>}
+        </p>
+      )}
     </div>
   )
 }

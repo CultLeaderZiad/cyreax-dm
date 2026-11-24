@@ -8,7 +8,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
   }, [error])
 
   return (
-    <div className="min-h-screen bg-[#03010A] text-white flex items-center justify-center p-4">
+    <div className="min-h-screen text-white flex items-center justify-center p-4">
       <div className="text-center space-y-4 max-w-md">
         <h1 className="text-4xl font-bold text-red-500">Something went wrong</h1>
         <p className="text-neutral-400">An unexpected error has occurred.</p>

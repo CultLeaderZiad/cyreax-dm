@@ -12,7 +12,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
     return (
-        <main id="main-content" className="min-h-screen bg-[#03010A] text-white selection:bg-[#e5a93c] selection:text-black relative">
+        <main id="main-content" className="min-h-screen text-white selection:bg-[#e5a93c] selection:text-black relative">
             <FrontBackground />
             <Header activeHref="/privacy" />
             <div className="max-w-3xl mx-auto px-4 py-24 sm:py-32 relative z-10">
@@ -38,7 +38,7 @@ export default function PrivacyPage() {
                             <li><strong className="text-white">Connected platform data:</strong> when you connect Instagram, Facebook, WhatsApp, or TikTok, we store the account or page identifiers and the access tokens those platforms issue. Tokens are encrypted at rest. We also store the automation rules you create and the message content those platforms send to our webhooks — including comments, direct messages, and story interactions — so they can appear in your inbox and trigger your automations.</li>
                             <li><strong className="text-white">Contacts:</strong> display name, handle, phone, or email when a person sends that information in a message.</li>
                             <li><strong className="text-white">Telegram bot data:</strong> if you connect a Telegram bot, we store the bot token you provide and the messages your bot receives and sends through {BRAND.short}.</li>
-                            <li><strong className="text-white">AI keys (BYOK):</strong> if you connect your own AI provider keys ("Bring Your Own Key" — e.g. Gemini, OpenAI, Anthropic, OpenRouter), those API keys are stored so {BRAND.short} can make AI calls on your behalf. They are never displayed back in full in the dashboard.</li>
+                            <li><strong className="text-white">AI keys (BYOK):</strong> if you connect your own AI provider keys (&quot;Bring Your Own Key&quot; — e.g. Gemini, OpenAI, Anthropic, OpenRouter), those API keys are stored so {BRAND.short} can make AI calls on your behalf. They are never displayed back in full in the dashboard.</li>
                             <li><strong className="text-white">Payment information:</strong> card payments, where offered, are processed by Paymob or Tap. We never store your full card details on our servers. For local transfers (Egyptian e-wallets or InstaPay), we store the transaction reference number, the amount, the sending wallet number or InstaPay address, the transfer time, the screenshot you upload as proof, and any note you submit, so we can verify and approve your payment. Proof screenshots are kept in private storage that only you and our billing staff can open.</li>
                             <li><strong className="text-white">Usage data:</strong> basic service telemetry (for example page performance metrics, webhook delivery ids, and error reports) needed to operate and improve the Service.</li>
                         </ul>

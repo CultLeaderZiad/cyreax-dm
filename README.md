@@ -34,18 +34,34 @@
 
 ## Bootstrapping Platform Admin
 
-Platform administrators and owners are managed strictly via database RBAC (`platform_admins` table). To bootstrap the first platform owner:
+A platform admin is an account with `accounts.role = 'admin'`. That is the
+only check (`lib/auth.ts` `requireAdmin`, `app/dashboard/admin/layout.tsx`
+and the `cyreax_review_payment` SQL function). There is no other admin table;
+`platform_admins` is not used by the app.
+
+Sign up once with the admin email, then run in the Supabase SQL editor:
 
 ```sql
--- Find or create the target account ID
+-- Find the account
 SELECT id, email, role FROM accounts WHERE email = 'your-admin@example.com';
 
--- Promote the account to admin and grant platform ownership
+-- Make it a platform admin
 UPDATE accounts SET role = 'admin' WHERE id = '<account_uuid>';
-INSERT INTO platform_admins (account_id, is_owner)
-VALUES ('<account_uuid>', true)
-ON CONFLICT (account_id) DO UPDATE SET is_owner = true;
 ```
+
+Sign out and back in. The Admin section appears in the sidebar.
+
+## Payments
+
+- **Card (Whop)** for every customer: hosted Whop checkout, plan activated by
+  the signed Whop webhook at `/api/webhooks/whop`.
+- **E-wallet / InstaPay** for Egyptian customers only: transfer, upload the
+  screenshot, an admin approves it in **Admin → Payments**.
+
+Setup (API key, webhook URL and events, mapping plans to Whop plan IDs) and
+the required environment variables (`WHOP_API_KEY`, `WHOP_WEBHOOK_SECRET`,
+`PAYMENT_WALLET_NUMBER`, `PAYMENT_INSTAPAY_NUMBER`, `PAYMENT_EGP_PER_USD`,
+`CRON_SECRET`) are in [docs/DEPLOY.md](./docs/DEPLOY.md#8-payments).
 
 ---
 

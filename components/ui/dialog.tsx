@@ -100,7 +100,7 @@ function DialogPortal({ children }: { children: React.ReactNode }) {
   return createPortal(children, document.body)
 }
 
-interface DialogOverlayProps extends React.HTMLAttributes<HTMLDivElement> {}
+type DialogOverlayProps = React.HTMLAttributes<HTMLDivElement>
 
 function DialogOverlay({ className, onClick, ...props }: DialogOverlayProps) {
   const { setOpen } = useDialog()

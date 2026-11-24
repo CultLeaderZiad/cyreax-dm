@@ -1,3 +1,4 @@
+import type { NormalizedInbound } from "../lib/channels/types.ts"
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
@@ -13,7 +14,7 @@ const { commentTextsFromPayload } = await import("../lib/event-pipeline.ts")
 
 const now = Date.parse("2026-09-30T12:00:00.000Z")
 
-function rule(partial) {
+function rule(partial: any) {
   return {
     id: partial.id || "rule-1",
     name: partial.name || partial.id || "rule",
@@ -58,7 +59,7 @@ describe("shared matcher", () => {
   it("sends a story reply once, and still answers a DM when no story rule matches", () => {
     const story = rule({ id: "story", trigger_source: "story", trigger_type: "reply", trigger_value: "ALL" })
     const keyword = rule({ id: "dm", trigger_source: "dm", trigger_type: "keyword", trigger_value: "price" })
-    const events = [
+    const events: NormalizedInbound[] = [
       { channel: "instagram", kind: "story_reply", contactExternalId: "9", text: "price", groupId: "m1", mediaId: "story" },
       { channel: "instagram", kind: "dm", contactExternalId: "9", text: "price", groupId: "m1" },
     ]
@@ -198,9 +199,9 @@ describe("messaging window", () => {
 })
 
 describe("channel adapters", () => {
-  function mockFetch(payload) {
-    const calls = []
-    const fetchImpl = async (url, init) => {
+  function mockFetch(payload: any) {
+    const calls: any[] = []
+    const fetchImpl = async (url: any, init: any) => {
       calls.push({ url: String(url), body: init?.body ? JSON.parse(String(init.body)) : null, headers: init?.headers })
       return new Response(JSON.stringify(payload), { status: 200, headers: { "Content-Type": "application/json" } })
     }
@@ -224,13 +225,13 @@ describe("channel adapters", () => {
     const adapter = createMessengerAdapter(fetchImpl)
     await adapter.sendText({ accessToken: "page" }, "hi")
     assert.equal(calls[0].body.messaging_type, "RESPONSE")
-    await adapter.publicReply({ accessToken: "page" }, "comment-1", "thanks")
+    await adapter.publicReply!({ accessToken: "page" }, "comment-1", "thanks")
     assert.match(calls[1].url, /comment-1\/comments/)
   })
 
   it("sends WhatsApp interactive replies and reports the 24-hour error", async () => {
-    const calls = []
-    const fetchImpl = async (url, init) => {
+    const calls: any[] = []
+    const fetchImpl = async (url: any, init: any) => {
       calls.push({ url: String(url), body: JSON.parse(String(init.body)), headers: init.headers })
       const body = calls.length === 1 ? { messages: [{ id: "w1" }] } : { error: { code: 131047, message: "Re-engagement" } }
       return new Response(JSON.stringify(body), { status: 200 })
@@ -267,15 +268,16 @@ describe("channel adapters", () => {
 
 describe("outbound delivery", () => {
   it("turns an Instagram comment card into a quick reply and appends Messenger links", async () => {
-    const calls = []
-    const adapter = {
+    const calls: any[] = []
+    // Minimal fake adapter: only what deliverContent touches.
+    const adapter: any = {
       channel: "instagram",
       messagingWindowMs: STANDARD_WINDOW_MS,
       supportsHumanAgent: true,
       async sendText() { return { ok: true } },
       async sendCard() { return { ok: true } },
       async sendMedia() { return { ok: true } },
-      async privateReply(_ctx, text, replies) {
+      async privateReply(_ctx: any, text: any, replies: any) {
         calls.push({ text, replies })
         return { ok: true, id: "p1" }
       },
@@ -286,9 +288,9 @@ describe("outbound delivery", () => {
     }, { privateComment: true, privateReplyStyle: "instagram_card", automationId: "rule-9", variantId: null })
     assert.equal(calls[0].replies[0].payload, "SYS_CARD_rule-9_default")
 
-    const messenger = {
+    const messenger: any = {
       ...adapter,
-      async privateReply(_ctx, text) {
+      async privateReply(_ctx: any, text: any) {
         calls.push({ text })
         return { ok: true }
       },
@@ -359,8 +361,8 @@ describe("click tracking and honest metrics", () => {
       message: "Buy https://shop.example/item today",
       card: { title: "Card", buttons: [{ type: "web_url", title: "Open", url: "https://shop.example/item" }] },
     }, map)
-    assert.match(content.message, /\/r\/abc/)
-    assert.equal(content.card.buttons[0].url, "https://app.example/r/abc")
+    assert.match(content.message!, /\/r\/abc/)
+    assert.equal(content.card!.buttons![0].url, "https://app.example/r/abc")
     assert.equal(applyUrlMap("see https://shop.example/item.", map), "see https://app.example/r/abc.")
   })
 
@@ -393,8 +395,8 @@ describe("click tracking and honest metrics", () => {
 
   it("buckets a day of sends", () => {
     const days = bucketByDay([{ at: "2026-09-30T01:00:00.000Z", kind: "sent" }, { at: "2026-09-30T02:00:00.000Z", kind: "click" }], 2, now)
-    assert.equal(days.at(-1).sent, 1)
-    assert.equal(days.at(-1).linkClicks, 1)
+    assert.equal(days.at(-1)!.sent, 1)
+    assert.equal(days.at(-1)!.linkClicks, 1)
     assert.equal(days[0].sent, 0)
   })
 })

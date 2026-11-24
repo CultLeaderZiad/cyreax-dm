@@ -64,6 +64,13 @@ CREATE TABLE public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid
 CREATE TABLE public.payment_methods (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), provider text, config jsonb);
 CREATE TABLE public.sessions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id bigint, session_token text);
 
+CREATE TABLE public.account_agent_settings (
+  account_id uuid NOT NULL, agent_id uuid NOT NULL, is_enabled boolean DEFAULT true,
+  byok_key_encrypted bytea, byok_provider text, byok_connected_at timestamptz, last_used_at timestamptz,
+  PRIMARY KEY (account_id, agent_id)
+);
+CREATE SCHEMA IF NOT EXISTS extensions;
+
 -- Supabase's default: anon/authenticated get table privileges in public.
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;

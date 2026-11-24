@@ -12,10 +12,11 @@ export interface CheckoutData {
   amountEgp: number | null
   referenceCode: string | null
   quote: string | null
-  walletNumber: string
-  walletInternational: string
-  instapayNumber: string
-  instapayInternational: string
+  /** null = not configured on the server: that method is hidden. */
+  walletNumber: string | null
+  walletInternational: string | null
+  instapayNumber: string | null
+  instapayInternational: string | null
   supportEmail: string
   supportWhatsapp: string | null
 }
@@ -34,6 +35,8 @@ const COPY = {
     reference: "Your payment reference",
     referenceHint: "Write this in the transfer note if your wallet or bank app allows it.",
     chooseMethod: "How will you pay?",
+    unavailableTitle: "Payment temporarily unavailable",
+    unavailableBody: "Wallet and InstaPay payments are paused right now. Please try again later or contact support.",
     wallet: "Any e-wallet",
     walletSub: "Vodafone Cash, Etisalat Cash, Orange Cash, WE Pay, bank wallets",
     instapay: "InstaPay",
@@ -92,6 +95,8 @@ const COPY = {
     reference: "الرقم المرجعي للدفع",
     referenceHint: "اكتبه في ملاحظة التحويل إذا سمح تطبيق المحفظة أو البنك بذلك.",
     chooseMethod: "طريقة الدفع",
+    unavailableTitle: "الدفع غير متاح مؤقتاً",
+    unavailableBody: "الدفع بالمحفظة وإنستاباي متوقف حالياً. حاول لاحقاً أو تواصل مع الدعم.",
     wallet: "أي محفظة إلكترونية",
     walletSub: "فودافون كاش، اتصالات كاش، أورنج كاش، WE Pay، محافظ البنوك",
     instapay: "إنستاباي",
@@ -161,11 +166,18 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
     [data.amountEgp],
   )
 
-  const [method, setMethod] = useState<Method>("wallet")
+  // Only methods whose payout number the server has configured.
+  const available = useMemo(
+    () => (["wallet", "instapay"] as const).filter((m) => (m === "wallet" ? data.walletNumber : data.instapayNumber)),
+    [data.walletNumber, data.instapayNumber],
+  )
+  const [method, setMethod] = useState<Method>(available[0] ?? "wallet")
   const [senderRef, setSenderRef] = useState("")
   const [amountPaid, setAmountPaid] = useState(data.amountEgp ? String(data.amountEgp) : "")
   const [transactionRef, setTransactionRef] = useState("")
   const [transferredAt, setTransferredAt] = useState(() => localDateTime(new Date()))
+  // Latest allowed transfer time, fixed when the page opens (a few minutes of clock skew allowed).
+  const [maxTransferTime] = useState(() => localDateTime(new Date(Date.now() + 5 * 60_000)))
   const [file, setFile] = useState<File | null>(null)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -175,7 +187,9 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
   const supportHref = (ref: string | null) =>
     `mailto:${data.supportEmail}?subject=${encodeURIComponent(`Payment ${ref || ""}`.trim())}`
 
-  const SupportLinks = ({ reference }: { reference: string | null }) => (
+  // A render helper, not a component: defining a component inside render
+  // would remount it on every render.
+  const supportLinks = (reference: string | null) => (
     <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
       <span className="text-neutral-400">{t.support}:</span>
       <Link href={`/dashboard/support${reference ? `?ref=${reference}` : ""}`} className="text-[#e5a93c] hover:underline">
@@ -215,7 +229,7 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
           <AlertTriangle className="w-8 h-8 text-[#e5a93c] mx-auto" />
           <h1 className="text-xl font-bold">{t.noPriceTitle}</h1>
           <p className="text-sm text-neutral-400">{t.noPriceBody}</p>
-          <SupportLinks reference={null} />
+          {supportLinks(null)}
         </div>
       </div>
     )
@@ -234,7 +248,7 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
             <CopyButton value={done} label="payment reference" />
           </div>
         </div>
-        <SupportLinks reference={done} />
+        {supportLinks(done)}
         <Link href="/billing" className="inline-block bg-[#e5a93c] hover:bg-[#d4952b] text-black font-bold py-2.5 px-6 rounded-xl text-sm">
           {t.billing}
         </Link>
@@ -242,9 +256,20 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
     )
   }
 
+  if (available.length === 0) {
+    return (
+      <div dir={dir} role="alert" className="p-8 border border-white/10 rounded-2xl bg-white/[0.02] text-center space-y-4">
+        <Clock className="w-8 h-8 text-[#e5a93c] mx-auto" />
+        <h1 className="text-xl font-bold">{t.unavailableTitle}</h1>
+        <p className="text-neutral-300 text-sm leading-relaxed">{t.unavailableBody}</p>
+        {supportLinks(data.referenceCode || "")}
+      </div>
+    )
+  }
+
   const destination = method === "wallet"
-    ? { local: data.walletNumber, intl: data.walletInternational }
-    : { local: data.instapayNumber, intl: data.instapayInternational }
+    ? { local: data.walletNumber ?? "", intl: data.walletInternational ?? "" }
+    : { local: data.instapayNumber ?? "", intl: data.instapayInternational ?? "" }
 
   const onFile = (next: File | null) => {
     setError(null)
@@ -316,8 +341,8 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
 
       <section className="space-y-3">
         <h2 className="text-lg font-bold">{t.chooseMethod}</h2>
-        <div className="grid sm:grid-cols-2 gap-3" role="radiogroup">
-          {(["wallet", "instapay"] as const).map((m) => (
+        <div className={`grid gap-3 ${available.length > 1 ? "sm:grid-cols-2" : ""}`} role="radiogroup">
+          {available.map((m) => (
             <button
               key={m}
               type="button"
@@ -379,7 +404,7 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
           <div>
             <label htmlFor="pay-time" className="block text-sm text-neutral-300 mb-2">{t.transferredAt}</label>
             <input id="pay-time" dir="ltr" type="datetime-local" className={field} value={transferredAt}
-              max={localDateTime(new Date(Date.now() + 5 * 60_000))} onChange={(e) => setTransferredAt(e.target.value)} required />
+              max={maxTransferTime} onChange={(e) => setTransferredAt(e.target.value)} required />
             {fieldError("transferredAt")}
           </div>
         </div>
@@ -424,7 +449,7 @@ export default function CheckoutClient({ data }: { data: CheckoutData }) {
         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{t.submit}<ArrowRight className="w-5 h-5 rtl:rotate-180" /></>}
       </button>
 
-      <SupportLinks reference={data.referenceCode} />
+      {supportLinks(data.referenceCode)}
     </form>
   )
 }

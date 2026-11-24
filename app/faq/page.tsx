@@ -9,8 +9,8 @@ import { useLanguage } from "@/lib/i18n/LanguageContext"
 
 const FAQ_ITEMS_EN = [
   {
-    q: "What does Helix Auto DM do?",
-    a: "Helix Auto DM is an automation engine for Instagram and Facebook. It allows you to automatically reply to DMs, comments, and story mentions using custom rules, keyword triggers, follow gates, or brand-trained AI responses."
+    q: "What does CYREAX DM do?",
+    a: "CYREAX DM is an automation engine for Instagram and Facebook. It allows you to automatically reply to DMs, comments, and story mentions using custom rules, keyword triggers, follow gates, or brand-trained AI responses."
   },
   {
     q: "How does the trial work?",
@@ -26,14 +26,14 @@ const FAQ_ITEMS_EN = [
   },
   {
     q: "Which platforms are supported?",
-    a: "Currently, Helix Auto DM supports Instagram Professional accounts and Facebook Pages (including Messenger). Telegram and WhatsApp integrations are also available for connected workflows."
+    a: "Currently, CYREAX DM supports Instagram Professional accounts and Facebook Pages (including Messenger). Telegram and WhatsApp integrations are also available for connected workflows."
   }
 ]
 
 const FAQ_ITEMS_AR = [
   {
-    q: "ما هي وظيفة منصة هيليكسا أوتو دي إم؟",
-    a: "هيليكسا أوتو دي إم هي محرك أتمتة مدعوم بالذكاء الاصطناعي لحسابات انستغرام وفيسبوك. تتيح لك الرد التلقائي على الرسائل المباشرة والتعليقات وتفاعلات القصص باستخدام قواعد مخصصة، أو مشغلات الكلمات المفتاحية، أو قفل المتابعة، أو ردود الذكاء الاصطناعي الذكية."
+    q: "ما هي وظيفة منصة CYREAX DM؟",
+    a: "CYREAX DM هي محرك أتمتة مدعوم بالذكاء الاصطناعي لحسابات انستغرام وفيسبوك. تتيح لك الرد التلقائي على الرسائل المباشرة والتعليقات وتفاعلات القصص باستخدام قواعد مخصصة، أو مشغلات الكلمات المفتاحية، أو قفل المتابعة، أو ردود الذكاء الاصطناعي الذكية."
   },
   {
     q: "كيف تعمل الفترة التجريبية المجانية؟",
@@ -59,7 +59,7 @@ export default function FAQPage() {
   const items = isAr ? FAQ_ITEMS_AR : FAQ_ITEMS_EN
 
   return (
-    <div className="min-h-screen bg-[#03010A] text-white flex flex-col justify-between selection:bg-[#e5a93c] selection:text-black relative">
+    <div className="min-h-screen text-white flex flex-col justify-between selection:bg-[#e5a93c] selection:text-black relative">
       <FrontBackground />
       <div>
         <Header activeHref="/faq" />
@@ -78,8 +78,8 @@ export default function FAQPage() {
             </h1>
             <p className="text-neutral-400 text-base mt-2">
               {isAr
-                ? "كل ما تحتاج معرفته عن منصة هيليكسا أوتو دي إم وكيف تساعدك في تنمية تفاعل حساباتك."
-                : "Everything you need to know about Helix Auto DM and how it powers your social growth."}
+                ? "كل ما تحتاج معرفته عن منصة CYREAX DM وكيف تساعدك في تنمية تفاعل حساباتك."
+                : "Everything you need to know about CYREAX DM and how it powers your social growth."}
             </p>
           </div>
 

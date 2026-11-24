@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/Footer"
 import { FrontBackground } from "@/components/layout/FrontBackground"
 
 import PricingClient from "./PricingClient"
+import { PLAN_CATALOG, applyEntitlements, describeEntitlements } from "@/lib/billing/plans"
 
 export const revalidate = 0;
 export const dynamic = 'force-dynamic';
@@ -34,38 +35,25 @@ export default async function PricingPage() {
     error = err
   }
 
-  const plans = (!error && dbPlans && dbPlans.length > 0) ? dbPlans.map((p: any) => {
-    const agentsForPlan = planAgents
-      ?.filter((pa: any) => pa.plan_id === p.id)
-      .map((pa: any) => pa.agents?.name)
-      .filter(Boolean) || []
-    
-    return {
-      ...p,
-      features: [...(p.features || []), ...agentsForPlan]
-    }
-  }) : [
-    {
-      id: "fallback-1",
-      name: "Pro Plan",
-      description: "Full access",
-      price_usd: 9.99,
-      price_yearly: 99.99,
-      billing_cycle: "monthly",
-      features: ["Unlimited automations", "Priority support"]
-    },
-    {
-      id: "fallback-2",
-      name: "Enterprise",
-      description: "For large teams",
-      billing_cycle: "enterprise",
-      is_contact_sales: true,
-      features: ["Custom integrations", "Dedicated account manager"]
-    }
-  ];
+  // Plans come only from the database (Admin -> Plans). If they cannot be
+  // loaded the page says so; it never shows invented plans or prices.
+  const plans = !error && dbPlans
+    ? dbPlans.map((p: any) => {
+        const agentsForPlan = planAgents
+          ?.filter((pa: any) => pa.plan_id === p.id)
+          .map((pa: any) => pa.agents?.name)
+          .filter(Boolean) || []
+        // Limits and features the server really enforces, generated, plus the
+        // admin's own extra lines and the agents included in the plan.
+        const tier = PLAN_CATALOG.find((c) => c.id === p.catalog_plan_id) || PLAN_CATALOG.find((c) => c.id === (p.billing_cycle === "monthly" ? "creator" : "creator_plus"))!
+        const generated = p.is_contact_sales ? [] : describeEntitlements(applyEntitlements(tier, p.entitlements).limits)
+        const features = [...generated, ...(p.features || []), ...agentsForPlan]
+        return { ...p, features: [...new Set(features)] }
+      })
+    : []
 
   return (
-    <div className="min-h-screen bg-[#03010A] text-white flex flex-col justify-between selection:bg-[#e5a93c] selection:text-black relative">
+    <div className="min-h-screen text-white flex flex-col justify-between selection:bg-[#e5a93c] selection:text-black relative">
       <FrontBackground />
       <div>
         <Header activeHref="/pricing" />
