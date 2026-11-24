@@ -121,6 +121,7 @@ Phase files, in this order. Each is idempotent and does not delete tenant rows.
 19. Whop plan ids (2026-11-25): `20261125120000_whop_plan_ids.sql` (attaches the three Whop plans, hides the old placeholder plans)
 20. AI recommendations (2026-11-26): `20261126120000_ai_recommendations.sql`
 21. AI Growth Agent (2026-11-27): `20261127120000_ai_agent_proposals.sql`
+22. Prices follow Whop (2026-11-28): `20261128120000_whop_price_sync.sql`
 
 Every file from step 14 on has a commented rollback at the top.
 
@@ -226,6 +227,12 @@ the dashboard is replaced by a screen with the plans, to pay, or **Log out**.
 The server blocks the same accounts independently. In **Admin → Users** you can
 extend a trial (7 / 14 / 30 days), put an account on a plan for N days, or set
 it to Expired to pause it.
+
+**Prices follow Whop:** a plan with a Whop plan id gets its USD price read from
+Whop at most every 10 minutes (when the pricing page or `/api/plans` is read),
+so a price edited on Whop shows up in the app by itself. Admin -> Plans has a
+"Sync prices from Whop" button for an immediate refresh, and the price field is
+locked while a Whop id is set. EGP prices stay admin-set. Needs `WHOP_API_KEY`.
 
 **AI limits per plan:** "AI requests / month" (Admin -> Plans) caps recommendations,
 the Growth Agent and analytics; auto-replies keep their own "AI replies / month"

@@ -176,7 +176,8 @@ export async function getWhopPlan(id: string, apiKey: string, fetchImpl: FetchLi
   return {
     id: String(json?.id || id),
     title: typeof json?.title === "string" ? json.title : null,
-    price: num(json?.renewal_price ?? json?.initial_price),
+    // A recurring plan is sold at its renewal price; a one-time plan at its initial price.
+    price: num(num(json?.billing_period) ? json?.renewal_price : json?.initial_price),
     currency: typeof json?.currency === "string" ? json.currency.toUpperCase() : null,
     billingPeriodDays: num(json?.billing_period),
     visibility: typeof json?.visibility === "string" ? json.visibility : null,
