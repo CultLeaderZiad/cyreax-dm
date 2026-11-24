@@ -118,6 +118,9 @@ Phase files, in this order. Each is idempotent and does not delete tenant rows.
 16. Review fixes (2026-11-17): `20261117120000_byok_rpc_lockdown.sql`, `20261117120100_review_payment_underpay_guard.sql`, `20261117120200_review_payment_plan_and_lifetime.sql`
 17. Whop billing (2026-11-23): `20261123120000_whop_billing.sql`
 18. Plan entitlements (2026-11-24): `20261124120000_plan_entitlements.sql`
+19. Whop plan ids (2026-11-25): `20261125120000_whop_plan_ids.sql` (attaches the three Whop plans, hides the old placeholder plans)
+20. AI recommendations (2026-11-26): `20261126120000_ai_recommendations.sql`
+21. AI Growth Agent (2026-11-27): `20261127120000_ai_agent_proposals.sql`
 
 Every file from step 14 on has a commented rollback at the top.
 
@@ -223,6 +226,12 @@ the dashboard is replaced by a screen with the plans, to pay, or **Log out**.
 The server blocks the same accounts independently. In **Admin → Users** you can
 extend a trial (7 / 14 / 30 days), put an account on a plan for N days, or set
 it to Expired to pause it.
+
+**AI limits per plan:** "AI requests / month" (Admin -> Plans) caps recommendations,
+the Growth Agent and analytics; auto-replies keep their own "AI replies / month"
+limit. Recommendations refresh daily on Pro and Agency and weekly on Starter.
+The Growth Agent suggests changes (for example pausing an automation) but
+applies nothing until the customer confirms.
 
 ## 8. Payments
 

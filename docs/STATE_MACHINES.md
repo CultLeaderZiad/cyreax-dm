@@ -303,3 +303,19 @@ stateDiagram-v2
   invited --> active
   active --> [*]
 ```
+
+## aiAgentProposal — `ai_agent_proposals.status`
+
+Initial: `pending`. Terminal: `dismissed`, `failed`.
+
+Written by: `lib/ai/agent/proposals.ts`
+
+```mermaid
+stateDiagram-v2
+  [*] --> pending
+  pending --> confirmed
+  pending --> dismissed
+  confirmed --> failed
+  dismissed --> [*]
+  failed --> [*]
+```

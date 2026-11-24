@@ -243,7 +243,7 @@ export async function assertChannelConnect(
 export async function assertFeature(supabase: any, account: AccountGate, feature: FeatureKey): Promise<void> {
   const plan = await resolveAccountPlan(supabase, account)
   if (featureEnabled(plan, feature)) return
-  const label = feature === "whiteLabel" ? "White-label" : "API access"
+  const label = feature === "whiteLabel" ? "White-label" : feature === "aiAgent" ? "The AI Growth Agent" : "API access"
   throw new PlanLimitError({
     metric: "workspaces",
     used: 0,
