@@ -5,12 +5,24 @@ export interface Pair<T> {
   previous: T
 }
 
+/** People the AI answered in a window, and how many of them it had to pass to a human. */
+export interface AiHandling {
+  answered: number
+  handedOff: number
+}
+
+/** Share of AI-answered people who never needed a human, as a whole percent. Null when the AI answered nobody. */
+export function aiResolutionRate(h: AiHandling): number | null {
+  return h.answered > 0 ? Math.round(((h.answered - h.handedOff) / h.answered) * 100) : null
+}
+
 export interface OverviewKpis {
   range: RangeKey
   conversations: Pair<number>
   leads: Pair<number>
   replies: Pair<number>
   medianResponseSeconds: Pair<number | null>
+  aiHandling: Pair<AiHandling>
 }
 
 type Window = { gte: string; lt: string }
@@ -57,8 +69,27 @@ export async function loadOverviewKpis(supabase: any, userId: string | number, r
     return { replies: rows.filter((r) => !r.inbound).length, rows }
   }
 
-  const [convCur, convPrev, leadCur, leadPrev, msgCur, msgPrev] = await Promise.all([
-    conversations(cur), conversations(prev), leads(cur), leads(prev), messages(cur), messages(prev),
+  // Every AI answer is logged with whether it handed the person to a human (playground tests are not customers).
+  const aiHandling = async (win: Window): Promise<AiHandling> => {
+    const { data, error } = await supabase
+      .from("ai_answer_logs")
+      .select("contact_external_id, handoff")
+      .eq("user_id", userId)
+      .gte("created_at", win.gte)
+      .lt("created_at", win.lt)
+      .limit(5000)
+    if (error || !Array.isArray(data)) return { answered: 0, handedOff: 0 }
+    const people = new Map<string, boolean>()
+    for (const row of data) {
+      const id = row.contact_external_id
+      if (!id || id === "playground") continue
+      people.set(String(id), people.get(String(id)) === true || row.handoff === true)
+    }
+    return { answered: people.size, handedOff: [...people.values()].filter(Boolean).length }
+  }
+
+  const [convCur, convPrev, leadCur, leadPrev, msgCur, msgPrev, aiCur, aiPrev] = await Promise.all([
+    conversations(cur), conversations(prev), leads(cur), leads(prev), messages(cur), messages(prev), aiHandling(cur), aiHandling(prev),
   ])
 
   return {
@@ -66,6 +97,7 @@ export async function loadOverviewKpis(supabase: any, userId: string | number, r
     conversations: { current: convCur, previous: convPrev },
     leads: { current: leadCur, previous: leadPrev },
     replies: { current: msgCur.replies, previous: msgPrev.replies },
+    aiHandling: { current: aiCur, previous: aiPrev },
     medianResponseSeconds: { current: medianFirstResponseSeconds(msgCur.rows), previous: medianFirstResponseSeconds(msgPrev.rows) },
   }
 }

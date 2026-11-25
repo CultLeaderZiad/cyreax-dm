@@ -2,7 +2,7 @@
 
 import { useDateRange } from "@/hooks/use-date-range"
 import { formatSeconds, percentDelta, secondsDelta } from "@/lib/analytics/period"
-import type { OverviewKpis } from "@/lib/analytics/overview"
+import { aiResolutionRate, type OverviewKpis } from "@/lib/analytics/overview"
 import * as React from "react"
 import { useState, useMemo } from "react"
 import Link from "next/link"
@@ -176,6 +176,8 @@ export default function DashboardOverviewPage() {
   const convs = kpis?.conversations.current ?? 0
   const leads = kpis?.leads.current ?? 0
   const replies = kpis?.replies.current ?? 0
+  const aiNow = kpis ? aiResolutionRate(kpis.aiHandling.current) : null
+  const aiBefore = kpis ? aiResolutionRate(kpis.aiHandling.previous) : null
   const medianNow = kpis?.medianResponseSeconds.current ?? null
   const asDelta = (d: ReturnType<typeof percentDelta>, invert = false) =>
     d ? { delta: d.label, deltaType: d.direction, invertDeltaColor: invert } : {}
@@ -282,10 +284,12 @@ export default function DashboardOverviewPage() {
           {...asDelta(percentDelta(leads, kpis?.leads.previous ?? 0))}
         />
         <KPICard
-          label={isAr ? "ردود مُرسلة" : "Replies sent"}
-          value={replies.toLocaleString()}
+          label={isAr ? "حل الذكاء الاصطناعي" : "AI resolution"}
+          value={aiNow == null ? "—" : `${aiNow}%`}
           isAiMetric={true}
-          {...asDelta(percentDelta(replies, kpis?.replies.previous ?? 0))}
+          {...(aiNow != null && aiBefore != null && aiNow !== aiBefore
+            ? { delta: `${aiNow > aiBefore ? "+" : ""}${aiNow - aiBefore} pts`, deltaType: aiNow > aiBefore ? ("increase" as const) : ("decrease" as const) }
+            : {})}
         />
         <KPICard
           label={t.medianFirstResponse || "Median first response"}
