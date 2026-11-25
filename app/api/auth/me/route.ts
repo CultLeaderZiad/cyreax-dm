@@ -1,6 +1,7 @@
 import { resolveOnboarding } from "@/lib/onboarding";
 import { notifyAdminOfAccessRequest } from "@/lib/onboarding-notify";
-import { TRIAL_GRACE_MS, trialPhase } from "@/lib/billing/plans"
+import { trialPhase } from "@/lib/billing/plans"
+import { loadGraceMs } from "@/lib/billing/grace"
 import { activePeriodValid } from "@/lib/billing/enforce";
 export const dynamic = 'force-dynamic'
 import { type NextRequest, NextResponse } from "next/server"
@@ -30,6 +31,7 @@ export async function GET(request: NextRequest) {
     defaultProfilePic = "/admin-avatar.png";
   }
 
+    const graceMs = await loadGraceMs(await getSupabaseBypassClient());
     let hasValidPayment = false;
     let isTrialExpired = false;
     let isPastDeadline = false;
@@ -43,7 +45,7 @@ export async function GET(request: NextRequest) {
       if (trialDate < now) {
         isTrialExpired = true;
         // Paused only after the grace window (TRIAL_GRACE_HOURS) has passed.
-        isPastDeadline = trialPhase(trialDate.getTime(), now.getTime()) === "over";
+        isPastDeadline = trialPhase(trialDate.getTime(), now.getTime(), graceMs) === "over";
       }
     }
 
@@ -83,7 +85,7 @@ export async function GET(request: NextRequest) {
             const now = new Date();
             if (trialDate < now) {
               isTrialExpired = true;
-              isPastDeadline = trialPhase(trialDate.getTime(), now.getTime()) === "over";
+              isPastDeadline = trialPhase(trialDate.getTime(), now.getTime(), graceMs) === "over";
             } else {
               isTrialExpired = false;
               isPastDeadline = false;
@@ -155,7 +157,7 @@ export async function GET(request: NextRequest) {
       is_past_deadline: isPastDeadline,
       onboarding_required: needsOnboarding,
       onboarding_status: onboardingStatus,
-      trial_grace_ends_at: effectiveTrialEnds ? new Date(new Date(effectiveTrialEnds).getTime() + TRIAL_GRACE_MS).toISOString() : null,
+      trial_grace_ends_at: effectiveTrialEnds ? new Date(new Date(effectiveTrialEnds).getTime() + graceMs).toISOString() : null,
       is_banned: account.is_banned || false,
       banned_reason: account.banned_reason || null,
       instagram_reconnect_required: instagramNeedsReconnect(igUser),

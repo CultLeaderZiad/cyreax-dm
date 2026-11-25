@@ -56,6 +56,7 @@ export default function DashboardLayout({
         logout,
         plan,
         trialEndsAt,
+        trialGraceEndsAt,
         trialExempt,
         isLoading,
         accountId,
@@ -242,7 +243,7 @@ export default function DashboardLayout({
                             : 'overflow-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] md:pb-0'
                     }`}
                 >
-                    {!trialExempt && <TrialBanner plan={plan || ""} trialEndsAt={trialEndsAt} />}
+                    {!trialExempt && <TrialBanner plan={plan || ""} trialEndsAt={trialEndsAt} graceEndsAt={trialGraceEndsAt} />}
                     <OnboardingBanner status={onboardingStatus} />
                     <UsageNotice />
                     {instagramReconnectRequired && (

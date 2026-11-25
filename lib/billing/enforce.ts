@@ -1,4 +1,5 @@
 import { TRIAL_PLAN_ID, scaleForTrial, applyEntitlements, featureEnabled, limitFor, meterPeriod, resolvePlan, trialPhase, type FeatureKey, type MeterKey, type ResolvedPlan } from "@/lib/billing/plans"
+import { loadGraceMs } from "@/lib/billing/grace"
 import { channelSlots, judgeUsage, slotsAfterConnect, type ChannelConnection, type ChannelProfile, type UsageJudgement } from "@/lib/billing/usage"
 
 export class PlanLimitError extends Error {
@@ -109,6 +110,7 @@ async function resolveBasePlan(supabase: any, account: AccountGate, nowMs: numbe
     return { ...pro, limits: { ...pro.limits, workspaces: -1, channels: -1, contacts: -1, aiReplies: -1, broadcasts: -1, seats: -1 } }
   }
   const billing = await billingRow(supabase, account.id)
+  const graceMs = await loadGraceMs(supabase)
   if (billing?.status === "expired" || billing?.status === "canceled") return resolvePlan("expired")
   // Paid access ends at the period end. past_due is the dunning reminder
   // stage, not extra paid time, so it gets the same check.
@@ -117,7 +119,7 @@ async function resolveBasePlan(supabase: any, account: AccountGate, nowMs: numbe
   }
   // A finished trial is not a free tier: access is paused until a plan is paid.
   if (billing?.status === "trialing" && billing.trial_ends_at) {
-    const phase = trialPhase(Date.parse(billing.trial_ends_at), nowMs)
+    const phase = trialPhase(Date.parse(billing.trial_ends_at), nowMs, graceMs)
     if (phase === "over") return resolvePlan("expired")
     return { ...resolvePlan(billing.plan_id || TRIAL_PLAN_ID), trial: true }
   }
@@ -125,7 +127,7 @@ async function resolveBasePlan(supabase: any, account: AccountGate, nowMs: numbe
     if (billing.plan_id) return resolvePlan(billing.plan_id)
   }
   if (account.plan === "trial" && account.trial_ends_at && !account.trial_exempt) {
-    const phase = trialPhase(Date.parse(account.trial_ends_at), nowMs)
+    const phase = trialPhase(Date.parse(account.trial_ends_at), nowMs, graceMs)
     if (phase === "over") return resolvePlan("expired")
     return { ...resolvePlan(TRIAL_PLAN_ID), trial: true }
   }
