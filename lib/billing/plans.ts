@@ -56,11 +56,20 @@ export const TRIAL_DAYS = 7
 /** After the trial ends the account keeps working for this long, with a countdown, so the owner can subscribe without losing a beat. */
 export const TRIAL_GRACE_HOURS = 12
 export const TRIAL_GRACE_MS = TRIAL_GRACE_HOURS * 3_600_000
+/** The admin can change the grace window (global setting `trial_grace_hours`) within this range. */
+export const TRIAL_GRACE_MAX_HOURS = 168
+
+/** A stored or submitted value as a whole number of hours in range; anything else is the default. */
+export function normalizeGraceHours(value: unknown): number {
+  const n = typeof value === "string" && value.trim() !== "" ? Number(value) : value
+  if (typeof n !== "number" || !Number.isFinite(n)) return TRIAL_GRACE_HOURS
+  return Math.min(TRIAL_GRACE_MAX_HOURS, Math.max(0, Math.round(n)))
+}
 
 /** running: trial not over. grace: over, still inside the grace window. over: paused until a plan is paid. */
-export function trialPhase(trialEndsAtMs: number, nowMs: number): "running" | "grace" | "over" {
+export function trialPhase(trialEndsAtMs: number, nowMs: number, graceMs: number = TRIAL_GRACE_MS): "running" | "grace" | "over" {
   if (nowMs < trialEndsAtMs) return "running"
-  return nowMs < trialEndsAtMs + TRIAL_GRACE_MS ? "grace" : "over"
+  return nowMs < trialEndsAtMs + graceMs ? "grace" : "over"
 }
 /** The tier a running trial uses (Pro). */
 export const TRIAL_PLAN_ID = "creator_plus"

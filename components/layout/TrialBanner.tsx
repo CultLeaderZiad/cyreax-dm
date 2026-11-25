@@ -17,7 +17,7 @@ function countdown(ms: number): string {
  * Running trial: days left (dismissible). Trial over: a live countdown of the
  * grace window that cannot be dismissed, because access stops when it ends.
  */
-export function TrialBanner({ plan, trialEndsAt }: { plan: string; trialEndsAt: string | null }) {
+export function TrialBanner({ plan, trialEndsAt, graceEndsAt }: { plan: string; trialEndsAt: string | null; graceEndsAt?: string | null }) {
   const [dismissed, setDismissed] = useState(true)
   const [now, setNow] = useState<number | null>(null)
 
@@ -35,7 +35,10 @@ export function TrialBanner({ plan, trialEndsAt }: { plan: string; trialEndsAt: 
   if (plan !== "trial" || !trialEndsAt || now === null) return null
   const end = new Date(trialEndsAt).getTime()
   if (!Number.isFinite(end)) return null
-  const phase = trialPhase(end, now)
+  // The grace window is whatever the admin set; the API sends where it ends.
+  const graceEnd = graceEndsAt ? new Date(graceEndsAt).getTime() : NaN
+  const graceMs = Number.isFinite(graceEnd) ? Math.max(0, graceEnd - end) : TRIAL_GRACE_MS
+  const phase = trialPhase(end, now, graceMs)
   if (phase === "over") return null
 
   if (phase === "grace") {
@@ -43,7 +46,7 @@ export function TrialBanner({ plan, trialEndsAt }: { plan: string; trialEndsAt: 
       <div role="alert" className="relative z-20 flex min-h-10 select-none items-center justify-center gap-3 border-b border-[var(--gold)]/40 bg-[var(--gold)]/15 px-4 py-2 text-[12.5px] text-[var(--t1)]">
         <AlertTriangle className="size-4 shrink-0 text-[var(--gold)]" />
         <span>
-          Your free trial has ended. Subscribe within <strong className="font-mono tabular-nums">{countdown(end + TRIAL_GRACE_MS - now)}</strong> to keep your automations running.
+          Your free trial has ended. Subscribe within <strong className="font-mono tabular-nums">{countdown(end + graceMs - now)}</strong> to keep your automations running.
         </span>
         <Link href="/dashboard/billing" className="rounded-md bg-[var(--gold)] px-3 py-1 text-[12px] font-semibold text-black transition-colors hover:bg-[var(--gold2)]">
           Choose a plan

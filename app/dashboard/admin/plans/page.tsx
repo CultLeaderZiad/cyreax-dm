@@ -1,6 +1,7 @@
 "use client"
 
 import { PLAN_CATALOG, type PlanLimits } from "@/lib/billing/plans"
+import { TrialGraceSetting } from "@/components/admin/TrialGraceSetting"
 import { EntitlementsEditor } from "@/components/admin/EntitlementsEditor"
 import { useState, useEffect } from "react"
 import { Loader2, Plus, Pencil, Trash2, ExternalLink, RefreshCw } from "lucide-react"
@@ -321,6 +322,8 @@ export default function DashboardAdminPlansPage() {
           </Button>
         </div>
       </div>
+
+      <TrialGraceSetting />
 
       {error && (
         <div className="p-4 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-sm">

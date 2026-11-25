@@ -163,3 +163,22 @@ describe("the choose-a-plan-or-log-out screen", () => {
     assert.equal(gateReason({ plan: "creator", hasValidPayment: true, isPastDeadline: true }), null)
   })
 })
+
+describe("admin-controlled trial grace", () => {
+  it("trialPhase honours a custom grace window, including zero", () => {
+    const { trialPhase } = plans
+    const H = 3_600_000
+    assert.equal(trialPhase(NOW - 30 * H, NOW, 48 * H), "grace")
+    assert.equal(trialPhase(NOW - 49 * H, NOW, 48 * H), "over")
+    assert.equal(trialPhase(NOW - 1, NOW, 0), "over")
+  })
+  it("normalizeGraceHours clamps and falls back to the default", () => {
+    const { normalizeGraceHours } = plans
+    assert.equal(normalizeGraceHours(undefined), 12)
+    assert.equal(normalizeGraceHours("abc"), 12)
+    assert.equal(normalizeGraceHours(-5), 0)
+    assert.equal(normalizeGraceHours(9999), 168)
+    assert.equal(normalizeGraceHours("24"), 24)
+    assert.equal(normalizeGraceHours(0), 0)
+  })
+})

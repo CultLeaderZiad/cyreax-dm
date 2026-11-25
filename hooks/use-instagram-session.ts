@@ -11,6 +11,7 @@ export interface SessionState {
     profilePic: string | null
     plan: string | null
     trialEndsAt: string | null
+    trialGraceEndsAt: string | null
     trialExempt: boolean
     email: string | null
     role: string | null
@@ -44,6 +45,7 @@ const initialState: SessionState = {
     profilePic: null,
     plan: null,
     trialEndsAt: null,
+    trialGraceEndsAt: null,
     trialExempt: false,
     email: null,
     role: null,
@@ -105,6 +107,7 @@ async function fetchMe(): Promise<boolean> {
                     profilePic: data.profilePic || null,
                     plan: data.plan || null,
                     trialEndsAt: data.trial_ends_at || null,
+                    trialGraceEndsAt: data.trial_grace_ends_at || null,
                     trialExempt: data.trial_exempt || false,
                     email: data.email || null,
                     role: data.role || null,
