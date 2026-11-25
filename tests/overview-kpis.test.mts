@@ -7,7 +7,7 @@ import { beforeEach, describe, it } from "node:test"
 
 const { fakeDb } = await import("./fakes/supabase-server.ts")
 const { getSupabaseBypassClient } = await import("../lib/supabase-server.ts")
-const { loadOverviewKpis } = await import("../lib/analytics/overview.ts")
+const { loadOverviewKpis, aiResolutionRate } = await import("../lib/analytics/overview.ts")
 
 const NOW = Date.UTC(2026, 10, 24, 12, 0, 0)
 const day = 86_400_000
@@ -38,6 +38,16 @@ beforeEach(() => {
       { id: "m6", user_id: 1, conversation_id: "p1", created_at: ago(9, 120), direction: "out" },
       { id: "m7", user_id: 2, conversation_id: "other", created_at: ago(1), direction: "out" },
     ],
+    ai_answer_logs: [
+      { id: "a1", user_id: 1, contact_external_id: "u1", handoff: false, created_at: ago(1) },
+      { id: "a2", user_id: 1, contact_external_id: "u1", handoff: false, created_at: ago(1) },
+      { id: "a3", user_id: 1, contact_external_id: "u2", handoff: false, created_at: ago(2) },
+      { id: "a4", user_id: 1, contact_external_id: "u3", handoff: true, created_at: ago(2) },
+      { id: "a5", user_id: 1, contact_external_id: "u3", handoff: false, created_at: ago(3) },
+      { id: "a6", user_id: 1, contact_external_id: "playground", handoff: true, created_at: ago(1) },
+      { id: "a7", user_id: 1, contact_external_id: "u4", handoff: true, created_at: ago(9) },
+      { id: "a8", user_id: 2, contact_external_id: "x", handoff: true, created_at: ago(1) },
+    ],
   }
 })
 
@@ -63,5 +73,21 @@ describe("overview KPIs", () => {
     const k = await loadOverviewKpis(db, 99, "7d", NOW)
     assert.deepEqual([k.conversations, k.leads, k.replies], [{ current: 0, previous: 0 }, { current: 0, previous: 0 }, { current: 0, previous: 0 }])
     assert.deepEqual(k.medianResponseSeconds, { current: null, previous: null })
+  })
+
+  it("AI resolution counts people the AI answered who were never handed to a human", async () => {
+    const db = await getSupabaseBypassClient()
+    const k = await loadOverviewKpis(db, 1, "7d", NOW)
+    // u1, u2 resolved; u3 was handed over (any handoff turn counts); the playground is not a customer.
+    assert.deepEqual(k.aiHandling.current, { answered: 3, handedOff: 1 })
+    assert.deepEqual(k.aiHandling.previous, { answered: 1, handedOff: 1 })
+    assert.equal(aiResolutionRate(k.aiHandling.current), 67)
+    assert.equal(aiResolutionRate(k.aiHandling.previous), 0)
+  })
+
+  it("AI resolution is unknown, not zero, when the AI answered nobody", async () => {
+    const db = await getSupabaseBypassClient()
+    const k = await loadOverviewKpis(db, 99, "7d", NOW)
+    assert.equal(aiResolutionRate(k.aiHandling.current), null)
   })
 })
